@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Toolbox Meetings V2 — {{ job.job_number }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-3">
+
+  <div class="d-flex align-items-center mb-3 gap-2">
+    <a href="{% url 'job_detail' job.pk %}" class="btn btn-sm btn-outline-secondary">&larr; Job</a>
+    <h4 class="mb-0">Toolbox Meetings V2 — Job {{ job.job_number }}</h4>
+    <div class="ms-auto d-flex gap-2">
+      <a href="{% url 'toolbox_v2_create' job.pk 'daily' %}" class="btn btn-sm btn-primary">+ Daily Toolbox</a>
+      <a href="{% url 'toolbox_v2_create' job.pk 'jmp' %}" class="btn btn-sm btn-outline-primary">+ JMP Toolbox</a>
+    </div>
+  </div>
+
+  {% if meetings %}
+  <table class="table table-sm table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Type</th>
+        <th>Date</th>
+        <th>Location</th>
+        <th>Supervisor</th>
+        <th>Attendees</th>
+        <th>Signed</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for m in meetings %}
+      <tr>
+        <td>
+          {% if m.meeting_type == 'daily' %}
+            <span class="badge bg-primary">Daily</span>
+          {% else %}
+            <span class="badge bg-warning text-dark">JMP</span>
+          {% endif %}
+        </td>
+        <td>{% if m.date %}{{ m.date|date:"d M Y" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+        <td>{{ m.location|default:"—" }}</td>
+        <td>{{ m.supervisor|default:"—" }}</td>
+        <td>{{ m.attendees.count }}</td>
+        <td>{{ m.attendees.exclude_unsigned.count|default:"" }}
+          {% with total=m.attendees.count signed=m.attendees.filter_signed %}
+          {% endwith %}
+          <span style="font-size:0.82em; color:#555;">
+            {{ m.attendees.filter.count }}
+          </span>
+        </td>
+        <td class="text-end">
+          <a href="{% url 'toolbox_v2_pdf' m.pk %}" target="_blank" class="btn btn-xs btn-outline-secondary">View PDF</a>
+          <a href="{% url 'toolbox_v2_image' m.pk %}" class="btn btn-xs btn-outline-success" title="Download Image for SMS">⬇ Image</a>
+          <a href="{% url 'toolbox_v2_edit' m.pk %}" class="btn btn-xs btn-outline-primary">Edit</a>
+          <form method="post" action="{% url 'toolbox_v2_delete' m.pk %}" class="d-inline" onsubmit="return confirm('Delete this meeting?')">
+            {% csrf_token %}
+            <button class="btn btn-xs btn-outline-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-muted">No toolbox meetings yet. Use the buttons above to create one.</p>
+  {% endif %}
+
+</div>
+<style>
+  .btn-xs { padding: 2px 8px; font-size: 0.75rem; }
+</style>
+{% endblock %}

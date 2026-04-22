@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tBoxImportDetails xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <mHeaderLines>1</mHeaderLines>
+  <mCommaSeparator>true</mCommaSeparator>
+  <mSpaceSeparator>false</mSpaceSeparator>
+  <mTabSeparator>false</mTabSeparator>
+  <mLineColumn>1</mLineColumn>
+  <mStationColumn>2</mStationColumn>
+  <mUnitSerialNumberColumn>3</mUnitSerialNumberColumn>
+  <mDeploymentDateTimeColumn>0</mDeploymentDateTimeColumn>
+  <mLatColumn>0</mLatColumn>
+  <mLonColumn>0</mLonColumn>
+  <mBatteryColumn>0</mBatteryColumn>
+  <mBatterySNColumn>0</mBatterySNColumn>
+  <mStatusColumn>0</mStatusColumn>
+  <mMemoryColumn>0</mMemoryColumn>
+  <mCMRRColumn>0</mCMRRColumn>
+  <mCrossfeedColumn>0</mCrossfeedColumn>
+  <mResistanceColumn>0</mResistanceColumn>
+  <mTHDColumn>0</mTHDColumn>
+  <mKGainColumn>0</mKGainColumn>
+  <mLowCutFilterColumn>0</mLowCutFilterColumn>
+  <mAntiAliasFilterColumn>0</mAntiAliasFilterColumn>
+  <mSampleRateColumn>0</mSampleRateColumn>
+  <mScanColumn>0</mScanColumn>
+  <mSpreadNoiseColumn>0</mSpreadNoiseColumn>
+  <mOverwrite>true</mOverwrite>
+</tBoxImportDetails>

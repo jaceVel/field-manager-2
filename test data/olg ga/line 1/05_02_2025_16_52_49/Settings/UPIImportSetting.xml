@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tUPIImportBL xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <mImportDirectory />
+  <mMapDirectory>c:\TDMA\Maps</mMapDirectory>
+  <mImportReceivers>true</mImportReceivers>
+  <mImportSources>true</mImportSources>
+  <mImportRelations>true</mImportRelations>
+  <mImportMaps>true</mImportMaps>
+  <mImportShapes>true</mImportShapes>
+  <mResetReceivers>true</mResetReceivers>
+  <mResetSources>true</mResetSources>
+  <mResetRelations>true</mResetRelations>
+  <mResetMaps>true</mResetMaps>
+  <mResetShapes>true</mResetShapes>
+</tUPIImportBL>

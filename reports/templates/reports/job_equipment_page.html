@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+{% block title %}Equipment — {{ job.job_number }}{% endblock %}
+{% block content %}
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;">
+    <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+</p>
+<h1 style="margin:4px 0 16px;">Equipment — {{ job.job_number }}</h1>
+
+<div style="display:grid; grid-template-columns:340px 1fr; gap:16px; align-items:start;">
+
+<!-- ── Assigned Equipment ─────────────────────────────────── -->
+<div class="card" style="position:sticky; top:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <h3 style="margin:0;">Assigned</h3>
+        <span id="assignedCount" style="font-size:0.85em; color:#888;">{{ job_equipment|length }} items</span>
+    </div>
+    <div id="assignedList">
+        {% if job_equipment %}
+        <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+            <tbody id="assignedBody">
+                {% for je in job_equipment %}
+                <tr id="assigned-{{ je.pk }}" style="border-bottom:1px solid #eee;">
+                    <td style="padding:6px 10px; font-weight:600;">{{ je.name }}</td>
+                    <td style="padding:6px 6px; color:#666; font-size:0.85em;">{{ je.equipment_type }}</td>
+                    <td style="padding:6px 4px; text-align:center;">
+                        <button type="button" onclick="removeEquipment({{ je.pk }}, '{{ je.name|escapejs }}')"
+                                style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;">×</button>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p id="assignedEmpty" style="color:#aaa; font-size:0.9em; margin:0;">Select equipment from the fleet.</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ── Fleet ─────────────────────────────────────────────── -->
+<div class="card">
+    <h3 style="margin:0 0 12px;">Fleet</h3>
+
+    <!-- Tabs -->
+    <div style="display:flex; gap:0; border-bottom:2px solid #1a3a5c; margin-bottom:16px;">
+        {% for t in fleet_tabs %}
+        <button id="tab-{{ t.tab }}" onclick="switchTab('{{ t.tab }}')"
+                style="padding:7px 18px; border:none; border-bottom:{% if forloop.first %}3px solid #1a3a5c; background:#1a3a5c; color:white;{% else %}3px solid transparent; background:#f0f4f8; color:#1a3a5c;{% endif %} font-weight:600; cursor:pointer; font-size:0.9em; margin-bottom:-2px; border-radius:6px 6px 0 0;">
+            {{ t.label }}
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Panels -->
+    {% for t in fleet_tabs %}
+    <div id="panel-{{ t.tab }}" {% if not forloop.first %}style="display:none;"{% endif %}>
+        {% if t.fleet %}
+        <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+            <thead>
+                <tr style="background:#f0f4f8;">
+                    <th style="width:36px;"></th>
+                    <th style="padding:6px 10px; text-align:left; color:#1a3a5c;">Name / ID</th>
+                    <th style="padding:6px 10px; text-align:left; color:#1a3a5c;">Notes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in t.fleet %}
+                <tr style="border-bottom:1px solid #eee;{% if e.name in assigned_names %} background:#e8f0f8;{% endif %}">
+                    <td style="padding:6px 8px; text-align:center;" id="fleet-status-{{ e.pk }}">
+                        {% if e.name in assigned_names %}
+                        <input type="checkbox" checked
+                               data-name="{{ e.name|escapejs }}"
+                               onchange="unassignFromFleet(this)"
+                               style="width:auto; cursor:pointer;">
+                        {% else %}
+                        <input type="checkbox" class="fleet-check fleet-check-{{ t.tab }}"
+                               data-equipment-pk="{{ e.pk }}"
+                               data-name="{{ e.name|escapejs }}"
+                               data-type="{{ t.type|escapejs }}"
+                               onchange="onFleetCheck('{{ t.tab }}', this)"
+                               style="width:auto; cursor:pointer;">
+                        {% endif %}
+                    </td>
+                    <td style="padding:6px 10px; font-weight:600;">{{ e.name }}</td>
+                    <td style="padding:6px 10px; color:#666;">{{ e.notes }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:#aaa; font-size:0.9em; margin:0;">No {{ t.label }} in fleet.</p>
+        {% endif %}
+    </div>
+    {% endfor %}
+</div>
+
+<script>
+const addUrl    = "{% url 'job_equipment_add_json' job.pk %}";
+const deleteUrl = pk => `/job-equipment/${pk}/delete-json/`;
+const csrf      = '{{ csrf_token }}';
+
+const assignedMap = {};
+{% for je in job_equipment %}
+assignedMap['{{ je.name|escapejs }}'] = {{ je.pk }};
+{% endfor %}
+
+function switchTab(tab) {
+    document.querySelectorAll('[id^="panel-"]').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('[id^="tab-"]').forEach(b => {
+        b.style.background = '#f0f4f8'; b.style.color = '#1a3a5c';
+        b.style.borderBottom = '3px solid transparent';
+    });
+    document.getElementById('panel-' + tab).style.display = '';
+    const btn = document.getElementById('tab-' + tab);
+    btn.style.background = '#1a3a5c'; btn.style.color = 'white';
+    btn.style.borderBottom = '3px solid #1a3a5c';
+}
+
+function onFleetCheck(tab, cb) {
+    cb.disabled = true;
+    cb.closest('tr').style.background = '#e8f0f8';
+    const equipmentPk = cb.dataset.equipmentPk;
+    const name = cb.dataset.name;
+    fetch(addUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({equipment_pk: equipmentPk}),
+    }).then(r => r.json()).then(data => {
+        if (!data.ok) { cb.checked = false; cb.disabled = false; cb.closest('tr').style.background = ''; return; }
+        assignedMap[name] = data.je_pk;
+        const cell = document.getElementById('fleet-status-' + equipmentPk);
+        if (cell) {
+            const safeName = name.replace(/"/g, '&quot;');
+            cell.innerHTML = `<input type="checkbox" checked data-name="${safeName}" onchange="unassignFromFleet(this)" style="width:auto;cursor:pointer;">`;
+        }
+        addAssignedRow(data.je_pk, name, data.equipment_type);
+        updateCount();
+    });
+}
+
+function unassignFromFleet(cb) {
+    const name = cb.dataset.name;
+    const jePk = assignedMap[name];
+    if (!jePk) { cb.checked = true; return; }
+    cb.disabled = true;
+    doRemoveEquipment(jePk, name, cb.closest('[id^="fleet-status-"]'));
+}
+
+function removeEquipment(jePk, name) {
+    let fleetCell = null;
+    for (const cell of document.querySelectorAll('[id^="fleet-status-"]')) {
+        const row = cell.closest('tr');
+        if (row && row.querySelector('td:nth-child(2)')?.textContent.trim() === name) {
+            fleetCell = cell; break;
+        }
+    }
+    doRemoveEquipment(jePk, name, fleetCell);
+}
+
+function doRemoveEquipment(jePk, name, fleetCell) {
+    fetch(deleteUrl(jePk), {method: 'POST', headers: {'X-CSRFToken': csrf}})
+        .then(r => r.json()).then(data => {
+            if (!data.ok) { if (fleetCell) { const cb = fleetCell.querySelector('input'); if (cb) { cb.checked = true; cb.disabled = false; } } return; }
+            document.getElementById('assigned-' + jePk)?.remove();
+            if (fleetCell) {
+                const equipmentPk = fleetCell.id.replace('fleet-status-', '');
+                const tab = fleetCell.closest('[id^="panel-"]')?.id.replace('panel-', '') || '';
+                const safeName = name.replace(/"/g, '&quot;');
+                fleetCell.closest('tr').style.background = '';
+                fleetCell.innerHTML = `<input type="checkbox" class="fleet-check fleet-check-${tab}"
+                    data-equipment-pk="${equipmentPk}" data-name="${safeName}" data-type=""
+                    onchange="onFleetCheck('${tab}', this)" style="width:auto;cursor:pointer;">`;
+            }
+            delete assignedMap[name];
+            updateCount();
+            if (!document.querySelector('#assignedBody tr')) {
+                document.getElementById('assignedBody')?.closest('table')?.remove();
+                const list = document.getElementById('assignedList');
+                if (!list.querySelector('p')) {
+                    const p = document.createElement('p');
+                    p.id = 'assignedEmpty';
+                    p.style.cssText = 'color:#aaa;font-size:0.9em;margin:0;';
+                    p.textContent = 'No equipment assigned yet. Select from the fleet below.';
+                    list.appendChild(p);
+                }
+            }
+        });
+}
+
+function addAssignedRow(jePk, name, equipmentType) {
+    document.getElementById('assignedEmpty')?.remove();
+    let tbody = document.getElementById('assignedBody');
+    if (!tbody) {
+        document.getElementById('assignedList').innerHTML = `
+            <table style="width:100%;border-collapse:collapse;font-size:0.88em;">
+                <tbody id="assignedBody"></tbody>
+            </table>`;
+        tbody = document.getElementById('assignedBody');
+    }
+    const safeName = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const tr = document.createElement('tr');
+    tr.id = 'assigned-' + jePk;
+    tr.style.borderBottom = '1px solid #eee';
+    tr.innerHTML = `
+        <td style="padding:6px 10px;font-weight:600;">${name}</td>
+        <td style="padding:6px 6px;color:#666;font-size:0.85em;">${equipmentType}</td>
+        <td style="padding:6px 4px;text-align:center;">
+            <button type="button" onclick="removeEquipment(${jePk},'${safeName}')"
+                    style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;">×</button>
+        </td>`;
+    tbody.appendChild(tr);
+}
+
+function updateCount() {
+    const count = document.querySelectorAll('#assignedBody tr').length;
+    document.getElementById('assignedCount').textContent = count + ' items';
+}
+</script>
+</div>{# end grid #}
+{% endblock %}

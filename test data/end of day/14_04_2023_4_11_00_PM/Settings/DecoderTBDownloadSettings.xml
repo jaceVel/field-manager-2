@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tDecoderTBDownloadSettings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <mFrom>2009-01-01T00:00:00</mFrom>
+  <mTo>2021-05-31T23:59:59</mTo>
+  <mDownloadType>0</mDownloadType>
+  <mProcess>1 - vibroseis</mProcess>
+  <mClear>2</mClear>
+</tDecoderTBDownloadSettings>

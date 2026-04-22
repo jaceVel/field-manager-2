@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfString xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <string>Sweep Out Of Tolerance</string>
+  <string>Void File</string>
+  <string>Skipped V/p's</string>
+  <string>Reshoot VP- Best QC</string>
+  <string>Void Test Sweep</string>
+  <string>BAD SWEEP</string>
+  <string>RESHOOT FOR BAD SWEEP</string>
+</ArrayOfString>

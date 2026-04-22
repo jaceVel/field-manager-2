@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfTUEEncoder xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <tUEEncoder>
+    <IPAddress>10.0.59.1</IPAddress>
+    <MacAddress>02:00:00:00:17:0D</MacAddress>
+    <EncoderType>UE3</EncoderType>
+    <UnitID>20</UnitID>
+    <CrewID>0</CrewID>
+  </tUEEncoder>
+  <tUEEncoder>
+    <IPAddress>10.0.59.3</IPAddress>
+    <MacAddress>02:00:00:00:17:0F</MacAddress>
+    <EncoderType>UE3</EncoderType>
+    <UnitID>10</UnitID>
+    <CrewID>0</CrewID>
+  </tUEEncoder>
+</ArrayOfTUEEncoder>

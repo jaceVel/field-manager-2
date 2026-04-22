@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: Arial, sans-serif; font-size: 8pt; color: #1a1a1a; }
+h2 { font-size: 11pt; color: #1a3a5c; margin-bottom: 2px; }
+.subtitle { font-size: 8pt; color: #555; margin-bottom: 10px; }
+table { border-collapse: collapse; table-layout: fixed; width: 100%; }
+th, td { border: 0.5pt solid #c5d5e8; padding: 0; }
+.col-name { width: 110px; font-weight: 600; font-size: 7.5pt; padding: 3px 6px; background: #f8fafc; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-day { text-align: center; font-size: 6pt; background: #1a3a5c; color: white; line-height: 1.2; padding: 2px 1px; overflow: hidden; }
+.col-cell { height: 18px; }
+.row-sep td { background: #f0f4f8 !important; height: 6px; }
+.legend { margin-top: 10px; display: flex; flex-wrap: wrap; gap: 6px 14px; }
+.legend-item { display: flex; align-items: center; gap: 4px; font-size: 7pt; }
+.legend-swatch { width: 14px; height: 10px; border-radius: 2px; border: 0.5pt solid rgba(0,0,0,0.15); display: inline-block; flex-shrink: 0; }
+</style>
+</head>
+<body>
+<h2>Personnel Schedule — {{ job.job_number }}</h2>
+<div class="subtitle">{{ job.project_name }} &nbsp;|&nbsp; {{ range_start|date:"j M Y" }} – {{ range_end|date:"j M Y" }}</div>
+
+<table>
+    <thead>
+        <tr>
+            <th class="col-name" style="background:#1a3a5c; color:white; font-size:7pt;">Personnel</th>
+            {% for d in schedule_days %}
+            <th class="col-day">
+                <div>{{ d|date:"D"|slice:":1" }}</div>
+                <div style="font-size:7pt; font-weight:700; color:white;">{{ d|date:"j" }}</div>
+                <div style="font-size:5.5pt; opacity:0.8;">{{ d|date:"M" }}</div>
+            </th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in schedule_rows %}
+        {% if row.is_separator %}
+        <tr class="row-sep">
+            <td></td>
+            {% for d in schedule_days %}<td></td>{% endfor %}
+        </tr>
+        {% else %}
+        <tr>
+            <td class="col-name">{{ row.person.name }}</td>
+            {% for cell in row.cells %}
+            <td class="col-cell" title="{{ cell.1 }}" style="position:relative;overflow:hidden;{% if cell.1 %}{% for s in statuses %}{% if s.name == cell.1 %}{% if s.pattern == 'stripes' %}background:repeating-linear-gradient(45deg,{{ s.color }},{{ s.color }} 3px,white 3px,white 7px);{% elif s.pattern == 'dots' %}background-color:white;background-image:radial-gradient({{ s.color }} 35%,transparent 35%);background-size:6px 6px;{% elif s.pattern == 'cross' %}background:repeating-linear-gradient(0deg,{{ s.color }},{{ s.color }} 2px,white 2px,white 8px),repeating-linear-gradient(90deg,{{ s.color }},{{ s.color }} 2px,white 2px,white 8px);{% else %}background:{{ s.color }};{% endif %}{% endif %}{% endfor %}{% else %}background:white;{% endif %}">
+                {% if cell.2 %}<span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:5pt;font-weight:700;color:rgba(0,0,0,0.65);line-height:1;text-align:center;padding:1px;overflow:hidden;word-break:break-all;">{{ cell.2 }}</span>{% endif %}
+            </td>
+            {% endfor %}
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+    <tfoot>
+        <tr>
+            <td class="col-name" style="background:#f0f4f8; border-top:1pt solid #1a3a5c; font-size:6.5pt; color:#555;">Totals</td>
+            {% for counts in col_counts %}
+            <td style="background:#f0f4f8; border-top:1pt solid #1a3a5c; padding:1px; vertical-align:top;">
+                {% for sname, cnt in counts %}
+                {% for s in statuses %}{% if s.name == sname %}
+                <div style="font-size:6pt; font-weight:700; text-align:center; border-radius:1px; margin:1px 0; padding:0 1px; color:#000;
+                    {% if s.pattern == 'stripes' %}background:repeating-linear-gradient(45deg,{{ s.color }},{{ s.color }} 3px,white 3px,white 7px);
+                    {% elif s.pattern == 'dots' %}background-color:{{ s.color }};
+                    {% elif s.pattern == 'cross' %}background:{{ s.color }};
+                    {% else %}background:{{ s.color }};{% endif %}">{{ cnt }}</div>
+                {% endif %}{% endfor %}
+                {% endfor %}
+            </td>
+            {% endfor %}
+        </tr>
+    </tfoot>
+</table>
+
+{% if statuses %}
+<div class="legend">
+    {% for s in statuses %}
+    <div class="legend-item">
+        <span class="legend-swatch" style="{% if s.pattern == 'stripes' %}background:repeating-linear-gradient(45deg,{{ s.color }},{{ s.color }} 3px,white 3px,white 7px);{% elif s.pattern == 'dots' %}background-color:white;background-image:radial-gradient({{ s.color }} 35%,transparent 35%);background-size:6px 6px;{% elif s.pattern == 'cross' %}background:repeating-linear-gradient(0deg,{{ s.color }},{{ s.color }} 2px,white 2px,white 8px),repeating-linear-gradient(90deg,{{ s.color }},{{ s.color }} 2px,white 2px,white 8px);{% else %}background:{{ s.color }};{% endif %}"></span>
+        {{ s.name }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+</body>
+</html>

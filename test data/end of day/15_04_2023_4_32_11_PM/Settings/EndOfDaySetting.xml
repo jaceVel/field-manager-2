@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tEndOfDay xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <mOutputDirectory>C:\TDMA\End of Day Output</mOutputDirectory>
+  <mDownloadSEGY>true</mDownloadSEGY>
+  <mArchiveProspect>true</mArchiveProspect>
+  <mOutputReport>true</mOutputReport>
+  <mExitAfterCompletion>true</mExitAfterCompletion>
+  <mOpenFolder>true</mOpenFolder>
+  <mInventory>false</mInventory>
+  <mMerge>true</mMerge>
+  <mImportReceivers>false</mImportReceivers>
+  <mImportSources>false</mImportSources>
+  <mImportAcquiredShots>false</mImportAcquiredShots>
+  <mImportPSS>false</mImportPSS>
+</tEndOfDay>

@@ -1,0 +1,7 @@
+Sigma Observer's log Report,,,Thursday  Apr 13  2023 12:31 PM
+,,,,,,,,,,,,,,
+File#,Status,Line,Station,EPs,ShotID,UTC Date, UTC Time, Local Date, Local Time,Chans,Spread, Total, Missing, PSS Info, Missing PSS, Uphole,  Hole Depth, Charge Size,Comment,Source Group, Source Units,Sweep
+101,Acquired,139,200.5,1,101,Apr 13 2023,01:48:41,Apr 13 2023,11:48:41,0,,0,0,1 of 1 PSS Received,0,0.00,,,7-180 12s,1,7,1
+103,Acquired,139,198.5,1,103,Apr 13 2023,02:00:34,Apr 13 2023,12:00:34,0,,0,0,1 of 1 PSS Received,0,0.00,,,7-180 10s,1,7,1
+105,Acquired,139,196.5,1,105,Apr 13 2023,02:05:11,Apr 13 2023,12:05:11,0,,0,0,1 of 1 PSS Received,0,0.00,,,7-180 8s,1,7,1
+107,Acquired,139,194.5,1,107,Apr 13 2023,02:08:44,Apr 13 2023,12:08:44,0,,0,0,1 of 1 PSS Received,0,0.00,,,7-200 12s,1,7,1

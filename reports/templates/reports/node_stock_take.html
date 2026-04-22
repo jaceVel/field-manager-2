@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+    <a href="{% url 'job_detail' job.pk %}" style="color:#1a3a5c; text-decoration:none; font-size:0.9em;">← {{ job.project_name }} ({{ job.job_number }})</a>
+</div>
+<h2 style="color:#1a3a5c; margin:0 0 20px;">Node Stock Take</h2>
+
+<!-- Summary stats -->
+{% if recon.pre_count or recon.post_count or recon.dead_count %}
+<div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px;">
+    <div style="border:2px solid #c5d5e8; border-radius:10px; padding:14px 16px; background:#f8fafc; text-align:center;">
+        <div style="font-size:1.8em; font-weight:bold; color:#1a3a5c;">{{ recon.pre_count }}</div>
+        <div style="font-size:0.8em; color:#666; margin-top:2px;">Nodes Sent Out</div>
+    </div>
+    <div style="border:2px solid #c5d5e8; border-radius:10px; padding:14px 16px; background:#f8fafc; text-align:center;">
+        <div style="font-size:1.8em; font-weight:bold; color:#1a3a5c;">{{ recon.post_count }}</div>
+        <div style="font-size:0.8em; color:#666; margin-top:2px;">Nodes Returned</div>
+    </div>
+    <div style="border:2px solid {% if recon.dead_count %}#f4a261{% else %}#c5d5e8{% endif %}; border-radius:10px; padding:14px 16px; background:{% if recon.dead_count %}#fff8f3{% else %}#f8fafc{% endif %}; text-align:center;">
+        <div style="font-size:1.8em; font-weight:bold; color:{% if recon.dead_count %}#c0550a{% else %}#1a3a5c{% endif %};">{{ recon.dead_count }}</div>
+        <div style="font-size:0.8em; color:#666; margin-top:2px;">Dead / Lost</div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Pre-Job Scans -->
+<div style="border:2px solid #c5d5e8; border-radius:10px; padding:18px 20px; background:#f8fafc; margin-bottom:18px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="font-size:1em; font-weight:bold; color:#1a3a5c;">Pre-Job Scans</div>
+        <button onclick="document.getElementById('new-pre-form').style.display=document.getElementById('new-pre-form').style.display==='none'?'block':'none'"
+                style="background:#1a3a5c; color:white; border:none; border-radius:6px; padding:6px 14px; font-size:0.85em; cursor:pointer;">+ New Session</button>
+    </div>
+
+    <div id="new-pre-form" style="display:none; background:white; border:1px solid #c5d5e8; border-radius:8px; padding:14px 16px; margin-bottom:14px;">
+        <form method="post" action="{% url 'node_stock_take_session_create' job.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="session_type" value="pre_job">
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                <div>
+                    <label style="font-size:0.8em; color:#555; display:block; margin-bottom:3px;">Date</label>
+                    <input type="date" name="date" value="{{ today|date:'Y-m-d' }}" required
+                           style="border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; font-size:0.9em;">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; color:#555; display:block; margin-bottom:3px;">Label (optional)</label>
+                    <input type="text" name="label" placeholder="e.g. Initial scan"
+                           style="border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; font-size:0.9em; width:180px;">
+                </div>
+                <button type="submit" style="background:#1a3a5c; color:white; border:none; border-radius:6px; padding:7px 16px; font-size:0.9em; cursor:pointer;">Create</button>
+            </div>
+        </form>
+    </div>
+
+    {% if pre_sessions %}
+    {% for s in pre_sessions %}
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:white; border:1px solid #dde6ef; border-radius:8px; margin-bottom:8px;">
+        <div>
+            <a href="{% url 'node_stock_take_session_detail' s.pk %}" style="font-weight:600; color:#1a3a5c; text-decoration:none; font-size:0.95em;">
+                {{ s.date|date:"d M Y" }}{% if s.label %} — {{ s.label }}{% endif %}
+            </a>
+            <span style="font-size:0.82em; color:#888; margin-left:10px;">{{ s.total_nodes }} node{{ s.total_nodes|pluralize }} &nbsp;|&nbsp; {{ s.mega_bins.count }} mega bin{{ s.mega_bins.count|pluralize }}</span>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <a href="{% url 'node_stock_take_session_detail' s.pk %}"
+               style="background:#1a3a5c; color:white; text-decoration:none; border-radius:6px; padding:5px 12px; font-size:0.82em;">Open</a>
+            <form method="post" action="{% url 'node_stock_take_session_delete' s.pk %}" style="margin:0;"
+                  onsubmit="return confirm('Delete this session and all its node records?')">
+                {% csrf_token %}
+                <button type="submit" style="background:none; border:none; color:#c00; font-size:0.82em; cursor:pointer;">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="color:#aaa; font-size:0.88em; padding:4px 0;">No pre-job scan sessions yet.</div>
+    {% endif %}
+</div>
+
+<!-- Dead Nodes -->
+<div style="border:2px solid #f4a261; border-radius:10px; padding:18px 20px; background:#fff8f3; margin-bottom:18px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="font-size:1em; font-weight:bold; color:#c0550a;">Dead / Lost Nodes</div>
+        <button onclick="document.getElementById('add-dead-form').style.display=document.getElementById('add-dead-form').style.display==='none'?'block':'none'"
+                style="background:#c0550a; color:white; border:none; border-radius:6px; padding:6px 14px; font-size:0.85em; cursor:pointer;">+ Record Dead Node</button>
+    </div>
+
+    <div id="add-dead-form" style="display:none; background:white; border:1px solid #f4a261; border-radius:8px; padding:14px 16px; margin-bottom:14px;">
+        <form method="post" action="{% url 'dead_node_add' job.pk %}">
+            {% csrf_token %}
+            <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+                <div>
+                    <label style="font-size:0.8em; color:#555; display:block; margin-bottom:3px;">Serial Number</label>
+                    <input type="text" name="serial_number" required placeholder="Scan or type"
+                           style="border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; font-size:0.9em; width:100%;">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; color:#555; display:block; margin-bottom:3px;">Reason</label>
+                    <select name="reason" style="border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; font-size:0.9em; width:100%;">
+                        {% for val, label in dead_reason_choices %}
+                        <option value="{{ val }}">{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.8em; color:#555; display:block; margin-bottom:3px;">Date</label>
+                    <input type="date" name="date" value="{{ today|date:'Y-m-d' }}"
+                           style="border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; font-size:0.9em; width:100%;">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; color:#555; display:block; margin-bottom:3px;">Reported By</label>
+                    <input type="text" name="reported_by" placeholder="Name"
+                           style="border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; font-size:0.9em; width:100%;">
+                </div>
+            </div>
+            <div style="margin-bottom:10px;">
+                <label style="font-size:0.8em; color:#555; display:block; margin-bottom:3px;">Notes</label>
+                <input type="text" name="notes" placeholder="Optional details"
+                       style="border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; font-size:0.9em; width:100%;">
+            </div>
+            <button type="submit" style="background:#c0550a; color:white; border:none; border-radius:6px; padding:7px 16px; font-size:0.9em; cursor:pointer;">Save</button>
+        </form>
+    </div>
+
+    {% if dead_nodes %}
+    <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+        <thead>
+            <tr style="border-bottom:2px solid #f4a261; color:#666;">
+                <th style="text-align:left; padding:6px 10px;">Serial</th>
+                <th style="text-align:left; padding:6px 10px;">Reason</th>
+                <th style="text-align:left; padding:6px 10px;">Date</th>
+                <th style="text-align:left; padding:6px 10px;">Reported By</th>
+                <th style="text-align:left; padding:6px 10px;">Notes</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for dn in dead_nodes %}
+            <tr style="border-bottom:1px solid #fde8d4;">
+                <td style="padding:6px 10px; font-weight:600; color:#1a3a5c;">{{ dn.serial_number }}</td>
+                <td style="padding:6px 10px;">{{ dn.get_reason_display }}</td>
+                <td style="padding:6px 10px; color:#555;">{{ dn.date|date:"d M Y" }}</td>
+                <td style="padding:6px 10px; color:#555;">{{ dn.reported_by|default:"—" }}</td>
+                <td style="padding:6px 10px; color:#555;">{{ dn.notes|default:"—" }}</td>
+                <td style="padding:6px 4px;">
+                    <form method="post" action="{% url 'dead_node_delete' dn.pk %}" style="margin:0;"
+                          onsubmit="return confirm('Remove this dead node record?')">
+                        {% csrf_token %}
+                        <button type="submit" style="background:none; border:none; color:#c00; font-size:0.82em; cursor:pointer;">✕</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <div style="color:#aaa; font-size:0.88em; padding:4px 0;">No dead nodes recorded.</div>
+    {% endif %}
+</div>
+
+<!-- Post-Job Scans -->
+<div style="border:2px solid #c5d5e8; border-radius:10px; padding:18px 20px; background:#f8fafc; margin-bottom:18px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+        <div style="font-size:1em; font-weight:bold; color:#1a3a5c;">Post-Job Scans</div>
+        <button onclick="document.getElementById('new-post-form').style.display=document.getElementById('new-post-form').style.display==='none'?'block':'none'"
+                style="background:#1a3a5c; color:white; border:none; border-radius:6px; padding:6px 14px; font-size:0.85em; cursor:pointer;">+ New Session</button>
+    </div>
+
+    <div id="new-post-form" style="display:none; background:white; border:1px solid #c5d5e8; border-radius:8px; padding:14px 16px; margin-bottom:14px;">
+        <form method="post" action="{% url 'node_stock_take_session_create' job.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="session_type" value="post_job">
+            <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:flex-end;">
+                <div>
+                    <label style="font-size:0.8em; color:#555; display:block; margin-bottom:3px;">Date</label>
+                    <input type="date" name="date" value="{{ today|date:'Y-m-d' }}" required
+                           style="border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; font-size:0.9em;">
+                </div>
+                <div>
+                    <label style="font-size:0.8em; color:#555; display:block; margin-bottom:3px;">Label (optional)</label>
+                    <input type="text" name="label" placeholder="e.g. Final scan"
+                           style="border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; font-size:0.9em; width:180px;">
+                </div>
+                <button type="submit" style="background:#1a3a5c; color:white; border:none; border-radius:6px; padding:7px 16px; font-size:0.9em; cursor:pointer;">Create</button>
+            </div>
+        </form>
+    </div>
+
+    {% if post_sessions %}
+    {% for s in post_sessions %}
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 12px; background:white; border:1px solid #dde6ef; border-radius:8px; margin-bottom:8px;">
+        <div>
+            <a href="{% url 'node_stock_take_session_detail' s.pk %}" style="font-weight:600; color:#1a3a5c; text-decoration:none; font-size:0.95em;">
+                {{ s.date|date:"d M Y" }}{% if s.label %} — {{ s.label }}{% endif %}
+            </a>
+            <span style="font-size:0.82em; color:#888; margin-left:10px;">{{ s.total_nodes }} node{{ s.total_nodes|pluralize }} &nbsp;|&nbsp; {{ s.mega_bins.count }} mega bin{{ s.mega_bins.count|pluralize }}</span>
+        </div>
+        <div style="display:flex; gap:8px; align-items:center;">
+            <a href="{% url 'node_stock_take_session_detail' s.pk %}"
+               style="background:#1a3a5c; color:white; text-decoration:none; border-radius:6px; padding:5px 12px; font-size:0.82em;">Open</a>
+            <form method="post" action="{% url 'node_stock_take_session_delete' s.pk %}" style="margin:0;"
+                  onsubmit="return confirm('Delete this session and all its node records?')">
+                {% csrf_token %}
+                <button type="submit" style="background:none; border:none; color:#c00; font-size:0.82em; cursor:pointer;">Delete</button>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+    {% else %}
+    <div style="color:#aaa; font-size:0.88em; padding:4px 0;">No post-job scan sessions yet.</div>
+    {% endif %}
+</div>
+
+
+<!-- Reconciliation -->
+{% if recon.pre_count %}
+<div style="margin-bottom:18px;">
+    <button onclick="document.getElementById('recon-panel').style.display=document.getElementById('recon-panel').style.display==='none'?'block':'none'"
+            style="background:#1a3a5c; color:white; border:none; border-radius:8px; padding:9px 20px; font-size:0.9em; cursor:pointer; font-weight:600;">
+        Reconciliation
+    </button>
+    <div id="recon-panel" style="display:none; margin-top:12px; border:2px solid {% if recon.missing %}#e63946{% else %}#4caf50{% endif %}; border-radius:10px; padding:18px 20px; background:{% if recon.missing %}#fff0f1{% else %}#f0faf0{% endif %};">
+        <div style="font-size:1em; font-weight:bold; color:{% if recon.missing %}#c0122a{% else %}#1a5c1a{% endif %}; margin-bottom:12px;">
+            {% if not recon.missing %}All Nodes Accounted For ✓{% else %}Nodes Unaccounted For{% endif %}
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:{% if recon.missing %}14px{% else %}0{% endif %};">
+            <div style="font-size:0.88em; color:#444;"><strong style="color:#1a3a5c;">{{ recon.pre_count }}</strong> sent out</div>
+            <div style="font-size:0.88em; color:#444;"><strong style="color:#1a3a5c;">{{ recon.post_count }}</strong> returned</div>
+            <div style="font-size:0.88em; color:#444;"><strong style="color:#c0550a;">{{ recon.dead_count }}</strong> dead/lost</div>
+            <div style="font-size:0.88em; color:#444;"><strong style="color:{% if recon.missing %}#c0122a{% else %}#1a5c1a{% endif %};">{{ recon.missing|length }}</strong> unaccounted</div>
+        </div>
+        {% if recon.missing %}
+        <div style="font-size:0.85em; font-weight:600; color:#c0122a; margin-bottom:6px;">Missing serials:</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            {% for s in recon.missing %}
+            <span style="background:#ffd6da; color:#c0122a; border-radius:4px; padding:3px 8px; font-size:0.82em; font-family:monospace;">{{ s }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+        {% if recon.extra %}
+        <div style="font-size:0.85em; font-weight:600; color:#c0550a; margin-top:10px; margin-bottom:6px;">Returned but not in pre-job scan:</div>
+        <div style="display:flex; flex-wrap:wrap; gap:6px;">
+            {% for s in recon.extra %}
+            <span style="background:#fde8d4; color:#c0550a; border-radius:4px; padding:3px 8px; font-size:0.82em; font-family:monospace;">{{ s }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

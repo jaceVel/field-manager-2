@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @page { size: A4 landscape; margin: 1.5cm 1.5cm 2cm 1.5cm; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #111; margin: 0; }
+    * { box-sizing: border-box; }
+
+    .doc-title { font-size: 13pt; font-weight: bold; text-align: center;
+                 padding: 5px 0; border-top: 2pt solid #1a3a5c;
+                 border-bottom: 2pt solid #1a3a5c; margin: 0 0 6px; letter-spacing: 0.03em; }
+    .doc-meta { font-size: 8pt; color: #555; text-align: center; margin-bottom: 12px; }
+
+    .page-sec-hdr { background: #1a3a5c; color: white; font-weight: bold; font-size: 9pt;
+                    padding: 5px 10px; margin-top: 14px; margin-bottom: 0; }
+    .tab-hdr { background: #dce8f0; color: #1a3a5c; font-weight: bold; font-size: 8.5pt;
+               padding: 4px 10px; margin-top: 8px; border-left: 3pt solid #1a3a5c; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-top: 2px; }
+    th { background: #1a3a5c; color: white; padding: 4px 8px; text-align: left; font-size: 8pt; font-weight: 600; }
+    td { border: 0.5pt solid #ccc; padding: 4px 8px; vertical-align: top; }
+    tr:nth-child(even) td { background: #f7f9fc; }
+    td.veh-name { font-weight: 600; color: #1a3a5c; background: #eef3f8 !important; white-space: nowrap; width: 18%; }
+    td.veh-type { color: #666; background: #eef3f8 !important; white-space: nowrap; width: 10%; font-size: 7.5pt; }
+
+    .chip { display: inline-block; border-radius: 8pt; padding: 1pt 6pt;
+            font-size: 7.5pt; margin: 1pt 2pt 1pt 0; }
+    .chip-person { background: #1a3a5c; color: white; }
+    .chip-eq    { background: #5b6f3a; color: white; }
+    .none-txt   { color: #aaa; font-style: italic; font-size: 7.5pt; }
+
+    .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+<div class="doc-title">Allocations — {{ job.job_number }}</div>
+<div class="doc-meta">{{ job.client }}{% if job.project_name %} — {{ job.project_name }}{% endif %}</div>
+
+{% if include_travel %}
+<div class="page-sec-hdr">Travel Allocations</div>
+
+{% for t in tabs_data %}
+<div class="tab-hdr">{{ t.label }}</div>
+<table>
+    <thead>
+        <tr>
+            <th style="width:18%">Vehicle</th>
+            <th style="width:10%">Type</th>
+            <th style="width:36%">Personnel</th>
+            <th style="width:36%">Equipment</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for vd in t.vehicles %}
+        <tr>
+            <td class="veh-name">{{ vd.jv.name }}</td>
+            <td class="veh-type">{{ vd.jv.vehicle_type }}</td>
+            <td>
+                {% for a in vd.allocs %}
+                <span class="chip chip-person">{{ a.person_name }}</span>
+                {% empty %}<span class="none-txt">—</span>{% endfor %}
+            </td>
+            <td>
+                {% for lnk in vd.eq_links %}
+                <span class="chip chip-eq">{{ lnk.name }}{% if lnk.equipment_type %} <span style="opacity:0.75;font-size:7pt;">({{ lnk.equipment_type }})</span>{% endif %}</span>
+                {% empty %}<span class="none-txt">—</span>{% endfor %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="4" class="none-txt">No vehicles assigned.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endfor %}
+{% endif %}
+
+{% if include_equipment %}
+{% if include_travel %}<div class="page-break"></div>{% endif %}
+<div class="page-sec-hdr">Equipment Allocation</div>
+<table style="margin-top:6px;">
+    <thead>
+        <tr>
+            <th style="width:22%">Person</th>
+            <th>Equipment</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for pd in eq_alloc_people %}
+        <tr>
+            <td style="font-weight:600; color:#1a3a5c; background:#eef3f8;">{{ pd.name }}</td>
+            <td>
+                {% for ea in pd.eq_allocs %}
+                <span class="chip chip-eq">{{ ea.name }}{% if ea.equipment_type %} <span style="opacity:0.75;font-size:7pt;">({{ ea.equipment_type }})</span>{% endif %}</span>
+                {% empty %}<span class="none-txt">—</span>{% endfor %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="2" class="none-txt">No personnel on this job.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+</body>
+</html>

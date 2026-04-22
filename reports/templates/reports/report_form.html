@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}New {{ report_type }} Report — {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;">
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+    New {{ report_type }} Report
+</p>
+<h1>New {{ report_type }} Report</h1>
+
+<form method="post" style="max-width:300px; margin-top:20px;">
+    {% csrf_token %}
+    <div class="form-group">
+        <label>Date</label>
+        {{ form.date }}
+    </div>
+    {% if duplicate_error %}
+    <div style="margin-top:12px; padding:10px 14px; background:#fdecea; border:1px solid #f5c6cb; border-radius:4px; color:#c00; font-size:0.9em;">
+        {{ duplicate_error }}
+    </div>
+    {% endif %}
+    <div style="margin-top:20px;">
+        <button type="submit" class="btn btn-primary">Create Report</button>
+        <a href="{% url 'job_detail' job.pk %}" class="btn" style="margin-left:8px; background:#ccc;">Cancel</a>
+    </div>
+</form>
+
+{% if existing_reports %}
+<div class="card" style="margin-top:36px; padding:0;">
+    <table style="width:100%; border-collapse:collapse;">
+        <thead>
+            <tr style="background:#1a3a5c; color:white;">
+                <th style="padding:10px 16px; text-align:left;">Date</th>
+                <th style="padding:10px 16px; text-align:left;">Status</th>
+                <th style="padding:10px 16px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in existing_reports %}
+            <tr style="{% cycle 'background:#f9f9f9;' 'background:white;' %} border-bottom:1px solid #eee;">
+                <td style="padding:10px 16px; font-weight:bold;">{{ r.date|date:"D, d M Y" }}</td>
+                <td style="padding:10px 16px;">
+                    <span style="font-size:0.8em; padding:2px 8px; border-radius:10px;
+                        background:{% if r.status == 'approved' %}#e8f5e9{% elif r.status == 'submitted' %}#fff8e1{% else %}#f5f5f5{% endif %};
+                        color:{% if r.status == 'approved' %}#2e7d32{% elif r.status == 'submitted' %}#f57f17{% else %}#555{% endif %};">
+                        {{ r.get_status_display }}
+                    </span>
+                </td>
+                <td style="padding:10px 16px; text-align:right; white-space:nowrap;">
+                    <a href="{% url 'report_detail' r.pk %}" class="btn" style="background:#1a3a5c; color:white; font-size:0.85em; padding:4px 14px;">Open</a>
+                    {% if r.status != 'approved' %}
+                    <form method="post" action="{% url 'report_set_status' r.pk %}" style="display:inline; margin-left:6px;">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="approved">
+                        <button type="submit" style="background:#2e7d32; color:white; border:none; border-radius:4px; padding:4px 12px; cursor:pointer; font-size:0.85em;">Finalise</button>
+                    </form>
+                    {% else %}
+                    <form method="post" action="{% url 'report_set_status' r.pk %}" style="display:inline; margin-left:6px;">
+                        {% csrf_token %}
+                        <input type="hidden" name="status" value="draft">
+                        <button type="submit" style="background:none; border:1px solid #999; color:#666; border-radius:4px; padding:4px 12px; cursor:pointer; font-size:0.85em;">Revert</button>
+                    </form>
+                    {% endif %}
+                    <form method="post" action="{% url 'report_delete' r.pk %}" style="display:inline; margin-left:6px;"
+                          onsubmit="return confirm('Delete {{ report_type }} report for {{ r.date }}?');">
+                        {% csrf_token %}
+                        <button type="submit" style="background:#e63946; color:white; border:none; border-radius:4px; padding:4px 12px; cursor:pointer; font-size:0.85em;">Delete</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
+{% endblock %}

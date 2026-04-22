@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfCompletedPoint xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <CompletedPoint>
+    <PointDateTime>2023-04-13T01:48:41.736</PointDateTime>
+    <Line>13900</Line>
+    <Station>20050</Station>
+    <Lat>-33.11982999562187</Lat>
+    <Lon>136.18369328815814</Lon>
+  </CompletedPoint>
+  <CompletedPoint>
+    <PointDateTime>2023-04-13T02:00:34.072</PointDateTime>
+    <Line>13900</Line>
+    <Station>19850</Station>
+    <Lat>-33.1198657444389</Lat>
+    <Lon>136.18368716936882</Lon>
+  </CompletedPoint>
+  <CompletedPoint>
+    <PointDateTime>2023-04-13T02:05:11.584</PointDateTime>
+    <Line>13900</Line>
+    <Station>19650</Station>
+    <Lat>-33.119906229031216</Lat>
+    <Lon>136.18368909720655</Lon>
+  </CompletedPoint>
+  <CompletedPoint>
+    <PointDateTime>2023-04-13T02:08:44.128</PointDateTime>
+    <Line>13900</Line>
+    <Station>19450</Station>
+    <Lat>-33.119943360862266</Lat>
+    <Lon>136.18368825901624</Lon>
+  </CompletedPoint>
+</ArrayOfCompletedPoint>

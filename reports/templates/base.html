@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Field Manager — {% block title %}Reports{% endblock %}</title>
+    <script>if (localStorage.getItem('fm-dark') === '1') document.documentElement.classList.add('dark');</script>
+    <style>
+        :root {
+            --bg: #fff;
+            --text: #333;
+            --text-muted: #666;
+            --heading: #1a3a5c;
+            --border: #ddd;
+            --border-input: #ccc;
+            --surface: #f5f5f5;
+            --card-bg: #fff;
+            --input-bg: #fff;
+            --hover-bg: #f5f5f5;
+            --badge-draft-bg: #e0e0e0; --badge-draft-text: #555;
+            --badge-sub-bg: #fff3cd;   --badge-sub-text: #856404;
+            --badge-app-bg: #d4edda;   --badge-app-text: #155724;
+        }
+        html.dark {
+            --bg: #111c27;
+            --text: #c8d8e8;
+            --text-muted: #8090a4;
+            --heading: #7ab0d8;
+            --border: #243550;
+            --border-input: #2a4060;
+            --surface: #162030;
+            --card-bg: #162030;
+            --input-bg: #1a2840;
+            --hover-bg: #1f3450;
+            --badge-draft-bg: #2a3a4a; --badge-draft-text: #99aabb;
+            --badge-sub-bg: #3a3010;   --badge-sub-text: #e0b840;
+            --badge-app-bg: #0f3020;   --badge-app-text: #50c080;
+        }
+        body { font-family: sans-serif; max-width: 1200px; margin: 0 auto; padding: 20px; color: var(--text); background: var(--bg); }
+        nav { background: #1a3a5c; color: white; padding: 12px 20px; margin: -20px -20px 20px; display: flex; justify-content: space-between; align-items: center; }
+        nav a { color: white; text-decoration: none; margin-left: 16px; }
+        h1, h2 { color: var(--heading); }
+        table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+        th { background: #1a3a5c; color: white; padding: 10px; text-align: left; }
+        td { padding: 10px; border-bottom: 1px solid var(--border); color: var(--text); }
+        tr:hover td { background: var(--hover-bg); }
+        .badge { padding: 3px 10px; border-radius: 12px; font-size: 0.8em; font-weight: bold; }
+        .badge-draft { background: var(--badge-draft-bg); color: var(--badge-draft-text); }
+        .badge-submitted { background: var(--badge-sub-bg); color: var(--badge-sub-text); }
+        .badge-approved { background: var(--badge-app-bg); color: var(--badge-app-text); }
+        .btn { display: inline-block; padding: 8px 16px; border-radius: 4px; text-decoration: none; border: none; cursor: pointer; font-size: 0.95em; }
+        .btn-primary { background: #1a3a5c; color: white; }
+        .btn-success { background: #28a745; color: white; }
+        .card { border: 1px solid var(--border); border-radius: 6px; padding: 20px; margin-bottom: 16px; background: var(--card-bg); }
+        .card h3 { margin-top: 0; color: var(--heading); border-bottom: 2px solid var(--heading); padding-bottom: 8px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        label { display: block; margin-bottom: 4px; font-weight: bold; font-size: 0.9em; }
+        input, select, textarea { width: 100%; padding: 8px; border: 1px solid var(--border-input); border-radius: 4px; box-sizing: border-box; background: var(--input-bg); color: var(--text); }
+        .form-group { margin-bottom: 14px; }
+        .stat { text-align: center; }
+        .stat .value { font-size: 2em; font-weight: bold; color: var(--heading); }
+        .stat .label { font-size: 0.85em; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+    <nav>
+        <a href="{% url 'home' %}" style="color:white; text-decoration:none; margin-left:0; display:flex; align-items:center; gap:10px;">
+            <img src="/media/velseis-logo.png" alt="Velseis" style="height:32px; display:block;">
+            <strong>Field Manager</strong>
+        </a>
+        <div style="display:flex; align-items:center; gap:4px;">
+            <a href="{% url 'job_list' %}">Jobs</a>
+            <button id="darkToggle" onclick="toggleDark()" title="Toggle dark mode"
+                    style="background:none; border:1px solid rgba(255,255,255,0.35); color:white; border-radius:6px; padding:3px 8px; cursor:pointer; font-size:1em; margin-left:12px; line-height:1;">🌙</button>
+        </div>
+    </nav>
+    {% block content %}{% endblock %}
+<script>
+function toggleDark() {
+    const dark = document.documentElement.classList.toggle('dark');
+    localStorage.setItem('fm-dark', dark ? '1' : '0');
+    document.getElementById('darkToggle').textContent = dark ? '☀️' : '🌙';
+}
+// Set correct icon on load
+(function() {
+    if (document.documentElement.classList.contains('dark'))
+        document.getElementById('darkToggle').textContent = '☀️';
+})();
+
+(function () {
+    // Restore scroll position after any form-triggered page reload
+    var saved = sessionStorage.getItem('fmScrollY');
+    if (saved !== null) {
+        window.scrollTo(0, parseInt(saved, 10));
+        sessionStorage.removeItem('fmScrollY');
+    }
+    // Save scroll position before any form submits (skip forms that target a new tab)
+    document.addEventListener('submit', function (e) {
+        var form = e.target;
+        if (form.target === '_blank') return;
+        sessionStorage.setItem('fmScrollY', window.scrollY);
+    }, true);
+})();
+</script>
+</body>
+</html>

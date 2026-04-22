@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Take 5 — {{ job.job_number }}</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; margin: 0; padding: 16px; }
+  .card { background: white; border-radius: 12px; padding: 20px; margin-bottom: 16px; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  h1 { color: #1a3a5c; font-size: 1.4em; margin: 0 0 4px 0; }
+  .subtitle { color: #666; font-size: 0.9em; margin: 0 0 20px 0; }
+  label { display: block; font-weight: 600; color: #1a3a5c; margin-bottom: 5px; font-size: 0.95em; }
+  input[type=text], input[type=password] {
+    width: 100%; padding: 12px; border: 2px solid #c5d5e8; border-radius: 8px;
+    font-size: 1em; outline: none; transition: border-color 0.2s; background: white;
+    -webkit-appearance: none;
+  }
+  input[type=text]:focus, input[type=password]:focus { border-color: #1a3a5c; }
+
+  /* Autocomplete */
+  .ac-wrap { position: relative; }
+  .ac-dropdown {
+    display: none;
+    position: absolute; left: 0; right: 0; top: calc(100% + 4px);
+    background: white; border: 2px solid #1a3a5c; border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15); z-index: 1000;
+    max-height: 220px; overflow-y: auto;
+  }
+  .ac-dropdown.open { display: block; }
+  .ac-item {
+    padding: 13px 16px; font-size: 1em; color: #1a3a5c; cursor: pointer;
+    border-bottom: 1px solid #f0f4f8;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .ac-item:last-child { border-bottom: none; }
+  .ac-item:active, .ac-item.highlighted { background: #f0f4f8; }
+
+  /* Hazard group */
+  .hazard-group {
+    border: 2px solid #c5d5e8; border-radius: 10px; padding: 14px;
+    margin-bottom: 12px; background: #f8fafc;
+  }
+  .hazard-group-header { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .hazard-group-header .ac-wrap { flex: 1; }
+  .remove-hazard-btn {
+    background: none; border: none; color: #bbb; font-size: 1.5em;
+    cursor: pointer; padding: 0 4px; flex-shrink: 0; line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .remove-hazard-btn:active { color: #e53935; }
+
+  .controls-label { font-size: 0.78em; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 6px; }
+  .control-row { display: flex; align-items: center; gap: 6px; margin-bottom: 6px; }
+  .control-row .ac-wrap { flex: 1; }
+  .control-row input { padding: 10px 12px; font-size: 0.95em; }
+  .remove-control-btn {
+    background: none; border: none; color: #bbb; font-size: 1.3em;
+    cursor: pointer; padding: 0 4px; flex-shrink: 0; line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .remove-control-btn:active { color: #e53935; }
+  .add-control-btn {
+    background: none; border: 1px dashed #c5d5e8; border-radius: 6px;
+    color: #1a3a5c; font-size: 0.85em; font-weight: 600; padding: 8px 12px;
+    cursor: pointer; width: 100%; margin-top: 2px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .add-control-btn:active { background: #eef3f8; }
+
+  .add-hazard-btn {
+    background: none; border: 2px dashed #c5d5e8; border-radius: 10px;
+    color: #1a3a5c; font-size: 0.9em; font-weight: 600; padding: 14px;
+    width: 100%; cursor: pointer; margin-bottom: 16px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .add-hazard-btn:active { background: #f0f4f8; }
+
+  .ack-row { display: flex; align-items: flex-start; gap: 12px; padding: 14px; background: #fff8e1; border: 2px solid #ffe082; border-radius: 8px; }
+  .ack-row input[type=checkbox] { width: 24px; height: 24px; flex-shrink: 0; margin-top: 2px; accent-color: #1a3a5c; }
+  .ack-row label { font-weight: 500; color: #5d4037; font-size: 0.9em; margin: 0; }
+  .submit-btn {
+    width: 100%; padding: 18px; background: #1a3a5c; color: white; border: none;
+    border-radius: 10px; font-size: 1.1em; font-weight: 700; cursor: pointer; margin-top: 4px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .submit-btn:active { background: #14304d; }
+  .error { background: #ffebee; border: 2px solid #ef9a9a; border-radius: 8px; padding: 12px; color: #c62828; font-size: 0.9em; margin-bottom: 12px; }
+  .logo-bar { text-align: center; margin-bottom: 16px; }
+  .job-badge { display: inline-block; background: #1a3a5c; color: white; border-radius: 6px; padding: 4px 12px; font-size: 0.85em; font-weight: 700; }
+  .section-label { font-weight: 600; color: #1a3a5c; font-size: 0.95em; margin-bottom: 8px; display: block; }
+</style>
+</head>
+<body>
+
+<div class="logo-bar"><span class="job-badge">{{ job.job_number }} — Take 5</span></div>
+
+<div class="card">
+  <h1>Take 5 Pre-Task Safety Check</h1>
+  <p class="subtitle">Stop. Think. Act safely.</p>
+
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+
+  <form method="post" id="take5-form">
+    {% csrf_token %}
+    <input type="hidden" name="hazards_json" id="hazards_json">
+
+    <div style="margin-bottom:16px;">
+      <label for="id_name">Your Name</label>
+      <input type="text" id="id_name" name="name" placeholder="Full name" autocomplete="name"
+             value="{{ request.POST.name|default:'' }}" required>
+    </div>
+
+    {% if job.take5_pin %}
+    <div style="margin-bottom:16px;">
+      <label for="id_pin">Job PIN</label>
+      <input type="password" id="id_pin" name="pin" placeholder="Enter PIN" autocomplete="off" inputmode="numeric" required>
+    </div>
+    {% endif %}
+
+    <div style="margin-bottom:16px;">
+      <label>Task Being Performed</label>
+      <div class="ac-wrap">
+        <input type="text" id="id_task" name="task" placeholder="Describe the task"
+               value="{{ request.POST.task|default:'' }}" required autocomplete="off"
+               data-ac="task">
+        <div class="ac-dropdown" id="ac-task"></div>
+      </div>
+    </div>
+
+    <span class="section-label">Hazards &amp; Controls</span>
+    <div id="hazard-groups"></div>
+    <button type="button" class="add-hazard-btn" onclick="addHazard()">+ Add Hazard</button>
+
+    <div style="margin-bottom:20px;">
+      <div class="ack-row">
+        <input type="checkbox" id="id_ack" name="acknowledged">
+        <label for="id_ack">I have identified the hazards for this task, put controls in place, and I am satisfied it is safe to proceed.</label>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-btn">Submit Take 5</button>
+  </form>
+</div>
+
+<script>
+const HAZARD_SUGGESTIONS = {{ hazard_suggestions|safe }};
+const HAZARD_CONTROLS = {{ hazard_controls_map|safe }};
+const TASK_SUGGESTIONS = {{ task_suggestions|safe }};
+const TASK_HAZARDS = {{ task_hazards_map|safe }};
+
+// ── Autocomplete engine ──────────────────────────────────────────────────────
+let activeDropdown = null;
+
+function attachAC(input, suggestionsOrFn) {
+  const getSuggestions = typeof suggestionsOrFn === 'function' ? suggestionsOrFn : () => suggestionsOrFn;
+  const wrap = input.closest('.ac-wrap');
+  let dropdown = wrap.querySelector('.ac-dropdown');
+  if (!dropdown) {
+    dropdown = document.createElement('div');
+    dropdown.className = 'ac-dropdown';
+    wrap.appendChild(dropdown);
+  }
+
+  function show() {
+    const suggestions = getSuggestions();
+    const val = input.value.trim().toLowerCase();
+    const matches = val
+      ? suggestions.filter(s => s.toLowerCase().includes(val) && s.toLowerCase() !== val)
+      : suggestions;
+    if (!matches.length) { hide(); return; }
+
+    dropdown.innerHTML = '';
+    matches.slice(0, 8).forEach(s => {
+      const item = document.createElement('div');
+      item.className = 'ac-item';
+      item.textContent = s;
+      // touchstart for instant response on mobile
+      item.addEventListener('touchstart', function(e) {
+        e.preventDefault();
+        input.value = s;
+        hide();
+        updateJson();
+        input.blur();
+      }, { passive: false });
+      item.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        input.value = s;
+        hide();
+        updateJson();
+      });
+      dropdown.appendChild(item);
+    });
+    dropdown.classList.add('open');
+    activeDropdown = dropdown;
+  }
+
+  function hide() {
+    dropdown.classList.remove('open');
+    if (activeDropdown === dropdown) activeDropdown = null;
+  }
+
+  input.addEventListener('focus', show);
+  input.addEventListener('input', show);
+  input.addEventListener('blur', () => setTimeout(hide, 150));
+}
+
+// Close active dropdown on outside tap
+document.addEventListener('touchstart', function(e) {
+  if (activeDropdown && !activeDropdown.closest('.ac-wrap').contains(e.target)) {
+    activeDropdown.classList.remove('open');
+    activeDropdown = null;
+  }
+});
+
+// ── Task field AC ────────────────────────────────────────────────────────────
+function currentTaskHazards() {
+  const task = document.getElementById('id_task').value.trim();
+  return TASK_HAZARDS[task] && TASK_HAZARDS[task].length ? TASK_HAZARDS[task] : HAZARD_SUGGESTIONS;
+}
+
+attachAC(document.getElementById('id_task'), TASK_SUGGESTIONS);
+
+// When task changes, refresh all hazard AC dropdowns
+document.getElementById('id_task').addEventListener('input', refreshHazardSuggestions);
+document.getElementById('id_task').addEventListener('change', refreshHazardSuggestions);
+
+function refreshHazardSuggestions() {
+  // Re-attach hazard ACs with updated suggestion source (task may have changed)
+  document.querySelectorAll('#hazard-groups .hazard-group').forEach(grp => {
+    const hInput = grp.querySelector('.hazard-group-header input');
+    // Trigger a synthetic input event so any open dropdown refreshes
+    hInput.dispatchEvent(new Event('input'));
+  });
+}
+
+// ── Hazard / Control builder ─────────────────────────────────────────────────
+let hazardCount = 0;
+
+function addHazard(hazardVal) {
+  const idx = hazardCount++;
+  const grp = document.createElement('div');
+  grp.className = 'hazard-group';
+  grp.dataset.idx = idx;
+  grp.innerHTML = `
+    <div class="hazard-group-header">
+      <div class="ac-wrap" style="flex:1">
+        <input type="text" placeholder="Describe hazard" autocomplete="off"
+               oninput="updateJson()" value="${escVal(hazardVal || '')}">
+      </div>
+      <button type="button" class="remove-hazard-btn" onclick="removeHazard(this)" title="Remove hazard">×</button>
+    </div>
+    <div class="controls-label">Controls</div>
+    <div class="control-list"></div>
+    <button type="button" class="add-control-btn" onclick="addControl(this)">+ Add Control</button>
+  `;
+  document.getElementById('hazard-groups').appendChild(grp);
+  attachAC(grp.querySelector('.hazard-group-header input'), currentTaskHazards);
+  addControl(grp.querySelector('.add-control-btn'));
+  return grp;
+}
+
+function addControl(btn, controlVal) {
+  const grp = btn.closest('.hazard-group');
+  const list = grp.querySelector('.control-list');
+  const row = document.createElement('div');
+  row.className = 'control-row';
+  row.innerHTML = `
+    <div class="ac-wrap" style="flex:1">
+      <input type="text" placeholder="Control measure" autocomplete="off"
+             oninput="updateJson()" value="${escVal(controlVal || '')}">
+    </div>
+    <button type="button" class="remove-control-btn" onclick="removeControl(this)" title="Remove">×</button>
+  `;
+  list.appendChild(row);
+  const hazardInput = grp.querySelector('.hazard-group-header input');
+  attachAC(row.querySelector('input'), () => {
+    const key = hazardInput.value.trim();
+    return HAZARD_CONTROLS[key] || [];
+  });
+  row.querySelector('input').focus();
+  updateJson();
+}
+
+function removeHazard(btn) {
+  const groups = document.querySelectorAll('#hazard-groups .hazard-group');
+  if (groups.length > 1) { btn.closest('.hazard-group').remove(); updateJson(); }
+}
+
+function removeControl(btn) {
+  const list = btn.closest('.control-list');
+  if (list.querySelectorAll('.control-row').length > 1) {
+    btn.closest('.control-row').remove(); updateJson();
+  }
+}
+
+function updateJson() {
+  const data = [];
+  document.querySelectorAll('#hazard-groups .hazard-group').forEach(grp => {
+    const hazard = grp.querySelector('.hazard-group-header input').value.trim();
+    const controls = Array.from(grp.querySelectorAll('.control-list input')).map(i => i.value.trim());
+    data.push({ hazard, controls });
+  });
+  document.getElementById('hazards_json').value = JSON.stringify(data);
+}
+
+function escVal(s) { return s.replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
+document.getElementById('take5-form').addEventListener('submit', updateJson);
+
+addHazard();
+</script>
+</body>
+</html>

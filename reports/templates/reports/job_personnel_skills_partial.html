@@ -1,0 +1,43 @@
+{% for skill in skills %}
+<tr style="border-bottom:1px solid #eef2f7;">
+    <td style="padding:10px 16px; font-weight:600; background:#f8fafc; border-right:2px solid #dde6f0;">{{ skill.name }}</td>
+    {% with assigned=skill.assigned_count %}
+    <td id="skill-count-{{ skill.pk }}"
+        data-assigned="{{ assigned }}" data-required="{{ skill.required }}"
+        style="padding:6px 10px; text-align:center; border-right:2px solid #dde6f0;
+        background:{% if skill.required == 0 %}#f0f4f8{% elif assigned < skill.required %}#ffcdd2{% elif assigned == skill.required %}#c8e6c9{% else %}#bbdefb{% endif %};">
+        <input type="number" value="{{ skill.required }}" min="0" step="1"
+               data-skill-pk="{{ skill.pk }}"
+               onchange="updateSkillCount(this)"
+               style="width:52px; padding:5px 4px; border:2px solid #1a3a5c; border-radius:5px; text-align:center; font-weight:700; font-size:1em; color:#1a3a5c; background:white; box-shadow:0 1px 3px rgba(0,0,0,0.15);">
+    </td>
+    {% endwith %}
+    <td style="padding:8px 16px; background:white; color:#444; font-size:0.9em;">
+        <div id="skill-people-{{ skill.pk }}" data-skill-name="{{ skill.name|escapejs }}" style="display:flex; flex-wrap:wrap; gap:6px;">
+        {% for p in skill.personnel %}
+        {% if p.role_pk %}
+        <button type="button"
+                id="sp-{{ skill.pk }}-{{ p.jp_pk }}"
+                data-role-pk="{{ p.role_pk }}"
+                data-jp-pk="{{ p.jp_pk }}"
+                data-skill="{{ skill.name|escapejs }}"
+                onclick="toggleRole(this)"
+                style="display:inline-flex; align-items:center; background:#4caf50; color:white; border:none; border-radius:12px; padding:3px 10px; font-size:0.85em; cursor:pointer;">{{ p.name }}</button>
+        {% else %}
+        <button type="button"
+                id="sp-{{ skill.pk }}-{{ p.jp_pk }}"
+                data-role-pk=""
+                data-jp-pk="{{ p.jp_pk }}"
+                data-skill="{{ skill.name|escapejs }}"
+                onclick="toggleRole(this)"
+                style="display:inline-flex; align-items:center; background:#e8f0f8; color:#1a3a5c; border:none; border-radius:12px; padding:3px 10px; font-size:0.85em; cursor:pointer;">{{ p.name }}</button>
+        {% endif %}
+        {% endfor %}
+        </div>
+    </td>
+</tr>
+{% empty %}
+<tr>
+    <td colspan="3" style="padding:16px; color:#aaa; font-size:0.9em; background:white;">No skills defined.</td>
+</tr>
+{% endfor %}

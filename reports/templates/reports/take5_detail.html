@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Take 5 — {{ record.submitted_by }}{% endblock %}
+{% block content %}
+<div style="margin-bottom:8px;">
+  <p style="margin:0; color:#999; font-size:0.9em;">
+    <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+    <a href="{% url 'qhse_list' job.pk %}" style="color:#999;">QHSE</a> /
+  </p>
+  <h1 style="margin:4px 0;">Take 5 — {{ record.submitted_by }}</h1>
+  <p style="margin:0; color:#666;">{{ record.submitted_at|date:"d M Y H:i" }}</p>
+</div>
+
+<div class="card" style="margin-top:20px;">
+  <h3 style="margin-top:0;">Task</h3>
+  <p style="margin:0;">{{ record.task_description }}</p>
+</div>
+
+<div class="card" style="margin-top:16px;">
+  <h3 style="margin-top:0;">Hazards &amp; Controls</h3>
+  {% if record.hazards.all %}
+    {% for h in record.hazards.all %}
+    <div style="border:2px solid #c5d5e8; border-radius:8px; padding:14px; margin-bottom:10px; background:#f8fafc;">
+      <div style="font-weight:700; color:#1a3a5c; margin-bottom:8px;">
+        <span style="color:#999; font-size:0.85em; margin-right:6px;">{{ forloop.counter }}.</span>{{ h.hazard }}
+      </div>
+      {% if h.controls.all %}
+      <div style="font-size:0.78em; font-weight:600; color:#888; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Controls</div>
+      <ul style="margin:0; padding-left:18px;">
+        {% for c in h.controls.all %}
+        <li style="color:#444; margin-bottom:3px;">{{ c.control }}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p style="color:#bbb; font-size:0.85em; margin:0;">No controls recorded.</p>
+      {% endif %}
+    </div>
+    {% endfor %}
+  {% else %}
+  <p style="color:#999; margin:0;">No hazards recorded.</p>
+  {% endif %}
+</div>
+
+<div class="card" style="margin-top:16px; background:#e8f5e9; border:2px solid #a5d6a7;">
+  <p style="margin:0; color:#2e7d32; font-weight:600;">
+    ✓ {{ record.submitted_by }} acknowledged this Take 5 on {{ record.submitted_at|date:"d M Y \a\t H:i" }}.
+  </p>
+</div>
+
+<div style="margin-top:16px;">
+  <a href="{% url 'qhse_list' job.pk %}" class="btn" style="background:#eee; color:#333;">← Back to QHSE</a>
+</div>
+{% endblock %}

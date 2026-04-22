@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    @page { size: A4; margin: 12mm 12mm 12mm 12mm; }
+    body { font-family: Arial, sans-serif; font-size: 8.5pt; color: #111; margin: 0; }
+    .header-bar { background: #1a3a5c; color: white; padding: 5mm 8mm; margin-bottom: 4mm; display: flex; justify-content: space-between; align-items: center; }
+    .header-bar .title { font-size: 13pt; font-weight: bold; }
+    .header-bar .meta { font-size: 7.5pt; text-align: right; opacity: 0.85; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; }
+    th { background: #1a3a5c; color: white; padding: 3px 7px; text-align: left; font-size: 8pt; font-weight: 600; }
+    td { padding: 3px 7px; border-bottom: 1px solid #e0e8f0; vertical-align: top; font-size: 8pt; }
+    tr:nth-child(even) td { background: #f5f8fc; }
+    .label { color: #555; font-weight: 600; width: 130px; white-space: nowrap; }
+    .section-header td { background: #2c5282; color: white; font-weight: 700; font-size: 8.5pt; padding: 4px 7px; }
+    .answer-y  { color: #2d6a4f; font-weight: bold; }
+    .answer-n  { color: #c00; font-weight: bold; }
+    .answer-na { color: #888; font-weight: bold; }
+    .sig-img { max-height: 30mm; border: 1px solid #ccc; background: white; }
+    .footer { font-size: 7pt; color: #999; border-top: 1px solid #ddd; padding-top: 2mm; margin-top: 3mm; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header-bar">
+    <div>
+        <div class="title">Infield Audit</div>
+        <div style="font-size:8pt; opacity:0.8; margin-top:1mm;">{{ audit.job.client }} — {{ audit.job.project_name }}</div>
+    </div>
+    <div class="meta">
+        Job No: {{ audit.job.job_number }}<br>
+        Control: VF_SLC_001
+    </div>
+</div>
+
+<!-- Header fields -->
+<table style="margin-bottom:3mm;">
+    <tr>
+        <td class="label">Date Commenced</td>
+        <td>{{ audit.date_commenced|date:"d M Y"|default:"—" }}</td>
+        <td class="label">Date Completed</td>
+        <td>{{ audit.date_completed|date:"d M Y"|default:"—" }}</td>
+    </tr>
+    <tr>
+        <td class="label">Site Location</td>
+        <td>{{ audit.site_location|default:"—" }}</td>
+        <td class="label">Audit Conducted By</td>
+        <td>{{ audit.audit_conducted_by|default:"—" }}</td>
+    </tr>
+    <tr>
+        <td class="label">Crew Supervisor</td>
+        <td colspan="3">{{ audit.crew_supervisor|default:"—" }}</td>
+    </tr>
+</table>
+
+<!-- Checklist -->
+<table>
+    <thead>
+        <tr>
+            <th style="width:55%;">Item</th>
+            <th style="width:6%; text-align:center;">Yes</th>
+            <th style="width:6%; text-align:center;">No</th>
+            <th style="width:6%; text-align:center;">N/A</th>
+            <th style="width:15%;">Comment / Action</th>
+            <th style="width:12%;">Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for sec_id, sec_title, rows in sections_data %}
+        <tr class="section-header">
+            <td colspan="6">{{ sec_id }}. {{ sec_title }}</td>
+        </tr>
+        {% for item_id, question, response in rows %}
+        <tr>
+            <td>{{ item_id }}. {{ question }}</td>
+            <td style="text-align:center;">
+                {% if response.answer == 'Y' %}<span class="answer-y">&#10003;</span>{% endif %}
+            </td>
+            <td style="text-align:center;">
+                {% if response.answer == 'N' %}<span class="answer-n">&#10003;</span>{% endif %}
+            </td>
+            <td style="text-align:center;">
+                {% if response.answer == 'NA' %}<span class="answer-na">&#10003;</span>{% endif %}
+            </td>
+            <td style="font-size:7.5pt;">{{ response.comment|default:"" }}</td>
+            <td style="font-size:7.5pt;">{{ response.date|default:"" }}</td>
+        </tr>
+        {% endfor %}
+        {% endfor %}
+    </tbody>
+</table>
+
+<!-- Observations / Actions -->
+{% if audit.actions %}
+<table>
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Observation / Non-Conformance</th>
+            <th>Corrective Action</th>
+            <th>Responsible Person</th>
+            <th>Due Date</th>
+            <th>Closed</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for action in audit.actions %}
+        {% if action.observation or action.corrective_action or action.responsible_person %}
+        <tr>
+            <td style="text-align:center; width:5%;">{{ forloop.counter }}</td>
+            <td>{{ action.observation|default:"" }}</td>
+            <td>{{ action.corrective_action|default:"" }}</td>
+            <td>{{ action.responsible_person|default:"" }}</td>
+            <td>{{ action.due_date|default:"" }}</td>
+            <td style="text-align:center;">
+                {% if action.closed %}&#10003;{% endif %}
+            </td>
+        </tr>
+        {% endif %}
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<!-- Signature -->
+<table>
+    <thead><tr><th>Signature of Auditor</th></tr></thead>
+    <tbody>
+        <tr>
+            <td style="padding:4mm; height:18mm; vertical-align:bottom;">
+                {% if audit.signature %}
+                <img src="{{ audit.signature }}" class="sig-img"><br>
+                <span style="font-size:7.5pt; color:#555;">
+                    {{ audit.audit_conducted_by|default:"" }}{% if audit.signed_at %} — {{ audit.signed_at|date:"d M Y H:i" }}{% endif %}
+                </span>
+                {% else %}
+                <div style="border-bottom:1px solid #333; width:200px; margin-bottom:2mm;">&nbsp;</div>
+                <span style="font-size:7.5pt; color:#888;">Not yet signed</span>
+                {% endif %}
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    Version 1.0 | VF_SLC_001_Infield_Audit | Generated {{ audit.created_at|date:"d M Y" }}
+</div>
+
+</body>
+</html>

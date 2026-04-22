@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block title %}Journey Management — Job {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;">
+    <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+</p>
+<h1 style="margin:4px 0 20px;">Journey Management</h1>
+
+<!-- Tabs -->
+<div style="display:flex; gap:0; border-bottom:2px solid #1a3a5c; margin-bottom:0;">
+  <button id="tab-v1" onclick="showTab('v1')"
+    style="padding:8px 20px; border:none; cursor:pointer; font-size:0.95em; font-weight:600; border-radius:6px 6px 0 0; margin-right:4px;">
+    Journey Management
+    <span style="background:#1a3a5c; color:white; border-radius:10px; font-size:0.75em; padding:1px 7px; margin-left:6px;">{{ plans|length }}</span>
+  </button>
+  <button id="tab-v2" onclick="showTab('v2')"
+    style="padding:8px 20px; border:none; cursor:pointer; font-size:0.95em; font-weight:600; border-radius:6px 6px 0 0;">
+    Journey V2
+    <span style="font-size:0.8em; font-weight:400; color:#666;"> (digital signatures)</span>
+    <span style="background:#1a3a5c; color:white; border-radius:10px; font-size:0.75em; padding:1px 7px; margin-left:6px;">{{ v2_plans|length }}</span>
+  </button>
+</div>
+
+<!-- V1 Panel -->
+<div id="panel-v1" style="border:1px solid #ddd; border-top:none; padding:16px;">
+  <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+    <a href="{% url 'journey_create' job.pk %}" class="btn btn-primary">+ New Plan</a>
+  </div>
+  {% if plans %}
+  <table>
+    <thead><tr>
+      <th>Plan No.</th><th>Depart Date</th><th>From</th><th>To</th><th>Personnel</th><th></th>
+    </tr></thead>
+    <tbody>
+      {% for plan in plans %}
+      <tr>
+        <td><span class="badge" style="background:#1a3a5c; color:white;">{{ plan.plan_number }}</span></td>
+        <td>{% if plan.depart_date %}{{ plan.depart_date|date:"d M Y" }}{% else %}<span style="color:#999">—</span>{% endif %}</td>
+        <td>{{ plan.departing_from|default:"—"|truncatechars:30 }}</td>
+        <td>{{ plan.arriving_at|default:"—"|truncatechars:30 }}</td>
+        <td>{{ plan.personnel.count }}</td>
+        <td style="text-align:right; white-space:nowrap;">
+          <a href="{% url 'journey_pdf' plan.pk %}" target="_blank" class="btn" style="padding:2px 8px; font-size:0.75rem; background:#eee; color:#333;">View PDF</a>
+          <a href="{% url 'journey_image' plan.pk %}" class="btn" style="padding:2px 8px; font-size:0.75rem; background:#d4edda; color:#155724;">⬇ Image</a>
+          <a href="{% url 'journey_edit' plan.pk %}" class="btn" style="padding:2px 8px; font-size:0.75rem; background:#cce5ff; color:#004085;">Edit</a>
+          <a href="{% url 'journey_copy' plan.pk %}" class="btn" style="padding:2px 8px; font-size:0.75rem; background:#fff3cd; color:#856404;">Copy</a>
+          <form method="post" action="{% url 'journey_delete' plan.pk %}" style="display:inline;" onsubmit="return confirm('Delete this plan?')">
+            {% csrf_token %}<button class="btn" style="padding:2px 8px; font-size:0.75rem; background:#f8d7da; color:#721c24; border:none; cursor:pointer;">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#999;">No journey management plans yet. Use the button above to create one.</p>
+  {% endif %}
+</div>
+
+<!-- V2 Panel -->
+<div id="panel-v2" style="border:1px solid #ddd; border-top:none; padding:16px; display:none;">
+  <div style="display:flex; justify-content:flex-end; margin-bottom:16px;">
+    <a href="{% url 'journey_v2_create' job.pk %}" class="btn btn-primary">+ New Plan</a>
+  </div>
+  {% if v2_plans %}
+  <table>
+    <thead><tr>
+      <th>Plan No.</th><th>Depart Date</th><th>From</th><th>To</th><th>Personnel</th><th></th>
+    </tr></thead>
+    <tbody>
+      {% for p in v2_plans %}
+      <tr>
+        <td><span class="badge" style="background:#1a3a5c; color:white;">{{ p.plan_number }}</span></td>
+        <td>{% if p.depart_date %}{{ p.depart_date|date:"d M Y" }}{% else %}<span style="color:#999">—</span>{% endif %}</td>
+        <td>{{ p.departing_from|default:"—"|truncatechars:30 }}</td>
+        <td>{{ p.arriving_at|default:"—"|truncatechars:30 }}</td>
+        <td>{{ p.personnel.count }}</td>
+        <td style="text-align:right; white-space:nowrap;">
+          <a href="{% url 'journey_v2_pdf' p.pk %}" target="_blank" class="btn" style="padding:2px 8px; font-size:0.75rem; background:#eee; color:#333;">View PDF</a>
+          <a href="{% url 'journey_v2_image' p.pk %}" class="btn" style="padding:2px 8px; font-size:0.75rem; background:#d4edda; color:#155724;">⬇ Image</a>
+          <a href="{% url 'journey_v2_edit' p.pk %}" class="btn" style="padding:2px 8px; font-size:0.75rem; background:#cce5ff; color:#004085;">Edit</a>
+          <a href="{% url 'journey_v2_copy' p.pk %}" class="btn" style="padding:2px 8px; font-size:0.75rem; background:#fff3cd; color:#856404;">Copy</a>
+          <form method="post" action="{% url 'journey_v2_delete' p.pk %}" style="display:inline;" onsubmit="return confirm('Delete this plan?')">
+            {% csrf_token %}<button class="btn" style="padding:2px 8px; font-size:0.75rem; background:#f8d7da; color:#721c24; border:none; cursor:pointer;">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:#999;">No V2 journey plans yet. Use the button above to create one.</p>
+  {% endif %}
+</div>
+
+<script>
+function showTab(tab) {
+  var isV2 = tab === 'v2';
+  document.getElementById('panel-v1').style.display = isV2 ? 'none' : 'block';
+  document.getElementById('panel-v2').style.display = isV2 ? 'block' : 'none';
+  document.getElementById('tab-v1').style.background = isV2 ? '#f0f0f0' : '#1a3a5c';
+  document.getElementById('tab-v1').style.color = isV2 ? '#333' : 'white';
+  document.getElementById('tab-v2').style.background = isV2 ? '#1a3a5c' : '#f0f0f0';
+  document.getElementById('tab-v2').style.color = isV2 ? 'white' : '#333';
+}
+showTab('{{ request.GET.tab|default:"v1" }}');
+</script>
+{% endblock %}

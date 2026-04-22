@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    @page { size: A4 landscape; margin: 10mm 10mm 10mm 10mm; }
+    body { font-family: Arial, sans-serif; font-size: 8pt; color: #111; margin: 0; }
+    .header-bar { background: #1a3a5c; color: white; padding: 4mm 8mm; margin-bottom: 3mm; display: flex; justify-content: space-between; align-items: center; }
+    .header-bar .title { font-size: 13pt; font-weight: bold; }
+    .header-bar .meta { font-size: 7.5pt; text-align: right; opacity: 0.85; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 3mm; }
+    th { background: #1a3a5c; color: white; padding: 3px 6px; text-align: left; font-size: 7.5pt; font-weight: 600; }
+    td { padding: 3px 6px; border: 1px solid #d0d8e8; vertical-align: top; font-size: 7.5pt; }
+    .section-header td { background: #2c5282; color: white; font-weight: 700; font-size: 8pt; padding: 4px 6px; }
+    .label { color: #555; font-weight: 600; background: #f5f8fc; white-space: nowrap; width: 120px; }
+    .managed-yes { color: #2d6a4f; font-weight: bold; }
+    .managed-no  { color: #c00; font-weight: bold; }
+    .sig-img { max-height: 22mm; border: 1px solid #ccc; background: white; }
+    .footer { font-size: 6.5pt; color: #999; border-top: 1px solid #ddd; padding-top: 1.5mm; margin-top: 3mm; }
+    .photo-cell { width: 50%; text-align: center; padding: 4mm; }
+    .photo-cell img { max-width: 100%; max-height: 50mm; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header-bar">
+    <div>
+        <div class="title">Job Step Analysis</div>
+        <div style="font-size:8pt; opacity:0.8; margin-top:1mm;">{{ jsa.jsa_name|default:"" }}{% if jsa.reference_tp %} | TP: {{ jsa.reference_tp }}{% endif %}{% if jsa.reference_tra %} | TRA: {{ jsa.reference_tra }}{% endif %}</div>
+    </div>
+    <div class="meta">
+        Job No: {{ jsa.job.job_number }}<br>
+        Control: VF_GEN_004
+    </div>
+</div>
+
+<!-- Part 1: Details -->
+<table style="margin-bottom:2mm;">
+    <tr><td colspan="4" class="section-header">Part 1: Details</td></tr>
+    <tr>
+        <td class="label">Project</td><td>{{ jsa.project|default:"—" }}</td>
+        <td class="label">Site</td><td>{{ jsa.site|default:"—" }}</td>
+    </tr>
+    <tr>
+        <td class="label">Date</td><td>{{ jsa.date|date:"d M Y"|default:"—" }}</td>
+        <td class="label">Time</td><td>{{ jsa.time|time:"H:i"|default:"—" }}</td>
+    </tr>
+    <tr>
+        <td class="label">Job Description</td>
+        <td colspan="3" style="white-space:pre-wrap;">{{ jsa.job_description|default:"—" }}</td>
+    </tr>
+    <tr>
+        <td class="label">Tools / Equipment</td>
+        <td colspan="3" style="white-space:pre-wrap;">{{ jsa.tools_equipment|default:"—" }}</td>
+    </tr>
+    <tr>
+        <td class="label">PPE Required</td>
+        <td style="white-space:pre-wrap;">{{ jsa.ppe_required|default:"—" }}</td>
+        <td class="label">Permits / Approvals</td>
+        <td style="white-space:pre-wrap;">{{ jsa.permits_approvals|default:"—" }}</td>
+    </tr>
+</table>
+
+<!-- Part 2: Participants -->
+<table style="margin-bottom:2mm;">
+    <tr><td colspan="9" class="section-header">Part 2: Participants — Personnel involved must participate in developing the JSA and sign off</td></tr>
+    <tr style="background:#f0f4f8;">
+        <th style="width:4%;">#</th>
+        <th style="width:20%;">Full Name</th>
+        <th style="width:15%;">Position</th>
+        <th style="width:8%;">Yrs Exp</th>
+        <th style="width:20%;">Signature</th>
+        <th style="width:4%;">&nbsp;</th>
+        <th style="width:20%;">Full Name</th>
+        <th style="width:15%;">Position</th>
+        <th style="width:8%;">Signature</th>
+    </tr>
+    {% for i in "04" %}{% endfor %}
+    {% for p1, p2 in participant_pairs %}
+    <tr>
+        <td style="text-align:center; color:#888;">{{ forloop.counter }}</td>
+        <td>{{ p1.name }}</td>
+        <td>{{ p1.position }}</td>
+        <td style="text-align:center;">{{ p1.years_exp }}</td>
+        <td style="font-style:italic;">{{ p1.signature }}</td>
+        <td style="text-align:center; color:#888;">{{ forloop.counter|add:4 }}</td>
+        <td>{{ p2.name }}</td>
+        <td>{{ p2.position }}</td>
+        <td style="font-style:italic;">{{ p2.signature }}</td>
+    </tr>
+    {% endfor %}
+</table>
+
+<!-- Part 3: Approval -->
+<table style="margin-bottom:2mm;">
+    <tr><td colspan="4" class="section-header">Part 3: JSA Approval — Approval will not be given if the hazard has not been effectively managed</td></tr>
+    <tr><td colspan="4" style="font-style:italic; font-size:7pt; color:#555;">By signing below, I acknowledge that I have reviewed the JSA, job location and all sections have been completed correctly.</td></tr>
+    <tr>
+        <td class="label">Approved By</td><td>{{ jsa.approver_name|default:"—" }}</td>
+        <td class="label">Position</td><td>{{ jsa.approver_position|default:"—" }}</td>
+    </tr>
+    <tr>
+        <td class="label">Approval Date</td><td>{{ jsa.approval_date|date:"d M Y"|default:"—" }}</td>
+        <td class="label">Signature</td>
+        <td>
+            {% if jsa.approver_signature %}
+            <img src="{{ jsa.approver_signature }}" class="sig-img"><br>
+            <span style="font-size:6.5pt; color:#555;">{{ jsa.approver_name }}{% if jsa.approval_signed_at %} — {{ jsa.approval_signed_at|date:"d M Y H:i" }}{% endif %}</span>
+            {% else %}
+            <span style="color:#aaa; font-style:italic;">Not yet signed</span>
+            {% endif %}
+        </td>
+    </tr>
+</table>
+
+<!-- Part 4: Analysis -->
+<table style="margin-bottom:2mm;">
+    <tr><td colspan="5" class="section-header">Part 4: Analysis</td></tr>
+    <tr style="background:#f0f4f8;">
+        <th style="width:18%;">Job Step</th>
+        <th style="width:27%;">Hazards &amp; Potential Hazards</th>
+        <th style="width:27%;">Recommended Control / Safe Work Procedure</th>
+        <th style="width:16%;">Person Responsible</th>
+        <th style="width:12%; text-align:center;">Hazard Effectively Managed?</th>
+    </tr>
+    {% for row in analysis_rows %}
+    <tr>
+        <td style="white-space:pre-wrap;">{{ row.job_step }}</td>
+        <td style="white-space:pre-wrap;">{{ row.hazard }}</td>
+        <td style="white-space:pre-wrap;">{{ row.control }}</td>
+        <td>{{ row.person_responsible }}</td>
+        <td style="text-align:center;">
+            {% if row.managed == 'yes' %}<span class="managed-yes">Yes</span>
+            {% elif row.managed == 'no' %}<span class="managed-no">No</span>
+            {% else %}—{% endif %}
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+
+<!-- Part 5: Photos -->
+{% if jsa.photo1 or jsa.photo2 %}
+<table style="margin-bottom:2mm;">
+    <tr><td colspan="2" class="section-header">Part 5: Photo of Task / Equipment</td></tr>
+    <tr>
+        <td class="photo-cell">{% if jsa.photo1 %}<img src="{{ jsa.photo1 }}">{% endif %}</td>
+        <td class="photo-cell">{% if jsa.photo2 %}<img src="{{ jsa.photo2 }}">{% endif %}</td>
+    </tr>
+</table>
+{% endif %}
+
+<div class="footer">
+    Version 2.0 | VF_GEN_004_Job_Step_Analysis | Generated {{ jsa.created_at|date:"d M Y" }}
+</div>
+
+</body>
+</html>

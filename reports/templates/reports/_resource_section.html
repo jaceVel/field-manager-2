@@ -1,0 +1,47 @@
+<div class="card" style="margin-top:24px;">
+    <h3>{{ title }}</h3>
+    {% if items %}
+    <table style="width:100%; border-collapse:collapse; margin-bottom:16px;">
+        <thead>
+            <tr style="border-bottom:2px solid #1a3a5c;">
+                <th style="text-align:left; padding:6px 10px;">Name</th>
+                <th style="text-align:left; padding:6px 10px;">{{ type_label }}</th>
+                <th style="text-align:left; padding:6px 10px;">Notes</th>
+                <th style="width:60px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr style="border-bottom:1px solid #eee; {% if forloop.counter|divisibleby:2 %}background:#f9f9f9;{% endif %}">
+                <td style="padding:6px 10px;">{{ item.name }}</td>
+                <td style="padding:6px 10px; color:#555;">
+                    {% if type_field == "role" %}{{ item.role|default:"—" }}
+                    {% elif type_field == "vehicle_type" %}{{ item.vehicle_type|default:"—" }}
+                    {% else %}{{ item.equipment_type|default:"—" }}
+                    {% endif %}
+                </td>
+                <td style="padding:6px 10px; color:#555;">{{ item.notes|default:"—" }}</td>
+                <td style="padding:6px 10px; text-align:center;">
+                    <form method="post" style="display:inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="form_type" value="{{ form_type_delete }}">
+                        <input type="hidden" name="pk" value="{{ item.pk }}">
+                        <button type="submit" style="background:none; border:none; color:#c00; cursor:pointer; font-size:1.1em;" title="Remove">×</button>
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#999; margin-bottom:16px;">No {{ title|lower }} added yet.</p>
+    {% endif %}
+    <form method="post" style="display:grid; grid-template-columns:2fr 2fr 3fr auto; gap:8px; align-items:end;">
+        {% csrf_token %}
+        <input type="hidden" name="form_type" value="{{ form_type_add }}">
+        <input type="text" name="name" placeholder="Name" required style="padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        <input type="text" name="{{ type_field }}" placeholder="{{ type_label }}" style="padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        <input type="text" name="notes" placeholder="Notes (optional)" style="padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        <button type="submit" class="btn btn-primary">Add</button>
+    </form>
+</div>

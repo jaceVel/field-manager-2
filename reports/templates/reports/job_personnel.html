@@ -1,0 +1,369 @@
+{% extends "base.html" %}
+{% block title %}Personnel — {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:16px;">
+    <p style="margin:0; color:#999; font-size:0.9em;">
+        <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+        <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+        <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+    </p>
+    <h1 style="margin:4px 0;">Personnel — {{ job.job_number }}</h1>
+    <p style="margin:0; color:#666;">{{ job.project_name }}</p>
+</div>
+<div style="margin-bottom:16px;">
+    <a href="{% url 'personnel_schedule' job.pk %}" class="btn" style="background:#1a3a5c; color:white;">Back to Schedule</a>
+</div>
+
+<div style="display:grid; grid-template-columns:280px 1fr 1fr; gap:20px; align-items:start;">
+
+    <!-- Left: company roster -->
+    <div style="border:1px solid #c5d5e8; border-radius:10px; overflow:hidden;">
+        <div style="background:#1a3a5c; color:white; padding:12px 16px; font-weight:600; font-size:0.95em; display:flex; justify-content:space-between; align-items:center;">
+            <span>Company Personnel</span>
+            <span style="font-weight:400; font-size:0.85em; opacity:0.8;">{{ all_personnel|length }}</span>
+        </div>
+        {% for person in all_personnel %}
+        <div id="roster-{{ person.pk }}" style="display:flex; justify-content:space-between; align-items:center; padding:9px 16px; border-bottom:1px solid #eef2f7; background:{% if person.name in on_job_names %}#fff0f0{% else %}white{% endif %};">
+            <span style="font-size:0.95em;">{{ person.name }}</span>
+            {% if person.name in on_job_names %}
+            <button id="roster-btn-{{ person.pk }}" disabled
+                    style="background:#ccc; color:#999; border:none; border-radius:4px; padding:3px 12px; font-size:0.82em; cursor:not-allowed;">Add</button>
+            {% else %}
+            <button id="roster-btn-{{ person.pk }}"
+                    onclick="addPerson('{{ person.name|escapejs }}', this)"
+                    style="background:#1a3a5c; color:white; border:none; border-radius:4px; padding:3px 12px; font-size:0.82em; cursor:pointer;">Add</button>
+            {% endif %}
+        </div>
+        {% empty %}
+        <div style="padding:16px; color:#aaa; font-size:0.9em;">No personnel in roster.</div>
+        {% endfor %}
+    </div>
+
+    <!-- Middle: job personnel table -->
+    <div style="border:1px solid #c5d5e8; border-radius:10px; overflow:hidden;">
+        <div style="background:#1a3a5c; color:white; padding:12px 16px; font-weight:600; font-size:0.95em; display:flex; justify-content:space-between; align-items:center;">
+            <span>On this Job</span>
+            <div style="display:flex; align-items:center; gap:10px;">
+                <a href="{% url 'personnel_word' job.pk %}" title="Export as Word document"
+                   style="background:none; border:1px solid rgba(255,255,255,0.5); color:white; border-radius:4px; padding:2px 10px; cursor:pointer; font-size:0.8em; font-weight:400; text-decoration:none;">Word</a>
+                <button type="button" onclick="exportVcf()" title="Export selected as .vcf"
+                        style="background:none; border:1px solid rgba(255,255,255,0.5); color:white; border-radius:4px; padding:2px 10px; cursor:pointer; font-size:0.8em; font-weight:400;">Export VCF</button>
+                <span id="jobPersonnelCount" style="font-weight:400; font-size:0.85em; opacity:0.8;">{{ personnel|length }}</span>
+            </div>
+        </div>
+        <table style="width:100%; border-collapse:collapse;">
+            <colgroup><col style="width:28px;"><col style="width:50%;"><col style="width:50%;"></colgroup>
+            <thead>
+                <tr>
+                    <th style="padding:10px 8px; background:#2c5282; border-right:2px solid #1a3a5c;"><input type="checkbox" id="selectAllCb" onclick="toggleSelectAll(this)" style="cursor:pointer;"></th>
+                    <th style="padding:10px 16px; text-align:left; font-size:0.82em; text-transform:uppercase; letter-spacing:0.05em; color:white; background:#2c5282; border-right:2px solid #1a3a5c;">Personnel</th>
+                    <th style="padding:10px 16px; text-align:left; font-size:0.82em; text-transform:uppercase; letter-spacing:0.05em; color:white; background:#1a5276;">Job Role</th>
+                </tr>
+            </thead>
+            <tbody id="jobPersonnelBody">
+                {% for p in personnel %}
+                <tr id="jp-row-{{ p.pk }}" data-name="{{ p.name|lower|escapejs }}" style="border-bottom:1px solid #eef2f7;">
+                    <td style="padding:0 8px; text-align:center; background:#f8fafc; border-right:2px solid #dde6f0;">
+                        <input type="checkbox" class="person-select-cb" data-name="{{ p.name|escapejs }}" data-phone="{{ p.phone|escapejs }}" style="cursor:pointer;">
+                    </td>
+                    <td style="padding:10px 16px; font-weight:600; background:#f8fafc; border-right:2px solid #dde6f0;">
+                        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                            <div>
+                                <div>{{ p.name }}</div>
+                                {% if p.phone %}<div style="font-size:0.8em; font-weight:400; color:#888;">{{ p.phone }}</div>{% endif %}
+                            </div>
+                            <button type="button" onclick="removePerson({{ p.pk }}, '{{ p.name|escapejs }}')"
+                                    style="background:none; border:none; color:#ccc; cursor:pointer; font-size:1.1em; line-height:1; padding:0;">×</button>
+                        </div>
+                    </td>
+                    <td style="padding:8px 16px; background:white;">
+                        <div id="roles-{{ p.pk }}" style="display:flex; flex-wrap:wrap; gap:6px;">
+                            {% for r in p.roles.all %}
+                            <span id="role-badge-{{ r.pk }}" style="display:inline-flex; align-items:center; gap:4px; background:#e8f0f8; color:#1a3a5c; border-radius:12px; padding:3px 10px; font-size:0.85em;">
+                                {{ r.role }}
+                                <button type="button" onclick="removeRole({{ r.pk }}, '{{ r.role|escapejs }}', {{ p.pk }})"
+                                        style="background:none; border:none; color:#888; cursor:pointer; font-size:0.85em; padding:0; line-height:1;">×</button>
+                            </span>
+                            {% endfor %}
+                        </div>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr id="jp-empty">
+                    <td colspan="3" style="padding:16px; color:#aaa; font-size:0.9em; background:white;">No personnel assigned yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Right: skills table -->
+    <div style="border:1px solid #c5d5e8; border-radius:10px; overflow:hidden;">
+        <div style="background:#1a3a5c; color:white; padding:12px 16px; font-weight:600; font-size:0.95em; display:flex; justify-content:space-between; align-items:center;">
+            <span>Skills</span>
+            <span style="display:flex; gap:12px; font-size:0.8em; font-weight:400;">
+                <span><span style="display:inline-block; width:10px; height:10px; background:#ffcdd2; border-radius:2px; margin-right:4px;"></span>Under</span>
+                <span><span style="display:inline-block; width:10px; height:10px; background:#c8e6c9; border-radius:2px; margin-right:4px;"></span>Met</span>
+                <span><span style="display:inline-block; width:10px; height:10px; background:#bbdefb; border-radius:2px; margin-right:4px;"></span>Over</span>
+            </span>
+        </div>
+        <table style="width:100%; border-collapse:collapse;">
+            <colgroup><col style="width:30%;"><col style="width:10%;"><col style="width:60%;"></colgroup>
+            <thead>
+                <tr>
+                    <th style="padding:10px 16px; text-align:left; font-size:0.82em; text-transform:uppercase; letter-spacing:0.05em; color:white; background:#2c5282; border-right:2px solid #1a3a5c;">Skill</th>
+                    <th style="padding:10px 16px; text-align:center; font-size:0.82em; text-transform:uppercase; letter-spacing:0.05em; color:white; background:#1a5276; border-right:2px solid #1a3a5c;">No.</th>
+                    <th style="padding:10px 16px; text-align:left; font-size:0.82em; text-transform:uppercase; letter-spacing:0.05em; color:white; background:#154360;">Personnel</th>
+                </tr>
+            </thead>
+            <tbody id="skillsBody">
+                {% include "reports/job_personnel_skills_partial.html" %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+{{ personnel_phones|json_script:"personnel-phones-data" }}
+<script>
+const csrf = '{{ csrf_token }}';
+const addPersonUrl    = "{% url 'job_personnel_add' job.pk %}";
+const skillUpdateUrl  = "{% url 'job_skill_requirement_update' job.pk %}";
+const roleAddUrl  = pk => `/job-personnel/${pk}/role/add/`;
+const roleRemUrl  = pk => `/job-personnel-role/${pk}/remove/`;
+const deleteUrl   = pk => `/job-personnel/${pk}/delete/`;
+const xf = {'X-Fetch': '1', 'X-CSRFToken': csrf};
+
+// ── Refresh skills column from server ─────────────────────
+function refreshSkills() {
+    fetch(window.location.pathname, {headers: {'X-Partial': 'skills'}})
+        .then(r => r.text())
+        .then(html => { document.getElementById('skillsBody').innerHTML = html; });
+}
+
+// ── Add person ────────────────────────────────────────────
+function addPerson(name, btn) {
+    btn.disabled = true;
+    const fd = new FormData();
+    fd.append('name', name);
+    fd.append('csrfmiddlewaretoken', csrf);
+    fetch(addPersonUrl, {method: 'POST', body: fd, headers: {'X-Fetch': '1'}})
+        .then(r => r.json())
+        .then(data => {
+            if (!data.ok) { btn.disabled = false; return; }
+
+            // Grey out roster row — button id is "roster-btn-{pk}", div id is "roster-{pk}"
+            btn.style.background = '#ccc'; btn.style.color = '#999'; btn.style.cursor = 'not-allowed';
+            btn.onclick = null;
+            const rosterDiv = document.getElementById(btn.id.replace('roster-btn-', 'roster-'));
+            if (rosterDiv) rosterDiv.style.background = '#fff0f0';
+
+            // Phone lookup
+            let phone = '';
+            try {
+                const el = document.getElementById('personnel-phones-data');
+                if (el) phone = JSON.parse(el.textContent)[name] || '';
+            } catch(e) {}
+
+            // Insert row into "On this Job" table
+            document.getElementById('jp-empty')?.remove();
+            const tbody = document.getElementById('jobPersonnelBody');
+            const tr = document.createElement('tr');
+            tr.id = 'jp-row-' + data.jp_pk;
+            tr.dataset.name = name.toLowerCase();
+            tr.style.borderBottom = '1px solid #eef2f7';
+            const safeName  = name.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+            const safePhone = phone.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+            const nameJs    = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+            tr.innerHTML = `
+                <td style="padding:0 8px;text-align:center;background:#f8fafc;border-right:2px solid #dde6f0;">
+                    <input type="checkbox" class="person-select-cb" data-name="${safeName}" data-phone="${safePhone}" style="cursor:pointer;">
+                </td>
+                <td style="padding:10px 16px;font-weight:600;background:#f8fafc;border-right:2px solid #dde6f0;">
+                    <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+                        <div>
+                            <div>${safeName}</div>
+                            ${phone ? `<div style="font-size:0.8em;font-weight:400;color:#888;">${safePhone}</div>` : ''}
+                        </div>
+                        <button type="button" onclick="removePerson(${data.jp_pk},'${nameJs}')"
+                                style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;line-height:1;padding:0;">×</button>
+                    </div>
+                </td>
+                <td style="padding:8px 16px;background:white;">
+                    <div id="roles-${data.jp_pk}" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
+                </td>`;
+            // Insert alphabetically
+            const nameLower = name.toLowerCase();
+            const rows = Array.from(tbody.querySelectorAll('tr[id^="jp-row-"]'));
+            const after = rows.find(r => (r.dataset.name || '') > nameLower);
+            if (after) tbody.insertBefore(tr, after);
+            else tbody.appendChild(tr);
+            updateJobCount();
+
+            // Refresh skills column from server (only shows skills the person is qualified for)
+            refreshSkills();
+        })
+        .catch(() => { btn.disabled = false; });
+}
+
+// ── Remove person ─────────────────────────────────────────
+function removePerson(jpPk, name) {
+    if (!confirm(`Remove ${name} from this job?\n\nWarning: This will also remove them from the Personnel Schedule.`)) return;
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', csrf);
+    fetch(deleteUrl(jpPk), {method: 'POST', body: fd, headers: {'X-Fetch': '1'}})
+        .then(r => r.json()).then(data => {
+            if (!data.ok) return;
+            document.getElementById('jp-row-' + jpPk)?.remove();
+            if (!document.querySelector('#jobPersonnelBody tr')) {
+                const tbody = document.getElementById('jobPersonnelBody');
+                tbody.innerHTML = '<tr id="jp-empty"><td colspan="3" style="padding:16px;color:#aaa;font-size:0.9em;background:white;">No personnel assigned yet.</td></tr>';
+            }
+            // Re-enable roster button
+            document.querySelectorAll('[id^="roster-"]').forEach(div => {
+                if (div.querySelector('span')?.textContent.trim() === name) {
+                    div.style.background = 'white';
+                    const btn = div.querySelector('button');
+                    btn.disabled = false;
+                    btn.style.background = '#1a3a5c'; btn.style.color = 'white'; btn.style.cursor = 'pointer';
+                    btn.onclick = function() { addPerson(name, this); };
+                }
+            });
+            updateJobCount();
+            refreshSkills();
+        });
+}
+
+// ── Toggle skill role ────────────────────────────────────
+function toggleRole(btn) {
+    if (btn.dataset.rolePk) {
+        // Remove role
+        const rolePk = btn.dataset.rolePk;
+        const jpPk   = btn.dataset.jpPk;
+        const skill  = btn.dataset.skill;
+        fetch(roleRemUrl(rolePk), {method: 'POST', headers: xf})
+            .then(r => r.json()).then(data => {
+                if (!data.ok) return;
+                btn.dataset.rolePk = '';
+                btn.style.background = '#e8f0f8'; btn.style.color = '#1a3a5c';
+                // Remove badge from middle column
+                document.getElementById('role-badge-' + rolePk)?.remove();
+                // Update skill count cell
+                const countCell = document.querySelector(`[id^="skill-count-"]`);
+                updateSkillCountCell(skill);
+            });
+    } else {
+        // Add role
+        const jpPk  = btn.dataset.jpPk;
+        const skill = btn.dataset.skill;
+        const name  = btn.textContent.trim();
+        const fd = new FormData();
+        fd.append('role', skill);
+        fd.append('csrfmiddlewaretoken', csrf);
+        fetch(roleAddUrl(jpPk), {method: 'POST', body: fd, headers: {'X-Fetch': '1'}})
+            .then(r => r.json()).then(data => {
+                if (!data.ok) return;
+                btn.dataset.rolePk = data.role_pk;
+                btn.style.background = '#4caf50'; btn.style.color = 'white';
+                // Add badge to middle column
+                const rolesDiv = document.getElementById('roles-' + jpPk);
+                if (rolesDiv) {
+                    const badge = document.createElement('span');
+                    badge.id = 'role-badge-' + data.role_pk;
+                    badge.style.cssText = 'display:inline-flex;align-items:center;gap:4px;background:#e8f0f8;color:#1a3a5c;border-radius:12px;padding:3px 10px;font-size:0.85em;';
+                    badge.innerHTML = `${skill} <button type="button" onclick="removeRole(${data.role_pk},'${skill.replace(/'/g,"\\'")}',${jpPk})" style="background:none;border:none;color:#888;cursor:pointer;font-size:0.85em;padding:0;line-height:1;">×</button>`;
+                    rolesDiv.appendChild(badge);
+                }
+                updateSkillCountCell(skill);
+            });
+    }
+}
+
+// ── Remove role via middle-column badge × ─────────────────
+function removeRole(rolePk, skill, jpPk) {
+    fetch(roleRemUrl(rolePk), {method: 'POST', headers: xf})
+        .then(r => r.json()).then(data => {
+            if (!data.ok) return;
+            document.getElementById('role-badge-' + rolePk)?.remove();
+            // Revert skill table button
+            const skillBtn = document.querySelector(`[data-role-pk="${rolePk}"]`);
+            if (skillBtn) { skillBtn.dataset.rolePk = ''; skillBtn.style.background = '#e8f0f8'; skillBtn.style.color = '#1a3a5c'; }
+            updateSkillCountCell(skill);
+        });
+}
+
+// ── Skill count input ─────────────────────────────────────
+function updateSkillCount(input) {
+    const skillPk = input.dataset.skillPk;
+    const count = Math.max(0, parseInt(input.value) || 0);
+    input.value = count;
+    const fd = new FormData();
+    fd.append('skill_pk', skillPk);
+    fd.append('count', count);
+    fd.append('csrfmiddlewaretoken', csrf);
+    fetch(skillUpdateUrl, {method: 'POST', body: fd, headers: {'X-Fetch': '1'}})
+        .then(r => r.json()).then(data => {
+            if (!data.ok) return;
+            const cell = document.getElementById('skill-count-' + skillPk);
+            cell.dataset.required = data.count;
+            cell.dataset.assigned = data.assigned;
+            cell.style.background = skillBg(data.count, data.assigned);
+        });
+}
+
+function updateSkillCountCell(skillName) {
+    // Find count cell by matching skill name in the row
+    document.querySelectorAll('[id^="skill-count-"]').forEach(cell => {
+        const row = cell.closest('tr');
+        if (!row) return;
+        const nameCell = row.querySelector('td:first-child');
+        if (nameCell?.textContent.trim() !== skillName) return;
+        const skillPk = cell.id.replace('skill-count-', '');
+        // Count green buttons in skill row
+        const assigned = document.querySelectorAll(`#skill-people-${skillPk} button[data-role-pk]:not([data-role-pk=""])`).length;
+        cell.dataset.assigned = assigned;
+        cell.style.background = skillBg(parseInt(cell.dataset.required) || 0, assigned);
+    });
+}
+
+function updateJobCount() {
+    const count = document.querySelectorAll('#jobPersonnelBody tr[id^="jp-row"]').length;
+    document.getElementById('jobPersonnelCount').textContent = count;
+}
+
+// ── Export selected as VCF ────────────────────────────────
+function exportVcf() {
+    const checked = [...document.querySelectorAll('.person-select-cb:checked')];
+    if (!checked.length) { alert('Select at least one person.'); return; }
+    const groupName = '{{ job.job_number|escapejs }}';
+    const lines = [];
+    checked.forEach(cb => {
+        lines.push('BEGIN:VCARD');
+        lines.push('VERSION:3.0');
+        lines.push('FN:' + cb.dataset.name);
+        if (cb.dataset.phone) lines.push('TEL;TYPE=CELL:' + cb.dataset.phone);
+        lines.push('CATEGORIES:' + groupName);
+        lines.push('END:VCARD');
+        lines.push('');
+    });
+    const blob = new Blob([lines.join('\r\n')], {type: 'text/vcard'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = groupName + '.vcf';
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+function toggleSelectAll(cb) {
+    document.querySelectorAll('.person-select-cb').forEach(c => c.checked = cb.checked);
+}
+
+function skillBg(required, assigned) {
+    if (required === 0) return '#f0f4f8';
+    if (assigned < required) return '#ffcdd2';
+    if (assigned === required) return '#c8e6c9';
+    return '#bbdefb';
+}
+</script>
+
+{% endblock %}

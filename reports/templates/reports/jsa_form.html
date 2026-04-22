@@ -1,0 +1,426 @@
+{% extends "base.html" %}
+{% block title %}JSA — {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;">
+  <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+  <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+  <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+  <a href="{% url 'qhse_list' job.pk %}?tab=jsa" style="color:#999;">QHSE</a> /
+</p>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+  <h1 style="margin:4px 0;">Job Step Analysis</h1>
+  <div style="display:flex; gap:8px;">
+    <span id="save-status" style="font-size:0.82em; color:#888; align-self:center;"></span>
+    <a href="{% url 'jsa_pdf' jsa.pk %}?inline=1" target="_blank" class="btn" style="background:#eee; color:#333;">View PDF</a>
+    <a href="{% url 'qhse_list' job.pk %}?tab=jsa" class="btn" style="background:#1a3a5c; color:white;">Done</a>
+  </div>
+</div>
+
+<form id="jsaForm" method="post" action="{% url 'jsa_edit' jsa.pk %}">
+{% csrf_token %}
+<input type="hidden" name="participants_json" id="participants_json">
+<input type="hidden" name="analysis_json" id="analysis_json">
+<input type="hidden" name="photo1_data" id="photo1_data">
+<input type="hidden" name="photo2_data" id="photo2_data">
+
+<!-- ── Header ──────────────────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:16px;">
+  <div style="background:#1a3a5c; color:white; padding:10px 16px; margin:-16px -16px 16px; border-radius:6px 6px 0 0; font-weight:600;">
+    VF_GEN_004 — Job Step Analysis — {{ job.job_number }}
+  </div>
+  <div style="margin-bottom:12px;">
+    <label style="font-weight:600;">Job Step Analysis For</label>
+    <input type="text" name="jsa_name" value="{{ jsa.jsa_name }}"
+           style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+    <div>
+      <label style="font-weight:600;">Reference TP</label>
+      <input type="text" name="reference_tp" value="{{ jsa.reference_tp }}"
+             style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div>
+      <label style="font-weight:600;">Reference TRA</label>
+      <input type="text" name="reference_tra" value="{{ jsa.reference_tra }}"
+             style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+  </div>
+</div>
+
+<!-- ── Part 1: Details ─────────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:16px;">
+  <div style="background:#2c5282; color:white; padding:8px 16px; margin:-16px -16px 16px; border-radius:6px 6px 0 0; font-weight:600;">
+    Part 1: Details
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px; margin-bottom:12px;">
+    <div>
+      <label style="font-weight:600;">Project</label>
+      <input type="text" name="project" value="{{ jsa.project }}"
+             style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div>
+      <label style="font-weight:600;">Site</label>
+      <input type="text" name="site" value="{{ jsa.site }}"
+             style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div>
+      <label style="font-weight:600;">Date</label>
+      <input type="date" name="date" value="{{ jsa.date|date:'Y-m-d'|default:'' }}"
+             style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div>
+      <label style="font-weight:600;">Time</label>
+      <input type="time" name="time" value="{{ jsa.time|time:'H:i'|default:'' }}"
+             style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+  </div>
+  {% for fname, label in field_labels %}{% endfor %}
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+    <div>
+      <label style="font-weight:600;">Detailed Description of Job Being Analysed</label>
+      <textarea name="job_description" rows="4"
+                style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px; resize:vertical;">{{ jsa.job_description }}</textarea>
+    </div>
+    <div>
+      <label style="font-weight:600;">List All Main Tools / Equipment Involved</label>
+      <textarea name="tools_equipment" rows="4"
+                style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px; resize:vertical;">{{ jsa.tools_equipment }}</textarea>
+    </div>
+    <div>
+      <label style="font-weight:600;">PPE Required</label>
+      <textarea name="ppe_required" rows="3"
+                style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px; resize:vertical;">{{ jsa.ppe_required }}</textarea>
+    </div>
+    <div>
+      <label style="font-weight:600;">List All Permits / Approvals Required</label>
+      <textarea name="permits_approvals" rows="3"
+                style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px; resize:vertical;">{{ jsa.permits_approvals }}</textarea>
+    </div>
+  </div>
+</div>
+
+<!-- ── Part 2: Participants ─────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:16px;">
+  <div style="background:#2c5282; color:white; padding:8px 16px; margin:-16px -16px 16px; border-radius:6px 6px 0 0; font-weight:600;">
+    Part 2: Participants
+    <span style="font-weight:400; font-size:0.85em; opacity:0.85;"> — Personnel involved must participate in developing the JSA and sign off</span>
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; min-width:600px;">
+      <thead>
+        <tr style="background:#f0f4f8;">
+          <th style="padding:8px 10px; text-align:left; font-size:0.82em; color:#1a3a5c;">#</th>
+          <th style="padding:8px 10px; text-align:left; font-size:0.82em; color:#1a3a5c;">Full Name</th>
+          <th style="padding:8px 10px; text-align:left; font-size:0.82em; color:#1a3a5c;">Position</th>
+          <th style="padding:8px 10px; text-align:left; font-size:0.82em; color:#1a3a5c;">Yrs Exp</th>
+          <th style="padding:8px 10px; text-align:left; font-size:0.82em; color:#1a3a5c;">Signature</th>
+        </tr>
+      </thead>
+      <tbody id="participants-tbody">
+        {% for p in jsa.participants %}
+        <tr style="border-top:1px solid #f0f4f8;">
+          <td style="padding:6px 10px; color:#999; font-size:0.85em;">{{ forloop.counter }}</td>
+          <td style="padding:4px 6px;"><input type="text" class="p-name" value="{{ p.name }}" placeholder="Full name"
+               style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.88em; box-sizing:border-box;"></td>
+          <td style="padding:4px 6px;"><input type="text" class="p-position" value="{{ p.position }}" placeholder="Position"
+               style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.88em; box-sizing:border-box;"></td>
+          <td style="padding:4px 6px;"><input type="number" class="p-years" value="{{ p.years_exp }}" min="0" max="60"
+               style="width:70px; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.88em; box-sizing:border-box;"></td>
+          <td style="padding:4px 6px;"><input type="text" class="p-sig" value="{{ p.signature }}" placeholder="Type name to sign"
+               style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.88em; font-style:italic; box-sizing:border-box;"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ── Part 3: JSA Approval ─────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:16px;">
+  <div style="background:#2c5282; color:white; padding:8px 16px; margin:-16px -16px 16px; border-radius:6px 6px 0 0; font-weight:600;">
+    Part 3: JSA Approval
+    <span style="font-weight:400; font-size:0.85em; opacity:0.85;"> — Approval will not be given if the hazard has not been effectively managed</span>
+  </div>
+  <p style="font-size:0.88em; color:#555; margin:0 0 12px; font-style:italic;">
+    By signing below, I acknowledge that I have reviewed the JSA, job location and all sections have been completed correctly.
+  </p>
+  <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px;">
+    <div>
+      <label style="font-weight:600;">Approved By</label>
+      <input type="text" name="approver_name" value="{{ jsa.approver_name }}"
+             style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div>
+      <label style="font-weight:600;">Position</label>
+      <input type="text" name="approver_position" value="{{ jsa.approver_position }}"
+             style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+    <div>
+      <label style="font-weight:600;">Approval Date</label>
+      <input type="date" name="approval_date" value="{{ jsa.approval_date|date:'Y-m-d'|default:'' }}"
+             style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; margin-top:4px;">
+    </div>
+  </div>
+  <!-- Signature canvas -->
+  <label style="font-weight:600; display:block; margin-bottom:8px;">Approver Signature</label>
+  {% if jsa.approver_signature %}
+  <div id="sig-display" style="margin-bottom:8px;">
+    <img src="{{ jsa.approver_signature }}" style="max-height:80px; border:1px solid #ccc; border-radius:4px; background:white;">
+    <div style="font-size:0.8em; color:#555; margin-top:4px;">
+      {{ jsa.approver_name }}{% if jsa.approval_signed_at %} — {{ jsa.approval_signed_at|date:"d M Y H:i" }}{% endif %}
+    </div>
+    <button type="button" onclick="clearSig()" class="btn" style="margin-top:6px; background:#f8d7da; color:#721c24; padding:4px 12px; font-size:0.82em;">Clear Signature</button>
+  </div>
+  <div id="sig-canvas-wrap" style="display:none;">
+  {% else %}
+  <div id="sig-display" style="display:none;"></div>
+  <div id="sig-canvas-wrap">
+  {% endif %}
+    <canvas id="sigCanvas" width="500" height="120"
+            style="border:2px solid #1a3a5c; border-radius:6px; background:white; touch-action:none; cursor:crosshair; display:block; max-width:100%;"></canvas>
+    <div style="display:flex; gap:8px; margin-top:8px;">
+      <button type="button" onclick="saveSig()" class="btn btn-primary" style="padding:5px 14px; font-size:0.85em;">Save Signature</button>
+      <button type="button" onclick="clearCanvas()" class="btn" style="background:#eee; color:#333; padding:5px 14px; font-size:0.85em;">Clear</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Part 4: Analysis ─────────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:16px;">
+  <div style="background:#2c5282; color:white; padding:8px 16px; margin:-16px -16px 16px; border-radius:6px 6px 0 0; font-weight:600;">
+    Part 4: Analysis
+  </div>
+  <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; min-width:800px;">
+      <thead>
+        <tr style="background:#f0f4f8;">
+          <th style="padding:8px 10px; text-align:left; font-size:0.8em; color:#1a3a5c; width:18%;">Job Step</th>
+          <th style="padding:8px 10px; text-align:left; font-size:0.8em; color:#1a3a5c; width:27%;">Hazards &amp; Potential Hazards</th>
+          <th style="padding:8px 10px; text-align:left; font-size:0.8em; color:#1a3a5c; width:27%;">Recommended Control / Safe Work Procedure</th>
+          <th style="padding:8px 10px; text-align:left; font-size:0.8em; color:#1a3a5c; width:16%;">Person Responsible</th>
+          <th style="padding:8px 10px; text-align:center; font-size:0.8em; color:#1a3a5c; width:9%;">Managed?</th>
+          <th style="width:32px;"></th>
+        </tr>
+      </thead>
+      <tbody id="analysis-tbody">
+        {% for row in jsa.analysis %}
+        <tr style="border-top:1px solid #f0f4f8;">
+          <td style="padding:4px 6px;"><textarea class="a-step" rows="2" placeholder="Step description"
+              style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.85em; resize:vertical; box-sizing:border-box;">{{ row.job_step }}</textarea></td>
+          <td style="padding:4px 6px;"><textarea class="a-hazard" rows="2" placeholder="What can cause harm?"
+              style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.85em; resize:vertical; box-sizing:border-box;">{{ row.hazard }}</textarea></td>
+          <td style="padding:4px 6px;"><textarea class="a-control" rows="2" placeholder="Control measures"
+              style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.85em; resize:vertical; box-sizing:border-box;">{{ row.control }}</textarea></td>
+          <td style="padding:4px 6px;"><input type="text" class="a-person" value="{{ row.person_responsible }}" placeholder="Name"
+              style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.85em; box-sizing:border-box;"></td>
+          <td style="padding:4px 6px; text-align:center;">
+            <select class="a-managed" style="padding:6px 4px; border:1px solid #ddd; border-radius:4px; font-size:0.85em; width:100%;">
+              <option value="">—</option>
+              <option value="yes" {% if row.managed == 'yes' %}selected{% endif %}>Yes</option>
+              <option value="no" {% if row.managed == 'no' %}selected{% endif %}>No</option>
+            </select>
+          </td>
+          <td style="padding:4px; text-align:center;">
+            <button type="button" onclick="removeRow(this)" title="Remove row"
+                    style="background:none; border:none; color:#ccc; font-size:1.1em; cursor:pointer; line-height:1; padding:2px 4px;"
+                    onmouseover="this.style.color='#c00'" onmouseout="this.style.color='#ccc'">×</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <button type="button" onclick="addRow()" style="margin-top:10px; background:none; border:2px dashed #c5d5e8; border-radius:6px; color:#1a3a5c; font-size:0.88em; font-weight:600; padding:8px 20px; cursor:pointer; width:100%;">+ Add Row</button>
+</div>
+
+<!-- ── Part 5: Photos ───────────────────────────────────────────────────── -->
+<div class="card" style="margin-bottom:16px;">
+  <div style="background:#2c5282; color:white; padding:8px 16px; margin:-16px -16px 16px; border-radius:6px 6px 0 0; font-weight:600;">
+    Part 5: Photo of Task / Equipment
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:8px;">
+    {% for slot, field, dataid in photo_slots %}{% endfor %}
+    <div>
+      <label style="font-weight:600; font-size:0.88em; display:block; margin-bottom:6px;">Photo 1</label>
+      {% if jsa.photo1 %}
+      <img id="preview1" src="{{ jsa.photo1 }}" style="max-width:100%; max-height:200px; border:1px solid #ddd; border-radius:6px; display:block; margin-bottom:6px;">
+      {% else %}
+      <img id="preview1" style="max-width:100%; max-height:200px; border:1px solid #ddd; border-radius:6px; display:none; margin-bottom:6px;">
+      {% endif %}
+      <input type="file" id="photo1-input" accept="image/*" onchange="loadPhoto(this,'preview1','photo1_data')"
+             style="font-size:0.85em;">
+    </div>
+    <div>
+      <label style="font-weight:600; font-size:0.88em; display:block; margin-bottom:6px;">Photo 2</label>
+      {% if jsa.photo2 %}
+      <img id="preview2" src="{{ jsa.photo2 }}" style="max-width:100%; max-height:200px; border:1px solid #ddd; border-radius:6px; display:block; margin-bottom:6px;">
+      {% else %}
+      <img id="preview2" style="max-width:100%; max-height:200px; border:1px solid #ddd; border-radius:6px; display:none; margin-bottom:6px;">
+      {% endif %}
+      <input type="file" id="photo2-input" accept="image/*" onchange="loadPhoto(this,'preview2','photo2_data')"
+             style="font-size:0.85em;">
+    </div>
+  </div>
+</div>
+
+<div style="display:flex; gap:8px; margin-bottom:32px;">
+  <button type="submit" class="btn btn-primary">Save</button>
+  <a href="{% url 'qhse_list' job.pk %}?tab=jsa" class="btn" style="background:#eee; color:#333;">Cancel</a>
+</div>
+
+</form>
+
+<script>
+// ── Participants JSON ─────────────────────────────────────────────────────
+function syncParticipants() {
+  const rows = document.querySelectorAll('#participants-tbody tr');
+  const data = Array.from(rows).map(tr => ({
+    name: tr.querySelector('.p-name').value.trim(),
+    position: tr.querySelector('.p-position').value.trim(),
+    years_exp: tr.querySelector('.p-years').value.trim(),
+    signature: tr.querySelector('.p-sig').value.trim(),
+  }));
+  document.getElementById('participants_json').value = JSON.stringify(data);
+}
+
+// ── Analysis JSON ─────────────────────────────────────────────────────────
+function syncAnalysis() {
+  const rows = document.querySelectorAll('#analysis-tbody tr');
+  const data = Array.from(rows).map(tr => ({
+    job_step: tr.querySelector('.a-step').value.trim(),
+    hazard: tr.querySelector('.a-hazard').value.trim(),
+    control: tr.querySelector('.a-control').value.trim(),
+    person_responsible: tr.querySelector('.a-person').value.trim(),
+    managed: tr.querySelector('.a-managed').value,
+  }));
+  document.getElementById('analysis_json').value = JSON.stringify(data);
+}
+
+function addRow() {
+  const tbody = document.getElementById('analysis-tbody');
+  const tr = document.createElement('tr');
+  tr.style.borderTop = '1px solid #f0f4f8';
+  tr.innerHTML = `
+    <td style="padding:4px 6px;"><textarea class="a-step" rows="2" placeholder="Step description"
+        style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.85em; resize:vertical; box-sizing:border-box;"></textarea></td>
+    <td style="padding:4px 6px;"><textarea class="a-hazard" rows="2" placeholder="What can cause harm?"
+        style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.85em; resize:vertical; box-sizing:border-box;"></textarea></td>
+    <td style="padding:4px 6px;"><textarea class="a-control" rows="2" placeholder="Control measures"
+        style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.85em; resize:vertical; box-sizing:border-box;"></textarea></td>
+    <td style="padding:4px 6px;"><input type="text" class="a-person" placeholder="Name"
+        style="width:100%; padding:6px 8px; border:1px solid #ddd; border-radius:4px; font-size:0.85em; box-sizing:border-box;"></td>
+    <td style="padding:4px 6px; text-align:center;">
+      <select class="a-managed" style="padding:6px 4px; border:1px solid #ddd; border-radius:4px; font-size:0.85em; width:100%;">
+        <option value="">—</option>
+        <option value="yes">Yes</option>
+        <option value="no">No</option>
+      </select>
+    </td>
+    <td style="padding:4px; text-align:center;">
+      <button type="button" onclick="removeRow(this)" title="Remove row"
+              style="background:none; border:none; color:#ccc; font-size:1.1em; cursor:pointer; line-height:1; padding:2px 4px;"
+              onmouseover="this.style.color='#c00'" onmouseout="this.style.color='#ccc'">×</button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function removeRow(btn) {
+  const rows = document.querySelectorAll('#analysis-tbody tr');
+  if (rows.length > 1) btn.closest('tr').remove();
+}
+
+// ── Photos ────────────────────────────────────────────────────────────────
+function loadPhoto(input, previewId, dataId) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    const img = document.getElementById(previewId);
+    img.src = e.target.result;
+    img.style.display = 'block';
+    document.getElementById(dataId).value = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Signature canvas ──────────────────────────────────────────────────────
+const canvas = document.getElementById('sigCanvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+
+function getPos(e) {
+  const r = canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: (src.clientX - r.left) * (canvas.width / r.width), y: (src.clientY - r.top) * (canvas.height / r.height) };
+}
+
+canvas.addEventListener('mousedown', e => { drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); });
+canvas.addEventListener('mousemove', e => { if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#1a3a5c'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); });
+canvas.addEventListener('mouseup', () => drawing = false);
+canvas.addEventListener('mouseleave', () => drawing = false);
+canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; ctx.beginPath(); const p = getPos(e); ctx.moveTo(p.x, p.y); }, { passive: false });
+canvas.addEventListener('touchmove', e => { e.preventDefault(); if (!drawing) return; const p = getPos(e); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#1a3a5c'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); }, { passive: false });
+canvas.addEventListener('touchend', () => drawing = false);
+
+function clearCanvas() { ctx.clearRect(0, 0, canvas.width, canvas.height); }
+
+function saveSig() {
+  const data = canvas.toDataURL('image/png');
+  fetch("{% url 'jsa_sign' jsa.pk %}", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+    body: JSON.stringify({ signature: data, signed_at: new Date().toISOString() })
+  }).then(r => r.json()).then(d => {
+    if (d.ok) location.reload();
+  });
+}
+
+function clearSig() {
+  fetch("{% url 'jsa_sign_clear' jsa.pk %}", {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}' }
+  }).then(r => r.json()).then(d => {
+    if (d.ok) location.reload();
+  });
+}
+
+// ── Auto-save ─────────────────────────────────────────────────────────────
+let saveTimer;
+function scheduleSave() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(autoSave, 1500);
+}
+
+function autoSave() {
+  syncParticipants();
+  syncAnalysis();
+  const form = document.getElementById('jsaForm');
+  const fd = new FormData(form);
+  const status = document.getElementById('save-status');
+  fetch(form.action, {
+    method: 'POST',
+    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    body: fd,
+  }).then(r => r.json()).then(d => {
+    if (d.ok) { status.textContent = 'Saved'; setTimeout(() => status.textContent = '', 2000); }
+  });
+}
+
+document.getElementById('jsaForm').addEventListener('input', scheduleSave);
+document.getElementById('jsaForm').addEventListener('change', scheduleSave);
+
+window.addEventListener('beforeunload', () => {
+  syncParticipants();
+  syncAnalysis();
+  const form = document.getElementById('jsaForm');
+  navigator.sendBeacon(form.action, new FormData(form));
+});
+
+// Init JSON fields on load
+syncParticipants();
+syncAnalysis();
+</script>
+
+{% endblock %}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: Arial, sans-serif; font-size: 10pt; color: #1a1a1a; margin: 0; padding: 0; }
+  h1 { font-size: 15pt; color: #1a3a5c; margin: 0 0 4px; }
+  .subtitle { font-size: 9pt; color: #666; margin-bottom: 20px; }
+  .unit-block { margin-bottom: 28px; page-break-inside: avoid; }
+  .unit-title { font-size: 11pt; font-weight: bold; color: #1a3a5c; border-bottom: 1.5pt solid #c5d5e8; padding-bottom: 4px; margin-bottom: 4px; }
+  .unit-source { font-size: 8pt; color: #888; margin-bottom: 10px; }
+  canvas { width: 100% !important; max-height: 260px; }
+</style>
+</head>
+<body>
+
+<h1>Pre Job Vib Tests — {{ job.job_number }}</h1>
+<div class="subtitle">{{ job.project_name }}{% if job.client %} &nbsp;|&nbsp; {{ job.client }}{% endif %} &nbsp;|&nbsp; Generated {{ generated_date }}</div>
+
+<div id="charts-container"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function(){
+    const allCharts = {{ charts_json|safe }};
+    const container = document.getElementById('charts-container');
+
+    if (!allCharts.length) {
+        container.innerHTML = '<p style="color:#888;">No chart data available.</p>';
+        window._chartsReady = true;
+        return;
+    }
+
+    allCharts.forEach(function(unit) {
+        const block = document.createElement('div');
+        block.className = 'unit-block';
+        block.innerHTML = '<div class="unit-title">Unit ID: ' + unit.unit_id + '</div>' +
+                          '<div class="unit-source">Source: ' + unit.file_name + '</div>';
+        const canvas = document.createElement('canvas');
+        block.appendChild(canvas);
+        container.appendChild(block);
+
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: unit.labels,
+                datasets: unit.datasets.map(function(ds) {
+                    return {
+                        label: ds.label,
+                        data: ds.data,
+                        borderColor: ds.color,
+                        backgroundColor: ds.color + '22',
+                        borderWidth: 3,
+                        pointRadius: unit.labels.length > 200 ? 0 : 3,
+                        pointHoverRadius: 5,
+                        tension: 0.2,
+                        spanGaps: true,
+                    };
+                }),
+            },
+            options: {
+                animation: false,
+                responsive: false,
+                width: 700,
+                height: 280,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: { font: { size: 26, weight: 'bold' }, boxWidth: 32, padding: 20 },
+                    },
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Record #', font: { size: 26, weight: 'bold' } },
+                        ticks: { maxTicksLimit: 20, font: { size: 22, weight: 'bold' } },
+                        grid: { lineWidth: 1 },
+                    },
+                    y: {
+                        title: { display: true, text: 'Value', font: { size: 26, weight: 'bold' } },
+                        ticks: { font: { size: 22, weight: 'bold' } },
+                        grid: { lineWidth: 1 },
+                    },
+                },
+            },
+        });
+    });
+
+    window._chartsReady = true;
+})();
+</script>
+</body>
+</html>

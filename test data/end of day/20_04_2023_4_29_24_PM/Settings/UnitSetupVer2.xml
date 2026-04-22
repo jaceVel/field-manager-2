@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfTUnit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <tUnit>
+    <mUnitID>2</mUnitID>
+    <mLastSweepID>0</mLastSweepID>
+    <mGroupID>0</mGroupID>
+    <UnitID>2</UnitID>
+    <SerialNumber>0</SerialNumber>
+    <VSSSampleRate>0</VSSSampleRate>
+    <VSSLowCutFilter>0</VSSLowCutFilter>
+    <DecoderType>eForce3</DecoderType>
+    <DriverName />
+    <mAntennaHeightInfoValid>true</mAntennaHeightInfoValid>
+    <mApplyGPSAntennaHeightInReports>false</mApplyGPSAntennaHeightInReports>
+    <mGPSAntennaHeight>0</mGPSAntennaHeight>
+    <GroupID>0</GroupID>
+    <Status>eIdle</Status>
+  </tUnit>
+  <tUnit>
+    <mUnitID>1</mUnitID>
+    <mLastSweepID>0</mLastSweepID>
+    <mGroupID>0</mGroupID>
+    <UnitID>1</UnitID>
+    <SerialNumber>0</SerialNumber>
+    <VSSSampleRate>0</VSSSampleRate>
+    <VSSLowCutFilter>0</VSSLowCutFilter>
+    <DecoderType>eForce3</DecoderType>
+    <DriverName />
+    <mAntennaHeightInfoValid>true</mAntennaHeightInfoValid>
+    <mApplyGPSAntennaHeightInReports>false</mApplyGPSAntennaHeightInReports>
+    <mGPSAntennaHeight>0</mGPSAntennaHeight>
+    <GroupID>0</GroupID>
+    <Status>eIdle</Status>
+  </tUnit>
+  <tUnit>
+    <mUnitID>3</mUnitID>
+    <mLastSweepID>0</mLastSweepID>
+    <mGroupID>0</mGroupID>
+    <UnitID>3</UnitID>
+    <SerialNumber>0</SerialNumber>
+    <VSSSampleRate>0</VSSSampleRate>
+    <VSSLowCutFilter>0</VSSLowCutFilter>
+    <DecoderType>eForce3</DecoderType>
+    <DriverName />
+    <mAntennaHeightInfoValid>true</mAntennaHeightInfoValid>
+    <mApplyGPSAntennaHeightInReports>false</mApplyGPSAntennaHeightInReports>
+    <mGPSAntennaHeight>0</mGPSAntennaHeight>
+    <GroupID>0</GroupID>
+    <Status>eIdle</Status>
+  </tUnit>
+  <tUnit>
+    <mUnitID>4</mUnitID>
+    <mLastSweepID>0</mLastSweepID>
+    <mGroupID>1</mGroupID>
+    <UnitID>4</UnitID>
+    <SerialNumber>0</SerialNumber>
+    <VSSSampleRate>0</VSSSampleRate>
+    <VSSLowCutFilter>0</VSSLowCutFilter>
+    <DecoderType>eForce3</DecoderType>
+    <DriverName />
+    <mAntennaHeightInfoValid>true</mAntennaHeightInfoValid>
+    <mApplyGPSAntennaHeightInReports>false</mApplyGPSAntennaHeightInReports>
+    <mGPSAntennaHeight>0</mGPSAntennaHeight>
+    <GroupID>1</GroupID>
+    <Status>eIdle</Status>
+  </tUnit>
+  <tUnit>
+    <mUnitID>7</mUnitID>
+    <mLastSweepID>0</mLastSweepID>
+    <mGroupID>0</mGroupID>
+    <UnitID>7</UnitID>
+    <SerialNumber>0</SerialNumber>
+    <VSSSampleRate>0</VSSSampleRate>
+    <VSSLowCutFilter>0</VSSLowCutFilter>
+    <DecoderType>eForce3</DecoderType>
+    <DriverName />
+    <mAntennaHeightInfoValid>true</mAntennaHeightInfoValid>
+    <mApplyGPSAntennaHeightInReports>false</mApplyGPSAntennaHeightInReports>
+    <mGPSAntennaHeight>0</mGPSAntennaHeight>
+    <GroupID>0</GroupID>
+    <Status>eIdle</Status>
+  </tUnit>
+</ArrayOfTUnit>

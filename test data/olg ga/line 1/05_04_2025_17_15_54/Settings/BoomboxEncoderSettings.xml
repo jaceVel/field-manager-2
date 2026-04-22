@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tBoombox xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <mUnitID>0</mUnitID>
+  <mCrewNumber>0</mCrewNumber>
+  <mEncoderRepeaterID>0</mEncoderRepeaterID>
+  <mDitherEnabled>false</mDitherEnabled>
+  <mDecoderRepeaterID>0</mDecoderRepeaterID>
+  <mStartCode>0</mStartCode>
+  <mDecoderStartDelay>0</mDecoderStartDelay>
+  <mUpholeBlankTimeDelay>0</mUpholeBlankTimeDelay>
+  <mUpholeWindowDelay>0</mUpholeWindowDelay>
+  <mOperationMode>eEncoder</mOperationMode>
+  <mF3OperationMode>eEncoder</mF3OperationMode>
+  <mEncoderF3OperationMode>eEncoder</mEncoderF3OperationMode>
+  <mDecoderF3OperationMode>eEncoder</mDecoderF3OperationMode>
+  <mReadyMessage>eON</mReadyMessage>
+  <mUnitType>eStandard</mUnitType>
+  <mRTMTimebreakDelay>e1000ms</mRTMTimebreakDelay>
+  <mAutoShutdown>0</mAutoShutdown>
+  <mAuxInActive>false</mAuxInActive>
+  <mGPSPSSActive>false</mGPSPSSActive>
+  <mRecorderStart>true</mRecorderStart>
+  <mTBActive>true</mTBActive>
+  <mRemoteFire>false</mRemoteFire>
+  <mSpeakerPolarity>false</mSpeakerPolarity>
+  <mMicPolarity>false</mMicPolarity>
+  <mOptionInput>false</mOptionInput>
+  <mAutoZeroTime>true</mAutoZeroTime>
+  <mGeophoneLimitMin>0</mGeophoneLimitMin>
+  <mGeophoneLimitMax>0</mGeophoneLimitMax>
+  <mCapLimitMin>0</mCapLimitMin>
+  <mCapLimitMax>0</mCapLimitMax>
+  <mStart>2014-01-01T00:00:00</mStart>
+  <mEnd>2014-01-01T23:59:59</mEnd>
+  <mAllDay>false</mAllDay>
+  <mUnits />
+  <mFirstBreakThreshold>e10Percent</mFirstBreakThreshold>
+  <mListenTime>0</mListenTime>
+  <mEncoderStartDelay>0</mEncoderStartDelay>
+  <mEncoderRadioStartDelay>0</mEncoderRadioStartDelay>
+  <mEncoderRadioReferenceStartDelay>0</mEncoderRadioReferenceStartDelay>
+  <mRecorderType>eSourceLink</mRecorderType>
+  <mFirstBreakBackup>true</mFirstBreakBackup>
+</tBoombox>

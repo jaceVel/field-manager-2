@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TestOptions xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <mTestmodeEnabled>false</mTestmodeEnabled>
+  <mAutoReady>false</mAutoReady>
+  <mUseTimeout>false</mUseTimeout>
+  <mTimeout>0</mTimeout>
+  <mAllowMockPosition>false</mAllowMockPosition>
+</TestOptions>

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tEncoderTBDownloadSettings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <mIP>10.0.59.2</mIP>
+  <mFrom>2009-01-01T00:00:00</mFrom>
+  <mTo>2021-05-29T23:59:59</mTo>
+  <mDownloadType>0</mDownloadType>
+  <mProcess />
+  <mClear>true</mClear>
+</tEncoderTBDownloadSettings>

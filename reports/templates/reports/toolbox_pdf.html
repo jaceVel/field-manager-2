@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @page { size: A4; margin: 1.5cm 1.5cm 2.5cm 1.5cm; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #111; margin: 0; }
+    * { box-sizing: border-box; }
+    table { page-break-inside: auto; }
+    tr { page-break-inside: avoid; page-break-after: auto; }
+
+
+    /* Main title */
+    .main-title { font-size: 13pt; font-weight: bold; text-align: center; padding: 6px 0 5px;
+                  border-top: 2pt solid #1a3a5c; border-bottom: 2pt solid #1a3a5c; margin: 6px 0 8px; letter-spacing: 0.03em; }
+
+    /* Section headers */
+    .sec-hdr { background: #1a3a5c; color: white; font-weight: bold; font-size: 8.5pt;
+               padding: 3px 8px; margin-top: 6px; page-break-after: avoid; break-after: avoid; }
+
+    /* Section wrappers */
+    .section { page-break-inside: avoid; break-inside: avoid; }
+
+    /* Data table */
+    table.data { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+    table.data td { border: 0.5pt solid #bbb; padding: 4px 7px; vertical-align: middle; }
+    td.lbl { background: #eef3f8; font-weight: 600; white-space: nowrap; color: #1a3a5c; }
+
+    /* Text area boxes */
+    .ta { border: 0.5pt solid #bbb; padding: 4px 7px;
+          white-space: pre-wrap; font-size: 8.5pt; margin: 0;
+          overflow: visible; word-break: break-word; }
+
+    /* Two-column activity layout (label left, content right) */
+    table.act { width: 100%; border-collapse: collapse; font-size: 8.5pt; page-break-inside: auto; }
+    table.act td { border: 0.5pt solid #bbb; padding: 0; vertical-align: top; }
+    td.act-lbl { background: #eef3f8; font-weight: 600; color: #1a3a5c; width: 22%; font-size: 8pt; padding: 4px 7px; }
+    td.act-lbl small { font-weight: 400; color: #555; display: block; margin-top: 2px; }
+    td.act-content { padding: 0; }
+
+    /* Checkbox-style risk indicators */
+    .cb-row { display: flex; align-items: center; gap: 14px; }
+    .cb-item { display: inline-flex; align-items: center; gap: 3px; font-size: 8.5pt; }
+    .cb { display: inline-block; width: 10pt; height: 10pt; border: 1pt solid #555;
+          text-align: center; line-height: 10pt; font-size: 7pt; flex-shrink: 0; }
+    .cb.on { background: #1a3a5c; color: white; border-color: #1a3a5c; }
+
+    /* Attendees */
+    table.att { width: 100%; border-collapse: collapse; font-size: 8.5pt; }
+    table.att th { background: #1a3a5c; color: white; padding: 3px 6px; border: 0.5pt solid #1a3a5c;
+                   font-size: 8pt; text-align: left; }
+    table.att td { border: 0.5pt solid #bbb; padding: 3px 6px; height: 18px; vertical-align: middle; }
+    table.att .mid { width: 6px; background: #1a3a5c; border: none; padding: 0; }
+    table.att .bac { width: 52px; text-align: center; }
+    table.att .sig { width: 120px; }
+
+    .page-break { page-break-before: always; }
+</style>
+</head>
+<body>
+
+
+<!-- ── Header ─────────────────────────────────────────────────────────── -->
+{% if logo_b64 %}
+<div style="text-align:right; margin-bottom:0; margin-top:-8px;">
+  <img src="{{ logo_b64 }}" style="width:108px;" />
+</div>
+{% endif %}
+
+<div class="main-title">{% if meeting.meeting_type == 'daily' %}Daily Toolbox Meeting Record{% else %}Journey Management Toolbox Meeting{% endif %}</div>
+
+<!-- ── Section 1: Job Details ─────────────────────────────────────────── -->
+<div class="section">
+<div class="sec-hdr">Section 1: Job Details</div>
+<table class="data">
+  <tr>
+    <td class="lbl" style="width:70px;">Date</td>
+    <td style="width:95px;">{% if meeting.date %}{{ meeting.date|date:"d/m/Y" }}{% endif %}</td>
+    <td class="lbl" style="width:45px;">Time</td>
+    <td style="width:55px;">{% if meeting.time %}{{ meeting.time|time:"H:i" }}{% endif %}</td>
+    <td class="lbl" style="width:70px;">Location</td>
+    <td>{{ meeting.location }}</td>
+    {% if meeting.meeting_type == 'daily' %}
+    <td class="lbl" style="width:85px;"># Days on Job</td>
+    <td style="width:40px;">{{ meeting.days_on_job }}</td>
+    {% else %}
+    <td class="lbl" style="width:45px;">JMP #</td>
+    <td style="width:55px;">{{ meeting.jmp_number }}</td>
+    {% endif %}
+  </tr>
+  <tr>
+    <td class="lbl">Job Number</td>
+    <td>{{ meeting.job.job_number }}</td>
+    <td class="lbl">Supervisor</td>
+    <td colspan="5">{{ meeting.supervisor }}</td>
+  </tr>
+</table>
+</div>
+
+<!-- ── Section 2 ──────────────────────────────────────────────────────── -->
+<div class="section">
+{% if meeting.meeting_type == 'daily' %}
+<div class="sec-hdr">Section 2: General Job Information / Discussion for Yesterday's Activities</div>
+<div class="ta">{{ meeting.yesterday_activities }}</div>
+{% else %}
+<div class="sec-hdr">Section 2: JMP Checklist</div>
+<table class="data">
+  {% for label, field in jmp_items %}
+  <tr>
+    <td style="width:22pt; text-align:center; border:none;">
+      <span class="cb {% if field %}on{% endif %}">{% if field %}✓{% endif %}</span>
+    </td>
+    <td style="border:none;">{{ label }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+</div>
+
+<!-- ── Section 3: Activities & Conditions ─────────────────────────────── -->
+<div class="section">
+<div class="sec-hdr">Section 3: {% if meeting.meeting_type == 'daily' %}Today's Activities &amp; Conditions{% else %}Road Conditions &amp; Activities{% endif %}</div>
+
+{% if meeting.meeting_type == 'daily' %}
+<table class="act">
+  <tr>
+    <td class="act-lbl">What activities do we have today?</td>
+    <td class="act-content"><div class="ta">{{ meeting.todays_activities }}</div></td>
+  </tr>
+  <tr>
+    <td class="act-lbl">Any terrain discussions?<small>(hand carry, cultural heritage, etc)</small></td>
+    <td class="act-content"><div class="ta">{{ meeting.terrain_discussion }}</div></td>
+  </tr>
+</table>
+{% else %}
+<table class="act">
+  <tr>
+    <td class="act-lbl">Road Condition Discussion</td>
+    <td class="act-content"><div class="ta">{{ meeting.road_condition }}</div></td>
+  </tr>
+  <tr>
+    <td class="act-lbl">Today's Activities</td>
+    <td class="act-content"><div class="ta">{{ meeting.todays_activities }}</div></td>
+  </tr>
+</table>
+{% endif %}
+
+<div class="section">
+<table class="data" style="margin-top:4px;">
+  <tr>
+    <td class="lbl" style="width:110px;">Today's Emergency<br>Muster Point</td>
+    <td colspan="3">{{ meeting.muster_point }}</td>
+  </tr>
+</table>
+
+<table class="data" style="margin-top:2px;">
+  <tr>
+    <td class="lbl" style="width:110px;">Forecast</td>
+    <td colspan="3">{{ meeting.forecast }}</td>
+  </tr>
+  <tr>
+    <td class="lbl">UV Index</td>
+    <td colspan="3">
+      <div class="cb-row">
+        <div class="cb-item"><span class="cb {% if meeting.uv_index == 'low' %}on{% endif %}">{% if meeting.uv_index == 'low' %}✓{% endif %}</span> Low</div>
+        <div class="cb-item"><span class="cb {% if meeting.uv_index == 'high' %}on{% endif %}">{% if meeting.uv_index == 'high' %}✓{% endif %}</span> High</div>
+        <div class="cb-item"><span class="cb {% if meeting.uv_index == 'extreme' %}on{% endif %}">{% if meeting.uv_index == 'extreme' %}✓{% endif %}</span> Extreme</div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td class="lbl">Chance of Rain</td>
+    <td style="width:100px;">{{ meeting.chance_of_rain|default:"" }}</td>
+    <td class="lbl" style="width:80px;">Min Temp</td>
+    <td style="width:80px;">{{ meeting.min_temp|default:"" }}</td>
+  </tr>
+  <tr>
+    <td class="lbl">Max Temp</td>
+    <td style="width:100px;">{{ meeting.max_temp|default:"" }}</td>
+    <td colspan="2"></td>
+  </tr>
+  <tr>
+    <td class="lbl">Grass Fire Danger</td>
+    <td colspan="3">
+      <div class="cb-row">
+        <div class="cb-item"><span class="cb {% if meeting.grass_fire == 'low' %}on{% endif %}">{% if meeting.grass_fire == 'low' %}✓{% endif %}</span> Low</div>
+        <div class="cb-item"><span class="cb {% if meeting.grass_fire == 'high' %}on{% endif %}">{% if meeting.grass_fire == 'high' %}✓{% endif %}</span> High</div>
+        <div class="cb-item"><span class="cb {% if meeting.grass_fire == 'extreme' %}on{% endif %}">{% if meeting.grass_fire == 'extreme' %}✓{% endif %}</span> Extreme</div>
+        <span style="margin-left:30px; font-weight:600; color:#1a3a5c;">Forest Fire Danger</span>
+        <div class="cb-item"><span class="cb {% if meeting.forest_fire == 'low' %}on{% endif %}">{% if meeting.forest_fire == 'low' %}✓{% endif %}</span> Low</div>
+        <div class="cb-item"><span class="cb {% if meeting.forest_fire == 'high' %}on{% endif %}">{% if meeting.forest_fire == 'high' %}✓{% endif %}</span> High</div>
+        <div class="cb-item"><span class="cb {% if meeting.forest_fire == 'extreme' %}on{% endif %}">{% if meeting.forest_fire == 'extreme' %}✓{% endif %}</span> Extreme</div>
+      </div>
+    </td>
+  </tr>
+  <tr>
+    <td class="lbl">Wind Speed &amp; Direction</td>
+    <td colspan="3">{{ meeting.wind|default:"" }}</td>
+  </tr>
+</table>
+</div>
+</div>
+
+<!-- ── Section 4: Other Topics ────────────────────────────────────────── -->
+<div class="section">
+<div class="sec-hdr">Section 4: Other Topics for Crew Discussion</div>
+<div class="ta">{{ meeting.other_topics }}</div>
+</div>
+
+<!-- ── Section 5: Attendees ───────────────────────────────────────────── -->
+<div class="section" id="sec-attendees">
+<div class="sec-hdr">Section 5: Attendees</div>
+{% if meeting.meeting_type == 'jmp' %}
+<p style="font-size:8pt; color:#555; margin:2px 0 3px;">Each attendee acknowledges the JMP has been communicated to them.</p>
+{% endif %}
+{% if has_extended or has_separator %}
+<table class="att">
+  <tr>
+    <th>Name</th>
+    {% if has_extended %}<th>Job Role(s)</th><th>Vehicle</th>{% endif %}
+    <th class="bac">BAC</th>
+    <th class="sig">Signature</th>
+  </tr>
+  {% for a in attendees %}
+  {% if a.is_separator %}
+  <tr><td colspan="{% if has_extended %}5{% else %}3{% endif %}" style="background:#dce8f5; font-size:7.5pt; font-weight:700; color:#1a3a5c; padding:3px 6px;">{{ a.name }}</td></tr>
+  {% else %}
+  <tr {% if forloop.counter|divisibleby:2 %}style="background:#f9f9f9;"{% endif %}>
+    <td>{{ a.name }}&nbsp;</td>
+    {% if has_extended %}<td>{{ a.job_role }}&nbsp;</td><td>{{ a.vehicle }}&nbsp;</td>{% endif %}
+    <td class="bac">{{ a.bac }}</td>
+    <td class="sig">&nbsp;</td>
+  </tr>
+  {% endif %}
+  {% endfor %}
+</table>
+{% else %}
+<table class="att">
+  <tr>
+    <th>Name</th>
+    <th class="bac">BAC</th>
+    <th class="sig">Signature</th>
+    <th class="mid"></th>
+    <th>Name</th>
+    <th class="bac">BAC</th>
+    <th class="sig">Signature</th>
+  </tr>
+  {% for pair in attendee_pairs %}
+  <tr {% if forloop.counter|divisibleby:2 %}style="background:#f9f9f9;"{% endif %}>
+    <td>{% if pair.0 %}{{ pair.0.name }}{% endif %}&nbsp;</td>
+    <td class="bac">{% if pair.0 %}{{ pair.0.bac }}{% endif %}</td>
+    <td class="sig">&nbsp;</td>
+    <td class="mid"></td>
+    <td>{% if pair.1 %}{{ pair.1.name }}{% endif %}&nbsp;</td>
+    <td class="bac">{% if pair.1 %}{{ pair.1.bac }}{% endif %}</td>
+    <td class="sig">&nbsp;</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+</div>
+
+{% if meeting.include_equipment_allocation and eq_alloc_data %}
+<!-- ── Equipment Allocation ───────────────────────────────────────────── -->
+<div class="section" style="margin-top:8px;">
+<div class="sec-hdr">Equipment Allocation</div>
+<table class="att">
+  <tr>
+    <th style="width:40%;">Person</th>
+    <th>Equipment</th>
+  </tr>
+  {% for row in eq_alloc_data %}
+  <tr {% if forloop.counter|divisibleby:2 %}style="background:#f9f9f9;"{% endif %}>
+    <td>{{ row.person_name }}&nbsp;</td>
+    <td>{% for e in row.equipment %}{{ e.name }}{% if e.equipment_type %} ({{ e.equipment_type }}){% endif %}{% if not forloop.last %}, {% endif %}{% endfor %}&nbsp;</td>
+  </tr>
+  {% endfor %}
+</table>
+</div>
+{% endif %}
+
+{% if photos_with_uri %}
+<!-- ── Photos ─────────────────────────────────────────────────────────── -->
+<div class="section" style="margin-top:8px;">
+<div class="sec-hdr">Photos</div>
+{% if meeting.photo_columns == 1 %}
+{% for item in photos_with_uri %}
+<div style="page-break-inside:avoid; margin-bottom:14px;">
+  {% if item.photo.border_style == 'none' %}
+  <img src="{{ item.uri }}" style="width:100%;">
+  {% elif item.photo.border_style == 'thin' %}
+  <img src="{{ item.uri }}" style="width:100%; border:0.5pt solid #999;">
+  {% elif item.photo.border_style == 'thick' %}
+  <img src="{{ item.uri }}" style="width:100%; border:2pt solid #1a3a5c;">
+  {% else %}
+  <img src="{{ item.uri }}" style="width:100%; box-shadow:0 2px 6px rgba(0,0,0,0.3);">
+  {% endif %}
+  {% if item.photo.caption %}<div style="font-size:8pt; color:#555; margin-top:4px; text-align:center;">{{ item.photo.caption }}</div>{% endif %}
+</div>
+{% endfor %}
+{% else %}
+<table style="width:100%; border-collapse:collapse;">
+{% for item in photos_with_uri %}
+{% if forloop.counter0|divisibleby:2 %}<tr style="page-break-inside:avoid;">{% endif %}
+<td style="width:50%; padding:4px; vertical-align:top;">
+  {% if item.photo.border_style == 'none' %}
+  <img src="{{ item.uri }}" style="width:100%;">
+  {% elif item.photo.border_style == 'thin' %}
+  <img src="{{ item.uri }}" style="width:100%; border:0.5pt solid #999;">
+  {% elif item.photo.border_style == 'thick' %}
+  <img src="{{ item.uri }}" style="width:100%; border:2pt solid #1a3a5c;">
+  {% else %}
+  <img src="{{ item.uri }}" style="width:100%; box-shadow:0 2px 6px rgba(0,0,0,0.3);">
+  {% endif %}
+  {% if item.photo.caption %}<div style="font-size:8pt; color:#555; margin-top:4px; text-align:center;">{{ item.photo.caption }}</div>{% endif %}
+</td>
+{% if forloop.counter|divisibleby:2 or forloop.last %}{% if not forloop.counter|divisibleby:2 %}<td style="width:50%; padding:4px;"></td>{% endif %}</tr>{% endif %}
+{% endfor %}
+</table>
+{% endif %}
+</div>
+{% endif %}
+
+</body>
+</html>

@@ -1,0 +1,2632 @@
+{% extends "base.html" %}
+{% block title %}{{ report.get_report_type_display }} Report — {{ report.date }}{% endblock %}
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;">
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' report.job.pk %}" style="color:#999;">{{ report.job.job_number }}</a> /
+    {{ report.get_report_type_display }} Report
+</p>
+<h1 style="margin-bottom:4px;">{{ report.get_report_type_display }} Report — {{ report.date|date:"D, d M Y" }}</h1>
+<p style="color:#666; margin-top:0;">{{ report.job.client }} — {{ report.job.project_name }}</p>
+
+<!-- Tabs -->
+<div style="display:flex; gap:0; border-bottom:4px double #1a3a5c; margin-bottom:24px; margin-top:20px;">
+    <a href="?tab=files" data-tab="files" class="tab-link" style="padding:10px 20px; text-decoration:none; font-weight:bold; border-radius:4px 4px 0 0; color:#1a3a5c;">
+        Files {% if report_files %}<span style="background:#e63946; color:white; border-radius:10px; padding:1px 7px; font-size:0.75em;">{{ report_files.count }}</span>{% endif %}
+    </a>
+    <a href="?tab=personnel" data-tab="personnel" class="tab-link" style="padding:10px 20px; text-decoration:none; font-weight:bold; border-radius:4px 4px 0 0; color:#1a3a5c;">
+        Observers &amp; Operators
+    </a>
+    <a href="?tab=activities" data-tab="activities" class="tab-link" style="padding:10px 20px; text-decoration:none; font-weight:bold; border-radius:4px 4px 0 0; color:#1a3a5c;">
+        Activities
+    </a>
+    <a href="?tab=diary" data-tab="diary" class="tab-link" style="padding:10px 20px; text-decoration:none; font-weight:bold; border-radius:4px 4px 0 0; color:#1a3a5c;">
+        Diary
+    </a>
+    <a href="?tab=report" data-tab="report" class="tab-link" style="padding:10px 20px; text-decoration:none; font-weight:bold; border-radius:4px 4px 0 0; color:#1a3a5c;">
+        Report
+    </a>
+    <a href="?tab=qc" data-tab="qc" class="tab-link" style="padding:10px 20px; text-decoration:none; font-weight:bold; border-radius:4px 4px 0 0; color:#1a3a5c;">
+        QC
+    </a>
+    <a href="?tab=photos" data-tab="photos" class="tab-link" style="padding:10px 20px; text-decoration:none; font-weight:bold; border-radius:4px 4px 0 0; color:#1a3a5c;">
+        Photos {% if photos %}<span style="background:#1a3a5c; color:white; border-radius:10px; padding:1px 7px; font-size:0.75em;">{{ photos.count }}</span>{% endif %}
+    </a>
+    <a href="?tab=settings" data-tab="settings" class="tab-link" style="padding:10px 20px; text-decoration:none; font-weight:bold; border-radius:4px 4px 0 0; color:#1a3a5c;">
+        Settings
+    </a>
+</div>
+
+<!-- Tab: Personnel -->
+<div id="tab-pane-personnel" class="tab-pane" style="display:block; height:0; overflow:hidden;">
+<form method="post" id="personnelForm">
+{% csrf_token %}
+<div class="card">
+    <h3>Observers &amp; Vibe Operators</h3>
+    <div class="grid">
+
+        <div>
+            <label>Observers</label>
+            <div id="observerRows">
+                {% for name in saved_observers %}
+                <div class="observer-row" style="display:flex; gap:6px; margin-bottom:6px;">
+                    <input type="text" name="observers" list="observerList" value="{{ name }}" autocomplete="off" style="flex:1;">
+                    <button type="button" onclick="removeRow(this, 'observer-row')" style="background:#ccc; border:none; border-radius:4px; padding:0 10px; cursor:pointer; font-size:1.1em;">×</button>
+                </div>
+                {% empty %}
+                <div class="observer-row" style="display:flex; gap:6px; margin-bottom:6px;">
+                    <input type="text" name="observers" list="observerList" placeholder="Type or select name" autocomplete="off" style="flex:1;">
+                    <button type="button" onclick="removeRow(this, 'observer-row')" style="background:#ccc; border:none; border-radius:4px; padding:0 10px; cursor:pointer; font-size:1.1em;">×</button>
+                </div>
+                {% endfor %}
+            </div>
+            <datalist id="observerList">{% for o in observers %}<option value="{{ o.name }}">{% endfor %}</datalist>
+            <button type="button" onclick="addRow('observerRows', 'observer-row', 'observers', 'observerList')" class="btn" style="background:#eee; color:#333; margin-top:4px; font-size:0.85em;">+ Add Observer</button>
+            {% if observers %}
+            <div style="margin-top:10px;">
+                <small style="color:#999;">Saved:</small>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+                    {% for o in observers %}
+                    <span id="pname-{{ o.pk }}" style="background:#f0f0f0; border-radius:4px; padding:3px 8px; font-size:0.85em; display:flex; align-items:center; gap:6px;">
+                        {{ o.name }}
+                        <button type="button" onclick="deletePersonnelName({{ o.pk }}, this)" style="background:none; border:none; color:#999; cursor:pointer; padding:0; font-size:1em; line-height:1;">×</button>
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div>
+            <label>Vibe Operators</label>
+            <div id="operatorRows">
+                {% for name in saved_operators %}
+                <div class="operator-row" style="display:flex; gap:6px; margin-bottom:6px;">
+                    <input type="text" name="operators" list="operatorList" value="{{ name }}" autocomplete="off" style="flex:1;">
+                    <button type="button" onclick="removeRow(this, 'operator-row')" style="background:#ccc; border:none; border-radius:4px; padding:0 10px; cursor:pointer; font-size:1.1em;">×</button>
+                </div>
+                {% empty %}
+                <div class="operator-row" style="display:flex; gap:6px; margin-bottom:6px;">
+                    <input type="text" name="operators" list="operatorList" placeholder="Type or select name" autocomplete="off" style="flex:1;">
+                    <button type="button" onclick="removeRow(this, 'operator-row')" style="background:#ccc; border:none; border-radius:4px; padding:0 10px; cursor:pointer; font-size:1.1em;">×</button>
+                </div>
+                {% endfor %}
+            </div>
+            <datalist id="operatorList">{% for o in operators %}<option value="{{ o.name }}">{% endfor %}</datalist>
+            <button type="button" onclick="addRow('operatorRows', 'operator-row', 'operators', 'operatorList')" class="btn" style="background:#eee; color:#333; margin-top:4px; font-size:0.85em;">+ Add Operator</button>
+            {% if operators %}
+            <div style="margin-top:10px;">
+                <small style="color:#999;">Saved:</small>
+                <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:4px;">
+                    {% for o in operators %}
+                    <span id="pname-{{ o.pk }}" style="background:#f0f0f0; border-radius:4px; padding:3px 8px; font-size:0.85em; display:flex; align-items:center; gap:6px;">
+                        {{ o.name }}
+                        <button type="button" onclick="deletePersonnelName({{ o.pk }}, this)" style="background:none; border:none; color:#999; cursor:pointer; padding:0; font-size:1em; line-height:1;">×</button>
+                    </span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+    </div>
+    <div id="personnelSaveStatus" style="margin-top:8px; font-size:0.85em; color:#888; min-height:1.2em;"></div>
+</div>
+</form>
+<script>
+(function() {
+    var form = document.querySelector('#personnelForm');
+    if (!form) return;
+    var status = document.getElementById('personnelSaveStatus');
+    var timer = null;
+
+    function autoSave() {
+        clearTimeout(timer);
+        timer = setTimeout(function() {
+            var data = new FormData(form);
+            status.textContent = 'Saving…';
+            fetch(form.action || window.location.href, { method: 'POST', body: data })
+                .then(function() { status.textContent = 'Saved'; setTimeout(function(){ status.textContent = ''; }, 2000); })
+                .catch(function() { status.textContent = 'Save failed'; });
+        }, 400);
+    }
+
+    form.addEventListener('change', function(e) {
+        if (e.target.matches('input[name="observers"], input[name="operators"]')) autoSave();
+    });
+
+    // Patch removeRow to save after removal
+    var _origRemoveRow = window.removeRow;
+    window.removeRow = function(btn, rowClass) {
+        _origRemoveRow(btn, rowClass);
+        autoSave();
+    };
+})();
+
+function deletePersonnelName(pk, btn) {
+    var span = document.getElementById('pname-' + pk);
+    var csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    fetch('/personnel/' + pk + '/delete/', { method: 'POST', headers: {'X-CSRFToken': csrfToken} })
+        .then(function(r) { if (r.ok || r.redirected) { if (span) span.remove(); } });
+}
+</script>
+</div>
+
+<!-- Tab: Files -->
+<div id="tab-pane-files" class="tab-pane" style="display:block; height:0; overflow:hidden;">
+
+<!-- Survey Position Files (job-level) -->
+<div class="card">
+    <h3>Survey Position Files</h3>
+    <p style="color:#666; font-size:0.9em; margin-top:-8px;">RPS and SPS files are shared across all reports for this job. Uploading a new file replaces the existing one.</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:16px;">
+
+        <!-- RPS -->
+        <div>
+            <div style="font-weight:bold; font-size:0.9em; color:#1a3a5c; margin-bottom:8px;">RPS — Receiver Positions</div>
+            {% if rps_file %}
+            <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#f0f7f0; border:1px solid #b2dfb2; border-radius:4px; margin-bottom:10px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#2e7d32" stroke-width="2" fill="none"/><polyline points="14 2 14 8 20 8" stroke="#2e7d32" stroke-width="2" fill="none"/></svg>
+                <span style="font-size:0.85em; color:#2e7d32; font-family:monospace; flex:1; word-break:break-all;">{{ rps_file.name|cut:"survey_positions/" }}</span>
+                {% if rps_count is not None %}<span style="font-size:0.85em; color:#2e7d32; white-space:nowrap; font-weight:bold;">{{ rps_count }} receivers</span>{% endif %}
+            </div>
+            {% else %}
+            <div style="padding:8px 12px; background:#f9f9f9; border:1px solid #eee; border-radius:4px; margin-bottom:10px; font-size:0.85em; color:#999;">No RPS file uploaded</div>
+            {% endif %}
+            <form method="post" enctype="multipart/form-data" action="{% url 'job_survey_position_upload' report.job.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="file_type" value="rps">
+                <input type="hidden" name="report_pk" value="{{ report.pk }}">
+                {% if rps_file %}
+                <label style="display:flex; align-items:center; gap:6px; margin-bottom:10px; font-size:0.88em; font-weight:normal; cursor:pointer;">
+                    <input type="checkbox" name="is_final" value="1" {% if rps_is_final %}checked{% endif %} onchange="toggleEstimated('rps', this)">
+                    Final file — survey complete
+                </label>
+                <div id="rps-estimated" style="margin-bottom:10px; {% if rps_is_final %}display:none;{% endif %}">
+                    <label style="font-size:0.85em; margin-bottom:3px;">Estimated total receivers</label>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="number" name="estimated_count" value="{{ rps_estimated|default:'' }}" min="0" placeholder="e.g. 2400" style="width:120px; padding:6px 8px; font-size:0.9em;">
+                        <span style="font-size:0.8em; color:#999;">press Save to apply</span>
+                    </div>
+                </div>
+                {% else %}
+                <input type="hidden" name="is_final" value="0">
+                {% endif %}
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="file" name="file" accept=".rps" style="flex:1; font-size:0.85em;">
+                    <button type="submit" class="btn btn-primary" style="font-size:0.85em; padding:6px 14px; white-space:nowrap;">{% if rps_file %}Save{% else %}Upload{% endif %}</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- SPS -->
+        <div>
+            <div style="font-weight:bold; font-size:0.9em; color:#1a3a5c; margin-bottom:8px;">SPS — Shot Positions</div>
+            {% if sps_file %}
+            <div style="display:flex; align-items:center; gap:10px; padding:8px 12px; background:#f0f7f0; border:1px solid #b2dfb2; border-radius:4px; margin-bottom:10px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style="flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#2e7d32" stroke-width="2" fill="none"/><polyline points="14 2 14 8 20 8" stroke="#2e7d32" stroke-width="2" fill="none"/></svg>
+                <span style="font-size:0.85em; color:#2e7d32; font-family:monospace; flex:1; word-break:break-all;">{{ sps_file.name|cut:"survey_positions/" }}</span>
+                {% if sps_count is not None %}<span style="font-size:0.85em; color:#2e7d32; white-space:nowrap; font-weight:bold;">{{ sps_count }} shots</span>{% endif %}
+            </div>
+            {% else %}
+            <div style="padding:8px 12px; background:#f9f9f9; border:1px solid #eee; border-radius:4px; margin-bottom:10px; font-size:0.85em; color:#999;">No SPS file uploaded</div>
+            {% endif %}
+            <form method="post" enctype="multipart/form-data" action="{% url 'job_survey_position_upload' report.job.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="file_type" value="sps">
+                <input type="hidden" name="report_pk" value="{{ report.pk }}">
+                {% if sps_file %}
+                <label style="display:flex; align-items:center; gap:6px; margin-bottom:10px; font-size:0.88em; font-weight:normal; cursor:pointer;">
+                    <input type="checkbox" name="is_final" value="1" {% if sps_is_final %}checked{% endif %} onchange="toggleEstimated('sps', this)">
+                    Final file — survey complete
+                </label>
+                <div id="sps-estimated" style="margin-bottom:10px; {% if sps_is_final %}display:none;{% endif %}">
+                    <label style="font-size:0.85em; margin-bottom:3px;">Estimated total shots</label>
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <input type="number" name="estimated_count" value="{{ sps_estimated|default:'' }}" min="0" placeholder="e.g. 2400" style="width:120px; padding:6px 8px; font-size:0.9em;">
+                        <span style="font-size:0.8em; color:#999;">press Save to apply</span>
+                    </div>
+                </div>
+                {% else %}
+                <input type="hidden" name="is_final" value="0">
+                {% endif %}
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <input type="file" name="file" accept=".sps" style="flex:1; font-size:0.85em;">
+                    <button type="submit" class="btn btn-primary" style="font-size:0.85em; padding:6px 14px; white-space:nowrap;">{% if sps_file %}Save{% else %}Upload{% endif %}</button>
+                </div>
+            </form>
+        </div>
+
+    </div>
+
+    <!-- Survey Coordinate System (EPSG only) -->
+    <div style="border-top:1px solid var(--border); margin-top:16px; padding-top:14px;">
+        <div style="font-weight:bold; font-size:0.9em; color:#1a3a5c; margin-bottom:6px;">Survey Coordinate System</div>
+        <form method="post" action="{% url 'job_survey_epsg_save' report.job.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="report_pk" value="{{ report.pk }}">
+            <input type="hidden" name="timezone" value="{{ job_timezone }}">
+            {% if job_utc_offset_custom is not None %}<input type="hidden" name="utc_offset_custom" value="{{ job_utc_offset_custom }}">{% endif %}
+            <div style="margin-bottom:10px;">
+                <label style="font-size:0.85em; display:block; margin-bottom:3px; color:#555;">EPSG Code <span style="font-weight:normal;">(override if not in file)</span></label>
+                <select name="survey_epsg" style="width:100%; padding:6px 10px; font-size:0.9em; border:1px solid #ccc; border-radius:4px;">
+                    <option value="">— Auto-detect from file —</option>
+                    {% for entry in epsg_list %}
+                    <option value="{{ entry.epsg }}" {% if survey_epsg == entry.epsg %}selected{% endif %}>{{ entry.epsg }} — {{ entry.label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-primary" style="font-size:0.85em; padding:6px 14px;">Save</button>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <h3>Daily Shot Files</h3>
+
+    <!-- Uploaded shot files -->
+    <div style="margin-bottom:16px;">
+    {% for f in report_files %}{% if f.file_type != 'rx_deployment' %}
+    <div style="display:flex; align-items:center; gap:10px; padding:7px 12px; background:#f9f9f9; border:1px solid #eee; border-radius:4px; margin-bottom:6px; font-size:0.87em;">
+        <strong style="color:#1a3a5c; min-width:70px;">{{ f.get_file_type_display }}</strong>
+        <a href="{{ f.file.url }}" target="_blank" style="flex:1; color:#333; text-decoration:none; font-family:monospace; word-break:break-all;">{{ f.original_name }}</a>
+        <span style="color:#999; white-space:nowrap;">{{ f.uploaded_at|date:"d M H:i" }}</span>
+        <form method="post" action="{% url 'report_file_delete' f.pk %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" style="background:none; border:none; color:#c00; cursor:pointer; font-size:1em; line-height:1; padding:0;">×</button>
+        </form>
+    </div>
+    {% endif %}{% endfor %}
+    </div>
+
+    <!-- Method selector -->
+    <div style="display:flex; gap:8px; margin-bottom:16px;">
+        <button type="button" onclick="showMethod('zip')" id="btn-zip" class="btn" style="background:#1a3a5c; color:white;">Zip Archive</button>
+        <button type="button" onclick="showMethod('folder')" id="btn-folder" class="btn" style="background:#eee; color:#333;">End of Day Folder</button>
+        <button type="button" onclick="showMethod('individual')" id="btn-individual" class="btn" style="background:#eee; color:#333;">Individual Files</button>
+    </div>
+
+    <!-- Zip upload -->
+    <form method="post" enctype="multipart/form-data" action="{% url 'report_file_upload' report.pk %}" id="method-zip">
+        {% csrf_token %}
+        <input type="hidden" name="upload_method" value="zip">
+        <div style="display:flex; gap:8px; align-items:center;">
+            <input type="file" name="zip_file" accept=".zip" style="flex:1; font-size:0.9em;">
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </div>
+    </form>
+
+    <!-- End of Day Folder upload -->
+    <div id="method-folder" style="display:none;">
+        <div class="form-group">
+            <label>Select End of Day Folder</label>
+            <input type="file" id="eodFolderInput" webkitdirectory multiple style="display:block; margin-top:4px;">
+        </div>
+        <div id="eodPreview" style="display:none; margin:16px 0; padding:12px; background:#f9f9f9; border:1px solid #eee; border-radius:6px;">
+            <strong style="font-size:0.9em;">Files found in Reports folder:</strong>
+            <table style="margin-top:8px; font-size:0.9em; width:100%; border-collapse:collapse;">
+                <thead><tr style="color:#666;"><th style="text-align:left; padding:4px 8px;">Type</th><th style="text-align:left; padding:4px 8px;">File</th><th style="text-align:left; padding:4px 8px;">Status</th></tr></thead>
+                <tbody>
+                    <tr><td style="padding:4px 8px;">COG</td><td style="padding:4px 8px;" id="prev-cog-name">—</td><td style="padding:4px 8px;" id="prev-cog-status"></td></tr>
+                    <tr><td style="padding:4px 8px;">Observer Log</td><td style="padding:4px 8px;" id="prev-obs-name">—</td><td style="padding:4px 8px;" id="prev-obs-status"></td></tr>
+                    <tr><td style="padding:4px 8px;">PSS</td><td style="padding:4px 8px;" id="prev-pss-name">—</td><td style="padding:4px 8px;" id="prev-pss-status"></td></tr>
+                </tbody>
+            </table>
+            <div id="eodWarning" style="display:none; color:#c00; font-size:0.85em; margin-top:8px;"></div>
+        </div>
+        <button type="button" id="eodUploadBtn" class="btn btn-primary" style="display:none;" onclick="submitEodFolder()">Upload</button>
+        <div id="eodProgress" style="display:none; color:#666; font-size:0.9em; margin-top:8px;">Uploading...</div>
+    </div>
+
+    <!-- Individual files -->
+    <form method="post" enctype="multipart/form-data" action="{% url 'report_file_upload' report.pk %}" id="method-individual" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" name="upload_method" value="individual">
+        <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px;">
+            <div class="form-group">
+                <label>Obs Log</label>
+                <input type="file" name="obslog" multiple>
+            </div>
+            <div class="form-group">
+                <label>PSS</label>
+                <input type="file" name="pss" multiple>
+            </div>
+            <div class="form-group">
+                <label>COG</label>
+                <input type="file" name="cog" multiple>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Upload</button>
+    </form>
+</div>
+
+<div class="card">
+    <h3>Receiver Deployment File</h3>
+    {% for f in report_files %}{% if f.file_type == 'rx_deployment' %}
+    <div style="display:flex; align-items:center; gap:10px; padding:7px 12px; background:#f9f9f9; border:1px solid #eee; border-radius:4px; margin-bottom:12px; font-size:0.87em;">
+        <a href="{{ f.file.url }}" target="_blank" style="flex:1; color:#333; text-decoration:none; font-family:monospace; word-break:break-all;">{{ f.original_name }}</a>
+        <span style="color:#999; white-space:nowrap;">{{ f.uploaded_at|date:"d M H:i" }}</span>
+        <form method="post" action="{% url 'report_file_delete' f.pk %}" style="margin:0;">
+            {% csrf_token %}
+            <button type="submit" style="background:none; border:none; color:#c00; cursor:pointer; font-size:1em; line-height:1; padding:0;">×</button>
+        </form>
+    </div>
+    {% endif %}{% endfor %}
+    <form method="post" enctype="multipart/form-data" action="{% url 'report_file_upload' report.pk %}">
+        {% csrf_token %}
+        <input type="hidden" name="upload_method" value="rx_only">
+        <div style="display:flex; gap:8px; align-items:center;">
+            <input type="file" name="rx_deployment" style="flex:1; font-size:0.9em;">
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </div>
+    </form>
+
+    {% if debug_info.rx_deployment_error %}
+    <div style="background:#fff3cd; border:1px solid #ffc107; border-radius:4px; padding:10px 14px; margin-top:12px; font-size:0.85em; color:#7d5a00;">
+        <strong>Receiver Deployment parse error:</strong> {{ debug_info.rx_deployment_error }}
+    </div>
+    {% endif %}
+
+    <!-- Deployment File Timezone -->
+    <div style="border-top:1px solid var(--border); margin-top:16px; padding-top:14px;">
+        <div style="font-weight:bold; font-size:0.9em; color:#1a3a5c; margin-bottom:6px;">Deployment File Timezone</div>
+        <p style="font-size:0.85em; color:#666; margin:0 0 10px;">Timezone of timestamps in the deployment file (usually UTC).</p>
+        <form method="post" action="{% url 'job_survey_epsg_save' report.job.pk %}">
+            {% csrf_token %}
+            <input type="hidden" name="report_pk" value="{{ report.pk }}">
+            <input type="hidden" name="survey_epsg" value="{{ survey_epsg|default:'' }}">
+            <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap; margin-bottom:10px;">
+                <div style="flex:1; min-width:200px;">
+                    <label style="font-size:0.85em; display:block; margin-bottom:3px; color:#555;">Timezone</label>
+                    <select name="timezone" id="tz-select" onchange="toggleCustomOffset(this.value)" style="width:100%; padding:6px 10px; font-size:0.9em; border:1px solid #ccc; border-radius:4px;">
+                        {% for tz_val, tz_label in timezone_choices %}
+                        <option value="{{ tz_val }}" {% if job_timezone == tz_val %}selected{% endif %}>{{ tz_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div id="custom-offset-wrap" style="display:{% if job_timezone == 'custom' %}block{% else %}none{% endif %}; min-width:140px;">
+                    <label style="font-size:0.85em; display:block; margin-bottom:3px; color:#555;">UTC offset (hrs)</label>
+                    <input type="number" name="utc_offset_custom" id="custom-offset-input" value="{{ job_utc_offset_custom|default:'' }}" step="0.5" placeholder="e.g. 8 or -5.5" style="width:130px; padding:6px 8px; font-size:0.9em; border:1px solid #ccc; border-radius:4px;">
+                </div>
+                <button type="submit" class="btn btn-primary" style="font-size:0.85em; padding:6px 14px; white-space:nowrap;">Save</button>
+            </div>
+        </form>
+    </div>
+
+    <div style="border-top:1px solid var(--border); margin-top:16px; padding-top:14px;">
+        <div style="font-weight:bold; font-size:0.9em; color:#1a3a5c; margin-bottom:8px;">Active Patch</div>
+        <p style="font-size:0.85em; color:#666; margin:0 0 10px;">Last receiver currently in the ground — enables a second map mode showing today / in ground / planned.</p>
+        <form method="post" action="{% url 'report_active_patch_save' report.pk %}">
+            {% csrf_token %}
+            <div style="display:flex; gap:16px; align-items:flex-end; flex-wrap:wrap;">
+                <div>
+                    <label style="font-size:0.85em; display:block; margin-bottom:3px;">Line</label>
+                    <input type="number" name="last_line_in_ground" value="{{ last_line_in_ground|default:'' }}" step="0.01" placeholder="e.g. 1" style="width:100px; padding:6px 8px; font-size:0.9em;">
+                </div>
+                <div>
+                    <label style="font-size:0.85em; display:block; margin-bottom:3px;">Station</label>
+                    <input type="number" name="last_station_in_ground" value="{{ last_station_in_ground|default:'' }}" step="0.01" placeholder="e.g. 1450" style="width:120px; padding:6px 8px; font-size:0.9em;">
+                </div>
+                <button type="submit" class="btn btn-primary" style="padding:6px 16px;">Save</button>
+                {% if last_line_in_ground %}
+                <span style="font-size:0.85em; color:#2e7d32; align-self:center;">Line {{ last_line_in_ground }} / Sta {{ last_station_in_ground }}</span>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+</div>
+
+<!-- Tab: Activities -->
+<div id="tab-pane-activities" class="tab-pane" style="display:block; height:0; overflow:hidden;">
+<form id="activitiesForm" method="post" novalidate>
+{% csrf_token %}
+<input type="hidden" name="form_type" value="activities">
+<div class="card">
+    <h3>Activity Details — {{ report.date|date:"D, d M Y" }}</h3>
+    <table id="activityTable" style="table-layout:fixed;">
+        <thead>
+            <tr>
+                <th style="width:90px;">Start</th>
+                <th style="width:90px;">End</th>
+                <th style="width:80px;">Duration</th>
+                <th style="width:200px;">Category</th>
+                <th style="width:110px;">Type</th>
+                <th>Details</th>
+                <th style="width:70px;"></th>
+            </tr>
+        </thead>
+        <tbody id="activityRows">
+            {% for a in activities %}
+            <tr>
+                <td><input type="text" name="start_time" value="{{ a.start_time|time:'H:i' }}" placeholder="HH:MM" maxlength="5" oninput="fmtTime(this);calcDuration(this)" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+                <td><input type="text" name="end_time" value="{{ a.end_time|time:'H:i' }}" placeholder="HH:MM" maxlength="5" oninput="fmtTime(this);calcDuration(this)" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+                <td><input type="text" readonly value="{{ a.duration }}" style="width:100%; padding:6px; border:1px solid #eee; border-radius:4px; background:#f9f9f9; text-align:center;"></td>
+                <td>
+                    <select name="category" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">
+                        {% for c in categories %}
+                        <option value="{{ c.name }}" {% if a.category == c.name %}selected{% endif %}>{{ c.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="activity_type" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">
+                        {% for t in activity_types %}
+                        <option value="{{ t.name }}" {% if a.activity_type == t.name %}selected{% endif %}>{{ t.name }}</option>
+                        {% endfor %}
+                    </select>
+                </td>
+                <td><input type="text" name="details" value="{{ a.details }}" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+                <td style="text-align:center; white-space:nowrap;">
+                    <button type="button" onclick="insertActivityRowAfter(this)" style="background:none; border:none; color:#1a3a5c; cursor:pointer; font-size:1.1em;" title="Insert row below">+</button>
+                    <button type="button" onclick="removeActivityRow(this)" style="background:none; border:none; color:#c00; cursor:pointer; font-size:1.2em;" title="Remove row">×</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td><input type="text" name="start_time" value="06:00" placeholder="HH:MM" maxlength="5" oninput="fmtTime(this);calcDuration(this)" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+                <td><input type="text" name="end_time" value="06:15" placeholder="HH:MM" maxlength="5" oninput="fmtTime(this);calcDuration(this)" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+                <td><input type="text" readonly value="00:15" style="width:100%; padding:6px; border:1px solid #eee; border-radius:4px; background:#f9f9f9; text-align:center;"></td>
+                <td>
+                    <select name="category" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">
+                        {% for c in categories %}<option value="{{ c.name }}" {% if default_category and c.pk == default_category.pk %}selected{% endif %}>{{ c.name }}</option>{% endfor %}
+                    </select>
+                </td>
+                <td>
+                    <select name="activity_type" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">
+                        {% for t in activity_types %}<option value="{{ t.name }}">{{ t.name }}</option>{% endfor %}
+                    </select>
+                </td>
+                <td><input type="text" name="details" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+                <td style="text-align:center; white-space:nowrap;">
+                    <button type="button" onclick="insertActivityRowAfter(this)" style="background:none; border:none; color:#1a3a5c; cursor:pointer; font-size:1.1em;" title="Insert row below">+</button>
+                    <button type="button" onclick="removeActivityRow(this)" style="background:none; border:none; color:#c00; cursor:pointer; font-size:1.2em;" title="Remove row">×</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    <div style="margin-top:12px; display:flex; gap:8px; align-items:center;">
+        <button type="button" onclick="addActivityRow()" class="btn" style="background:#eee; color:#333;">+ Add Row</button>
+        <span id="activitiesSaveStatus" style="font-size:0.85em; color:#888;"></span>
+    </div>
+
+</div>
+</form>
+
+
+{% if shot_stats and shot_stats.shot_intervals %}
+<div class="card" style="margin-top:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <h3 style="margin:0;">Shots per 15-Minute Interval</h3>
+        <div style="display:flex; align-items:center; gap:16px;">
+            <label style="display:flex; align-items:center; gap:6px; font-size:0.9em; cursor:pointer;">
+                <input type="checkbox" id="addChartToReport" {% if report.include_shot_chart %}checked{% endif %} onchange="toggleReportChart(this.checked)">
+                Add to Activity Details
+            </label>
+            <button type="button" onclick="autoFillActivities()" class="btn" style="background:#1a3a5c; color:white;">Auto Fill Activities</button>
+        </div>
+    </div>
+    <canvas id="shotIntervalChart" style="width:100%; height:200px; max-height:200px;"></canvas>
+    {{ shot_stats.shot_intervals|json_script:"shot-interval-data" }}
+    <script>
+    var _shotIntervalRaw = JSON.parse(document.getElementById('shot-interval-data').textContent);
+    new Chart(document.getElementById('shotIntervalChart').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: _shotIntervalRaw.map(function(d) { return d.interval; }),
+            datasets: [{ data: _shotIntervalRaw.map(function(d) { return d.shots; }), backgroundColor: '#1a3a5c', borderWidth: 0 }]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { ticks: { font: { size: 11 }, maxRotation: 45 } },
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } }
+            }
+        }
+    });
+
+    var _storageKey = 'shotChartInReport_{{ report.pk }}';
+
+    function toggleReportChart(show) {
+        // Persist to server
+        var fd = new FormData();
+        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        fd.append('form_type', 'shot_chart_toggle');
+        fd.append('include_shot_chart', show ? '1' : '0');
+        fetch('/reports/{{ report.pk }}/', { method: 'POST', body: fd });
+        var container = document.getElementById('reportTabShotChart');
+        if (!container) return;
+        if (show) {
+            container.style.display = 'block';
+            if (!Chart.getChart('reportShotIntervalChart')) {
+                var raw = JSON.parse(document.getElementById('report-shot-interval-data').textContent);
+                new Chart(document.getElementById('reportShotIntervalChart').getContext('2d'), {
+                    type: 'bar',
+                    data: {
+                        labels: raw.map(function(d) { return d.interval; }),
+                        datasets: [{ data: raw.map(function(d) { return d.shots; }), backgroundColor: '#1a3a5c', borderWidth: 0 }]
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            x: { ticks: { font: { size: 11 }, maxRotation: 45 } },
+                            y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } }
+                        }
+                    }
+                });
+            }
+        } else {
+            container.style.display = 'none';
+        }
+    }
+
+    // Returns the value of the first option whose text contains `match`
+    function findOptionValue(optionsHtml, match) {
+        var div = document.createElement('div');
+        div.innerHTML = '<select>' + optionsHtml + '</select>';
+        var opts = div.querySelectorAll('option');
+        var lower = match.toLowerCase();
+        for (var i = 0; i < opts.length; i++) {
+            if (opts[i].textContent.toLowerCase().indexOf(lower) !== -1) return opts[i].value;
+        }
+        return null;
+    }
+
+    function duration(start, end) {
+        var s = start.split(':'), e = end.split(':');
+        var mins = (parseInt(e[0]) * 60 + parseInt(e[1])) - (parseInt(s[0]) * 60 + parseInt(s[1]));
+        var dh = Math.floor(mins / 60), dm = mins % 60;
+        return (dh < 10 ? '0' + dh : '' + dh) + ':' + (dm < 10 ? '0' + dm : '' + dm);
+    }
+
+    function buildRow(start, end, catValue, typeValue) {
+        var dur = (start && end) ? duration(start, end) : '';
+        var tr = document.createElement('tr');
+        tr.innerHTML =
+            '<td><input type="text" name="start_time" value="' + start + '" placeholder="HH:MM" maxlength="5" oninput="fmtTime(this);calcDuration(this)" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>' +
+            '<td><input type="text" name="end_time" value="' + end + '" placeholder="HH:MM" maxlength="5" oninput="fmtTime(this);calcDuration(this)" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>' +
+            '<td><input type="text" readonly value="' + dur + '" style="width:100%; padding:6px; border:1px solid #eee; border-radius:4px; background:#f9f9f9; text-align:center;"></td>' +
+            '<td><select name="category" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">' + categoryOptions + '</select></td>' +
+            '<td><select name="activity_type" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">' + typeOptions + '</select></td>' +
+            '<td><input type="text" name="details" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>' +
+            '<td style="text-align:center; white-space:nowrap;">' +
+                '<button type="button" onclick="insertActivityRowAfter(this)" style="background:none; border:none; color:#1a3a5c; cursor:pointer; font-size:1.1em;" title="Insert row below">+</button>' +
+                '<button type="button" onclick="removeActivityRow(this)" style="background:none; border:none; color:#c00; cursor:pointer; font-size:1.2em;" title="Remove row">×</button>' +
+            '</td>';
+        if (catValue) tr.querySelector('[name="category"]').value = catValue;
+        if (typeValue) tr.querySelector('[name="activity_type"]').value = typeValue;
+        return tr;
+    }
+
+    function autoFillActivities() {
+        var raw = JSON.parse(document.getElementById('shot-interval-data').textContent);
+
+        // Group consecutive non-zero intervals into continuous shooting periods
+        var periods = [];
+        var periodStart = null, periodEnd = null;
+        for (var i = 0; i < raw.length; i++) {
+            var interval = raw[i].interval;
+            var shots = raw[i].shots;
+            if (shots > 0) {
+                if (periodStart === null) periodStart = interval;
+                var p = interval.split(':'), h = parseInt(p[0]), m = parseInt(p[1]) + 15;
+                if (m >= 60) { h += 1; m -= 60; }
+                periodEnd = (h < 10 ? '0' + h : '' + h) + ':' + (m < 10 ? '0' + m : '' + m);
+            } else {
+                if (periodStart !== null) {
+                    periods.push({ start: periodStart, end: periodEnd });
+                    periodStart = null; periodEnd = null;
+                }
+            }
+        }
+        if (periodStart !== null) periods.push({ start: periodStart, end: periodEnd });
+
+        if (periods.length === 0) { alert('No shooting periods found in interval data.'); return; }
+
+        if (!confirm('Add ' + periods.length + ' shooting period(s) to activity rows?')) return;
+
+        var tbody = document.getElementById('activityRows');
+
+        // Remove all rows except the first
+        var rows = tbody.querySelectorAll('tr');
+        for (var i = 1; i < rows.length; i++) rows[i].remove();
+
+        var recordCat = findOptionValue(categoryOptions, 'record');
+
+        function timeMins(t) {
+            var p = t.split(':'); return parseInt(p[0]) * 60 + parseInt(p[1]);
+        }
+
+        // Get end time of the kept first row to detect gaps
+        var firstRow = tbody.querySelector('tr');
+        var prevEnd = firstRow ? (firstRow.querySelector('[name="end_time"]') || {}).value || '' : '';
+
+        // Add shooting period rows, inserting a gap row wherever time is unaccounted for
+        for (var i = 0; i < periods.length; i++) {
+            var pStart = periods[i].start, pEnd = periods[i].end;
+            if (prevEnd && timeMins(pStart) > timeMins(prevEnd)) {
+                tbody.appendChild(buildRow(prevEnd, pStart, findOptionValue(categoryOptions, 'other'), null));
+            }
+            tbody.appendChild(buildRow(pStart, pEnd, recordCat, null));
+            prevEnd = pEnd;
+        }
+
+        triggerActivityAutoSave();
+    }
+    </script>
+</div>
+{% endif %}
+
+<script>
+const isSupervisorReport = "{{ report.report_type }}" === "supervisor";
+const categoryOptions = `{% for c in categories %}<option value="{{ c.name }}">{{ c.name }}</option>{% endfor %}`;
+const typeOptions = `{% for t in activity_types %}<option value="{{ t.name }}">{{ t.name }}</option>{% endfor %}`;
+
+function _buildActivityRowHtml() {
+    return `
+    <td><input type="text" name="start_time" placeholder="HH:MM" maxlength="5" oninput="fmtTime(this);calcDuration(this)" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+    <td><input type="text" name="end_time" placeholder="HH:MM" maxlength="5" oninput="fmtTime(this);calcDuration(this)" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+    <td><input type="text" readonly style="width:100%; padding:6px; border:1px solid #eee; border-radius:4px; background:#f9f9f9; text-align:center;"></td>
+    <td><select name="category" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">${categoryOptions}</select></td>
+    <td><select name="activity_type" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;">${typeOptions}</select></td>
+    <td><input type="text" name="details" style="width:100%; padding:6px; border:1px solid #ccc; border-radius:4px;"></td>
+    <td style="text-align:center; white-space:nowrap;">
+        <button type="button" onclick="insertActivityRowAfter(this)" style="background:none; border:none; color:#1a3a5c; cursor:pointer; font-size:1.1em;" title="Insert row below">+</button>
+        <button type="button" onclick="removeActivityRow(this)" style="background:none; border:none; color:#c00; cursor:pointer; font-size:1.2em;" title="Remove row">×</button>
+    </td>`;
+}
+
+function addActivityRow() {
+    const tbody = document.getElementById('activityRows');
+    const rows = tbody.querySelectorAll('tr');
+    const lastRow = rows[rows.length - 1];
+    const tr = document.createElement('tr');
+    tr.innerHTML = _buildActivityRowHtml();
+    const lastEnd = lastRow ? (lastRow.querySelector('[name="end_time"]') || {}).value || '' : '';
+    tr.querySelector('[name="start_time"]').value = lastEnd;
+    tbody.appendChild(tr);
+    triggerActivityAutoSave();
+}
+
+function insertActivityRowAfter(btn) {
+    const currentRow = btn.closest('tr');
+    const tr = document.createElement('tr');
+    tr.innerHTML = _buildActivityRowHtml();
+    const endTime = (currentRow.querySelector('[name="end_time"]') || {}).value || '';
+    tr.querySelector('[name="start_time"]').value = endTime;
+    currentRow.insertAdjacentElement('afterend', tr);
+    triggerActivityAutoSave();
+}
+
+function removeActivityRow(btn) {
+    const rows = document.querySelectorAll('#activityRows tr');
+    if (rows.length > 1) { btn.closest('tr').remove(); triggerActivityAutoSave(); }
+}
+
+var _activitySaveTimer;
+function triggerActivityAutoSave() {
+    var status = document.getElementById('activitiesSaveStatus');
+    status.textContent = '';
+    clearTimeout(_activitySaveTimer);
+    _activitySaveTimer = setTimeout(function() {
+        status.textContent = 'Saving…';
+        var data = new FormData(document.getElementById('activitiesForm'));
+        fetch('', {method:'POST', body:data})
+            .then(function(response) {
+                if (!response.ok) {
+                    status.textContent = 'Error saving (' + response.status + ')';
+                    return;
+                }
+                return response.text().then(function(html) {
+                    status.textContent = 'Saved';
+                    updateReportTabActivities();
+                    updateChargeableHours();
+                    var doc = new DOMParser().parseFromString(html, 'text/html');
+                    var freshContent = doc.getElementById('reportJobChargeableContent');
+                    var freshSection = doc.getElementById('reportJobChargeableSection');
+                    var curContent = document.getElementById('reportJobChargeableContent');
+                    var curSection = document.getElementById('reportJobChargeableSection');
+                    if (freshContent && curContent) curContent.innerHTML = freshContent.innerHTML;
+                    if (freshSection && curSection) curSection.style.display = freshSection.style.display;
+                    // Refresh pie charts
+                    var freshPie = doc.getElementById('pieChartsSection');
+                    var curPie = document.getElementById('pieChartsSection');
+                    if (freshPie && curPie) {
+                        ['dailyPieChart', 'jobPieChart'].forEach(function(id) {
+                            var c = typeof Chart !== 'undefined' && Chart.getChart(id);
+                            if (c) c.destroy();
+                        });
+                        curPie.innerHTML = freshPie.innerHTML;
+                        curPie.querySelectorAll('script').forEach(function(s) {
+                            if (s.type === 'application/json') return; // keep data scripts intact (id must be preserved)
+                            var ns = document.createElement('script');
+                            ns.textContent = s.textContent;
+                            s.parentNode.replaceChild(ns, s);
+                        });
+                        if (typeof updatePieCharts === 'function') updatePieCharts();
+                    }
+                });
+            })
+            .catch(function() { status.textContent = 'Error saving'; });
+    }, 1500);
+}
+
+var _actForm = document.getElementById('activitiesForm');
+if (_actForm) {
+    _actForm.addEventListener('input', triggerActivityAutoSave);
+    _actForm.addEventListener('change', triggerActivityAutoSave);
+}
+
+function fmtTime(input) {
+    let v = input.value.replace(/[^0-9]/g, '');
+    if (v.length >= 3) v = v.slice(0, 2) + ':' + v.slice(2, 4);
+    input.value = v;
+}
+
+function calcDuration(input) {
+    const row = input.closest('tr');
+    const start = row.querySelector('[name="start_time"]').value;
+    const end = row.querySelector('[name="end_time"]').value;
+    const durField = row.querySelectorAll('input')[2];
+    if (start && end) {
+        const [sh, sm] = start.split(':').map(Number);
+        const [eh, em] = end.split(':').map(Number);
+        let mins = (eh * 60 + em) - (sh * 60 + sm);
+        if (mins < 0) mins += 1440;
+        durField.value = `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+    }
+}
+</script>
+</div>
+
+<!-- Tab: Report -->
+<div id="tab-pane-report" class="tab-pane" style="display:block; height:0; overflow:hidden;">
+<div style="max-width:900px; margin:0 auto; background:white; border:1px solid #ddd; border-radius:6px; font-size:0.95em;">
+
+    <!-- Export buttons -->
+    <div style="text-align:right; margin-bottom:8px; display:flex; gap:8px; justify-content:flex-end;">
+        <button onclick="if(window._updateExportUrls) window._updateExportUrls(); var u=document.getElementById('pdfDownloadBtn').href; window.open(u+(u.includes('?')?'&':'?')+'inline=1','_blank');" class="btn" style="background:#555; color:white; font-size:0.85em;">&#128196; View PDF</button>
+        <a id="pdfDownloadBtn" href="{% url 'report_pdf' report.pk %}" onclick="if(window._updateExportUrls) window._updateExportUrls();" class="btn" style="background:#1a3a5c; color:white; font-size:0.85em;">&#8595; Download PDF</a>
+        <a id="wordDownloadBtn" href="{% url 'report_word' report.pk %}" onclick="if(window._updateExportUrls) window._updateExportUrls();" class="btn" style="background:#2b5797; color:white; font-size:0.85em;">&#8595; Download Word</a>
+    </div>
+
+    <!-- Report Header -->
+    <div style="background:#1a3a5c; color:white; padding:20px 28px;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+            <div>
+                <div style="font-size:1.3em; font-weight:bold;">{{ report.get_report_type_display }} Daily Report</div>
+                <div style="opacity:0.8; margin-top:4px;">{{ report.job.client }} — {{ report.job.project_name }}</div>
+            </div>
+            <div style="text-align:right;">
+                <div style="font-size:1.1em; font-weight:bold;">{{ report.date|date:"d F Y" }}</div>
+                <div style="opacity:0.8; margin-top:4px;">Job {{ report.job.job_number }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Job Info + Personnel -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; border-bottom:4px double #1a3a5c; margin-bottom:24px;">
+        <div style="padding:16px 20px; border-right:1px solid #ddd;">
+            <div style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; margin-bottom:8px; font-weight:bold;">Job Details</div>
+            <table style="width:100%; border-collapse:collapse; font-size:0.92em;">
+                <tr><td style="padding:3px 0; color:#666; width:130px;">Recording System</td><td style="padding:3px 0; font-weight:500;">{{ report.job.recording_system }}</td></tr>
+                <tr><td style="padding:3px 0; color:#666;">Source Type</td><td style="padding:3px 0; font-weight:500;">{{ report.job.source_type|default:"—" }}</td></tr>
+                {% if report.job.rx_interval %}<tr><td style="padding:3px 0; color:#666;">Rx Interval</td><td style="padding:3px 0; font-weight:500;">{{ report.job.rx_interval }} m</td></tr>{% endif %}
+                {% if report.job.sx_interval %}<tr><td style="padding:3px 0; color:#666;">Sx Interval</td><td style="padding:3px 0; font-weight:500;">{{ report.job.sx_interval }} m</td></tr>{% endif %}
+            </table>
+        </div>
+        <div style="padding:16px 20px;">
+            <div style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; margin-bottom:8px; font-weight:bold;">Personnel</div>
+            <table style="width:100%; border-collapse:collapse; font-size:0.92em;">
+                <tr>
+                    <td style="padding:3px 0; color:#666; width:120px; vertical-align:top;">Observer(s)</td>
+                    <td style="padding:3px 0; font-weight:500;">{% if saved_observers %}{% for n in saved_observers %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}<span style="color:#bbb;">—</span>{% endif %}</td>
+                </tr>
+                <tr>
+                    <td style="padding:3px 0; color:#666; vertical-align:top;">Vibe Operator(s)</td>
+                    <td style="padding:3px 0; font-weight:500;">{% if saved_operators %}{% for n in saved_operators %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}{% else %}<span style="color:#bbb;">—</span>{% endif %}</td>
+                </tr>
+            </table>
+        </div>
+    </div>
+
+    <!-- Production Summary -->
+    {% if shot_stats %}
+    <div style="padding:16px 20px; border-bottom:4px double #1a3a5c; margin-bottom:24px;">
+        <div style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; margin-bottom:12px; font-weight:bold;">Production Summary</div>
+        <table style="width:100%; border-collapse:collapse; font-size:0.92em; margin-bottom:16px;">
+            <thead>
+                <tr style="background:#1a3a5c; color:white;">
+                    <th style="padding:7px 12px; text-align:center; font-weight:600;">VP Today</th>
+                    <th style="padding:7px 12px; text-align:center; font-weight:600;">Daily Avg</th>
+                    <th style="padding:7px 12px; text-align:center; font-weight:600;">Total Job Shots</th>
+                    <th style="padding:7px 12px; text-align:center; font-weight:600;">Shots Remaining</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background:#f9f9f9; text-align:center;">
+                    <td style="padding:8px 12px; font-size:1.1em; font-weight:bold; color:#1a3a5c;">{% if shot_stats %}{{ shot_stats.production }}{% else %}<span style="color:#bbb;">—</span>{% endif %}</td>
+                    <td style="padding:8px 12px; font-weight:500;">{% if daily_avg_shots %}{{ daily_avg_shots }}{% else %}<span style="color:#bbb;">—</span>{% endif %}</td>
+                    <td style="padding:8px 12px; font-weight:500;">{% if job_total_shots %}{{ job_total_shots }}{% else %}<span style="color:#bbb;">—</span>{% endif %}</td>
+                    <td style="padding:8px 12px; font-weight:500;">{% if shots_remaining is not None %}{{ shots_remaining }}{% else %}—{% endif %}</td>
+                </tr>
+            </tbody>
+        </table>
+        {% if finish_estimates %}
+        <div style="margin-bottom:16px;">
+            <div style="font-size:0.8em; font-weight:600; color:#1a3a5c; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Estimated Finish</div>
+            <table style="border-collapse:collapse; font-size:0.88em;">
+                {% for est in finish_estimates %}
+                <tr>
+                    <td style="padding:3px 14px 3px 0; color:#666; white-space:nowrap;">{{ est.label }}</td>
+                    <td style="padding:3px 14px 3px 0; font-weight:600; color:#1a3a5c; white-space:nowrap;">{% if est.date %}{{ est.date|date:"d M Y" }}{% else %}—{% endif %}</td>
+                    <td style="padding:3px 0; color:#888; font-size:0.95em;">{{ est.detail }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+
+        {% if shot_stats and shot_stats.line_stats %}
+        <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+            <thead>
+                <tr style="background:#1a3a5c; color:white;">
+                    <th style="padding:6px 10px; text-align:left;">Line</th>
+                    <th style="padding:6px 10px; text-align:right;">Start</th>
+                    <th style="padding:6px 10px; text-align:right;">End</th>
+                    <th style="padding:6px 10px; text-align:right;">Shots</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ls in shot_stats.line_stats %}
+                <tr style="{% cycle 'background:#f9f9f9;' 'background:white;' %} border-bottom:1px solid #eee;">
+                    <td style="padding:5px 10px; font-weight:500;">{{ ls.line }}</td>
+                    <td style="padding:5px 10px; text-align:right;">{{ ls.start }}</td>
+                    <td style="padding:5px 10px; text-align:right;">{{ ls.end }}</td>
+                    <td style="padding:5px 10px; text-align:right; font-weight:bold; color:#1a3a5c;">{{ ls.shots }}</td>
+                </tr>
+                {% endfor %}
+                <tr style="background:#f0f0f0; border-top:2px solid #1a3a5c;">
+                    <td style="padding:5px 10px; font-weight:bold;" colspan="3">Total</td>
+                    <td style="padding:5px 10px; text-align:right; font-weight:bold; color:#1a3a5c;">{{ shot_stats.production }}</td>
+                </tr>
+            </tbody>
+        </table>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Shot Progress Map -->
+    {% if shot_stats and progress_map_html %}
+    <div style="border-bottom:4px double #1a3a5c; margin-bottom:24px;">
+        <div style="padding:12px 20px 6px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; font-weight:bold;">Shot Progress</span>
+            <span style="font-size:0.8em; display:flex; gap:14px; color:#555;">
+                <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ report.job.progress_color_today }}; margin-right:4px;"></span>Today</span>
+                <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ report.job.progress_color_prev }}; margin-right:4px;"></span>Previous Days</span>
+                <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ report.job.progress_color_planned }}; border:1px solid #aaa; margin-right:4px;"></span>Planned</span>
+            </span>
+        </div>
+        <iframe id="progressMapIframe" src="{{ progress_map_html }}" style="width:100%; height:500px; border:none; display:block;" scrolling="no"></iframe>
+    </div>
+    {% endif %}
+
+    <!-- Node Deployment -->
+    {% if rx_stats %}
+    <div style="padding:16px 20px; border-bottom:4px double #1a3a5c; margin-bottom:24px;">
+        <div style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; margin-bottom:10px; font-weight:bold;">Node Deployment</div>
+        {% if rx_stats %}
+        <table style="width:100%; border-collapse:collapse; font-size:0.92em; margin-bottom:16px;">
+            <thead>
+                <tr style="background:#1a3a5c; color:white;">
+                    <th style="padding:7px 12px; text-align:center; font-weight:600;">Nodes Today</th>
+                    <th style="padding:7px 12px; text-align:center; font-weight:600;">Daily Avg</th>
+                    <th style="padding:7px 12px; text-align:center; font-weight:600;">Total Job Nodes</th>
+                    <th style="padding:7px 12px; text-align:center; font-weight:600;">Nodes Remaining</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="background:#f9f9f9; text-align:center;">
+                    <td style="padding:8px 12px; font-size:1.1em; font-weight:bold; color:#1a3a5c;">{% if nodes_today is not None %}{{ nodes_today }}{% else %}<span style="color:#bbb;">—</span>{% endif %}</td>
+                    <td style="padding:8px 12px; font-weight:500;">{% if daily_avg_nodes %}{{ daily_avg_nodes }}{% else %}<span style="color:#bbb;">—</span>{% endif %}</td>
+                    <td style="padding:8px 12px; font-weight:500;">{% if job_total_nodes %}{{ job_total_nodes }}{% else %}<span style="color:#bbb;">—</span>{% endif %}</td>
+                    <td style="padding:8px 12px; font-weight:500;">{% if nodes_remaining is not None %}{{ nodes_remaining }}{% else %}<span style="color:#bbb;">—</span>{% endif %}</td>
+                </tr>
+            </tbody>
+        </table>
+        {% if node_finish_estimates %}
+        <div style="margin-bottom:16px;">
+            <div style="font-size:0.8em; font-weight:600; color:#1a3a5c; text-transform:uppercase; letter-spacing:0.05em; margin-bottom:6px;">Estimated Finish</div>
+            <table style="border-collapse:collapse; font-size:0.88em;">
+                {% for est in node_finish_estimates %}
+                <tr>
+                    <td style="padding:3px 14px 3px 0; color:#666; white-space:nowrap;">{{ est.label }}</td>
+                    <td style="padding:3px 14px 3px 0; font-weight:600; color:#1a3a5c; white-space:nowrap;">{% if est.date %}{{ est.date|date:"d M Y" }}{% else %}—{% endif %}</td>
+                    <td style="padding:3px 0; color:#888; font-size:0.95em;">{{ est.detail }}</td>
+                </tr>
+                {% endfor %}
+            </table>
+        </div>
+        {% endif %}
+
+        {% if nodes_today_line_stats %}
+        <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+            <thead>
+                <tr style="background:#1a3a5c; color:white;">
+                    <th style="padding:6px 10px; text-align:left;">Line</th>
+                    <th style="padding:6px 10px; text-align:right;">Start</th>
+                    <th style="padding:6px 10px; text-align:right;">End</th>
+                    <th style="padding:6px 10px; text-align:right;">Nodes</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ls in nodes_today_line_stats %}
+                <tr style="{% cycle 'background:#f9f9f9;' 'background:white;' %} border-bottom:1px solid #eee;">
+                    <td style="padding:5px 10px; font-weight:500;">{{ ls.line }}</td>
+                    <td style="padding:5px 10px; text-align:right;">{{ ls.start }}</td>
+                    <td style="padding:5px 10px; text-align:right;">{{ ls.end }}</td>
+                    <td style="padding:5px 10px; text-align:right; font-weight:bold; color:#1a3a5c;">{{ ls.nodes }}</td>
+                </tr>
+                {% endfor %}
+                <tr style="background:#f0f0f0; border-top:2px solid #1a3a5c;">
+                    <td style="padding:5px 10px; font-weight:bold;" colspan="3">Total</td>
+                    <td style="padding:5px 10px; text-align:right; font-weight:bold; color:#1a3a5c;">{{ nodes_today }}</td>
+                </tr>
+            </tbody>
+        </table>
+        {% endif %}
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Node Deployment Progress Map -->
+    {% if rx_stats and deployment_map_html %}
+    <div style="border-bottom:4px double #1a3a5c; margin-bottom:24px;">
+        <div style="padding:12px 20px 6px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+            <span style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; font-weight:bold;">Node Deployment Progress</span>
+            <div style="display:flex; align-items:center; gap:16px; flex-wrap:wrap;">
+                {% if active_patch_map_html %}
+                <div style="display:flex; border:1px solid #ccc; border-radius:4px; overflow:hidden; font-size:0.82em;">
+                    <button id="btn-mode-alldays" onclick="setDeployMode('alldays')" style="padding:4px 12px; background:#1a3a5c; color:white; border:none; cursor:pointer; font-size:1em;">All Days</button>
+                    <button id="btn-mode-patch" onclick="setDeployMode('patch')" style="padding:4px 12px; background:#eee; color:#333; border:none; cursor:pointer; font-size:1em;">Active Patch</button>
+                </div>
+                {% endif %}
+                <span id="deploy-legend-alldays" style="font-size:0.8em; display:flex; gap:14px; color:#555; align-items:center;">
+                    <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ report.job.deployment_color_today }}; margin-right:4px;"></span>Today</span>
+                    <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ report.job.deployment_color_prev }}; margin-right:4px;"></span>Previous Days</span>
+                    <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ report.job.deployment_color_planned }}; border:1px solid #aaa; margin-right:4px;"></span>Planned</span>
+                </span>
+                <span id="deploy-legend-patch" style="font-size:0.8em; display:none; gap:14px; color:#555; align-items:center;">
+                    <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ report.job.deployment_color_today }}; margin-right:4px;"></span>Today</span>
+                    <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:#28a745; margin-right:4px;"></span>In Ground</span>
+                    <span><span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:{{ report.job.deployment_color_planned }}; border:1px solid #aaa; margin-right:4px;"></span>Planned</span>
+                </span>
+                {% if deployment_map_stats.outer_error %}<span style="color:#c00; font-size:0.85em;">error: {{ deployment_map_stats.outer_error }}</span>{% endif %}
+            </div>
+        </div>
+        <iframe id="deploymentMapIframe" src="{{ deployment_map_html }}" style="width:100%; height:500px; border:none; display:block;" scrolling="no"></iframe>
+    </div>
+    {% if active_patch_map_html %}
+    <script>
+    var _deployMode = 'alldays';
+    function setDeployMode(mode) {
+        _deployMode = mode;
+        var iframe = document.getElementById('deploymentMapIframe');
+        var btnAll = document.getElementById('btn-mode-alldays');
+        var btnPatch = document.getElementById('btn-mode-patch');
+        var legAll = document.getElementById('deploy-legend-alldays');
+        var legPatch = document.getElementById('deploy-legend-patch');
+        if (mode === 'alldays') {
+            iframe.src = '{{ deployment_map_html }}';
+            btnAll.style.background = '#1a3a5c'; btnAll.style.color = 'white';
+            btnPatch.style.background = '#eee'; btnPatch.style.color = '#333';
+            legAll.style.display = 'flex'; legPatch.style.display = 'none';
+        } else {
+            iframe.src = '{{ active_patch_map_html }}';
+            btnPatch.style.background = '#1a3a5c'; btnPatch.style.color = 'white';
+            btnAll.style.background = '#eee'; btnAll.style.color = '#333';
+            legAll.style.display = 'none'; legPatch.style.display = 'flex';
+        }
+        if (window._updateExportUrls) window._updateExportUrls();
+    }
+    window._getDeployMode = function() { return _deployMode; };
+    </script>
+    {% endif %}
+    {% endif %}
+
+    <!-- Activity Details -->
+    <div style="padding:16px 20px; border-bottom:4px double #1a3a5c; margin-bottom:24px;">
+        <div style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; margin-bottom:10px; font-weight:bold;">Activity Details</div>
+        <div id="reportActivityContent">
+        {% if activities %}
+        <table style="width:100%; border-collapse:collapse; font-size:0.92em;">
+            <thead>
+                <tr style="background:#1a3a5c; color:white;">
+                    <th style="padding:7px 10px; text-align:left; width:70px;">Start</th>
+                    <th style="padding:7px 10px; text-align:left; width:70px;">End</th>
+                    <th style="padding:7px 10px; text-align:left; width:65px;">Duration</th>
+                    <th style="padding:7px 10px; text-align:left;">Category</th>
+                    <th style="padding:7px 10px; text-align:left; width:90px;">Type</th>
+                    <th style="padding:7px 10px; text-align:left;">Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for a in activities %}
+                <tr style="{% cycle 'background:#f9f9f9;' 'background:white;' %} border-bottom:1px solid #eee;">
+                    <td style="padding:6px 10px;">{{ a.start_time|time:"H:i" }}</td>
+                    <td style="padding:6px 10px;">{{ a.end_time|time:"H:i" }}</td>
+                    <td style="padding:6px 10px;">{{ a.duration }}</td>
+                    <td style="padding:6px 10px;">{{ a.category }}</td>
+                    <td style="padding:6px 10px;">{{ a.activity_type }}</td>
+                    <td style="padding:6px 10px; color:#555;">{{ a.details }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <p style="color:#bbb; margin:0;">No activities recorded.</p>
+        {% endif %}
+        </div>
+
+        {% if shot_stats and shot_stats.shot_intervals %}
+        <div id="reportTabShotChart" style="display:none; margin-top:16px;">
+            <div style="font-size:0.8em; color:#555; margin-bottom:6px;">Shots per 15-minute interval</div>
+            <canvas id="reportShotIntervalChart" style="width:100%; height:160px; max-height:160px;"></canvas>
+        </div>
+        {{ shot_stats.shot_intervals|json_script:"report-shot-interval-data" }}
+        <script>
+        (function() {
+            if (!{{ report.include_shot_chart|yesno:"true,false" }}) return;
+            var container = document.getElementById('reportTabShotChart');
+            container.style.display = 'block';
+            var raw = JSON.parse(document.getElementById('report-shot-interval-data').textContent);
+            new Chart(document.getElementById('reportShotIntervalChart').getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: raw.map(function(d) { return d.interval; }),
+                    datasets: [{ data: raw.map(function(d) { return d.shots; }), backgroundColor: '#1a3a5c', borderWidth: 0 }]
+                },
+                options: {
+                    responsive: true, maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { font: { size: 11 }, maxRotation: 45 } },
+                        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } } }
+                    }
+                }
+            });
+        })();
+        </script>
+        {% endif %}
+
+    </div>
+
+    <!-- Diary -->
+    <div id="reportDiarySection" style="{% if not report.diary %}display:none;{% endif %}padding:16px 20px; border-bottom:4px double #1a3a5c; margin-bottom:24px;">
+        <div style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; margin-bottom:8px; font-weight:bold;">Diary / Notes</div>
+        <div id="reportDiaryText" style="white-space:pre-wrap; line-height:1.6; color:#333; font-size:0.92em;">{{ report.diary }}</div>
+    </div>
+
+    <!-- Chargeable Hours — daily -->
+    {{ activity_types_json|json_script:"activity-types-data" }}
+    <div id="reportChargeableSection" style="{% if not chargeable_rows %}display:none;{% endif %}padding:16px 20px; border-bottom:4px double #1a3a5c; margin-bottom:24px;">
+        <div style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; margin-bottom:10px; font-weight:bold;">Chargeable Hours — {{ report.date|date:"d M Y" }}</div>
+        <div id="reportChargeableContent">
+        {% if chargeable_rows %}
+        <table style="width:100%; border-collapse:collapse; font-size:0.92em;">
+            <thead>
+                <tr style="background:#1a3a5c; color:white;">
+                    <th style="padding:7px 10px; text-align:left;">Activity Type</th>
+                    <th style="padding:7px 10px; text-align:center; width:80px;">Chargeable %</th>
+                    <th style="padding:7px 10px; text-align:right; width:100px;">Total Hours</th>
+                    <th style="padding:7px 10px; text-align:right; width:120px;">Chargeable Hours</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in chargeable_rows %}
+                <tr style="{% cycle 'background:#f9f9f9;' 'background:white;' %} border-bottom:1px solid #eee;">
+                    <td style="padding:6px 10px;">{{ row.type }}</td>
+                    <td style="padding:6px 10px; text-align:center;">{{ row.pct }}%</td>
+                    <td style="padding:6px 10px; text-align:right;">{{ row.total }}</td>
+                    <td style="padding:6px 10px; text-align:right;">{{ row.chargeable }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="background:#f0f0f0; border-top:2px solid #1a3a5c; font-weight:bold;">
+                    <td style="padding:7px 10px;" colspan="3">Total Chargeable</td>
+                    <td style="padding:7px 10px; text-align:right; color:#1a3a5c;">{{ total_chargeable }}</td>
+                </tr>
+            </tfoot>
+        </table>
+        {% endif %}
+        </div>
+    </div>
+
+    <!-- Chargeable Hours — job total -->
+    <div id="reportJobChargeableSection" style="{% if not job_chargeable_rows %}display:none;{% endif %}">
+    <div style="padding:16px 20px; border-bottom:4px double #1a3a5c; margin-bottom:24px;">
+        <div style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; margin-bottom:10px; font-weight:bold;">Chargeable Hours — Job Total</div>
+        <div id="reportJobChargeableContent">
+        <table style="width:100%; border-collapse:collapse; font-size:0.92em;">
+            <thead>
+                <tr style="background:#1a3a5c; color:white;">
+                    <th style="padding:7px 10px; text-align:left;">Activity Type</th>
+                    <th style="padding:7px 10px; text-align:center; width:80px;">Chargeable %</th>
+                    <th style="padding:7px 10px; text-align:right; width:100px;">Total Hours</th>
+                    <th style="padding:7px 10px; text-align:right; width:120px;">Chargeable Hours</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in job_chargeable_rows %}
+                <tr style="{% cycle 'background:#f9f9f9;' 'background:white;' %} border-bottom:1px solid #eee;">
+                    <td style="padding:6px 10px;">{{ row.type }}</td>
+                    <td style="padding:6px 10px; text-align:center;">{{ row.pct }}%</td>
+                    <td style="padding:6px 10px; text-align:right;">{{ row.total }}</td>
+                    <td style="padding:6px 10px; text-align:right;">{{ row.chargeable }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr style="background:#f0f0f0; border-top:2px solid #1a3a5c; font-weight:bold;">
+                    <td style="padding:7px 10px;" colspan="3">Total Chargeable</td>
+                    <td style="padding:7px 10px; text-align:right; color:#1a3a5c;">{{ job_total_chargeable }}</td>
+                </tr>
+            </tfoot>
+        </table>
+        </div>
+    </div>
+    </div>
+
+
+<!-- Pie charts -->
+<div id="pieChartsSection">
+{% if daily_pie_data or job_pie_data %}
+<div class="card" style="margin-top:20px;">
+    {% if daily_pie_data and job_pie_data %}
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px;">
+        <div>
+            <h4 style="margin:0 0 12px; color:#1a3a5c; text-align:center;">Daily Recording Summary</h4>
+            <canvas id="dailyPieChart" style="max-height:260px;"></canvas>
+        </div>
+        <div>
+            <h4 style="margin:0 0 12px; color:#1a3a5c; text-align:center;">Job Summary</h4>
+            <canvas id="jobPieChart" style="max-height:260px;"></canvas>
+        </div>
+    </div>
+    {% elif job_pie_data %}
+    <div style="max-width:400px; margin:0 auto;">
+        <h4 style="margin:0 0 12px; color:#1a3a5c; text-align:center;">Job Summary</h4>
+        <canvas id="jobPieChart" style="max-height:260px;"></canvas>
+    </div>
+    {% else %}
+    <div style="max-width:400px; margin:0 auto;">
+        <h4 style="margin:0 0 12px; color:#1a3a5c; text-align:center;">Daily Recording Summary</h4>
+        <canvas id="dailyPieChart" style="max-height:260px;"></canvas>
+    </div>
+    {% endif %}
+</div>
+{{ daily_pie_data|json_script:"daily-pie-data" }}
+{{ job_pie_data|json_script:"job-pie-data" }}
+<script>
+(function() {
+    var PIE_COLORS = [
+        '#2196f3','#4caf50','#ff9800','#9c27b0','#00bcd4',
+        '#ff5722','#795548','#f06292','#607d8b','#cddc39',
+        '#e91e63','#009688','#ffc107','#3f51b5','#8bc34a'
+    ];
+    var _allRaw = [];
+    ['daily-pie-data','job-pie-data'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) try { _allRaw = _allRaw.concat(JSON.parse(el.textContent)); } catch(e) {}
+    });
+    var _colorMap = {};
+    var _idx = 0;
+    _allRaw.forEach(function(d) {
+        if (!_colorMap.hasOwnProperty(d.label)) {
+            _colorMap[d.label] = PIE_COLORS[_idx++ % PIE_COLORS.length];
+        }
+    });
+    function minsToHM(m) {
+        return Math.floor(m/60) + 'h ' + String(m%60).padStart(2,'0') + 'm';
+    }
+    function buildPie(canvasId, dataId) {
+        var el = document.getElementById(dataId);
+        if (!el) return;
+        var raw = JSON.parse(el.textContent);
+        if (!raw || !raw.length) return;
+        var labels = raw.map(function(d){ return d.label; });
+        var values = raw.map(function(d){ return d.mins; });
+        var total = values.reduce(function(a,b){ return a+b; }, 0);
+        new Chart(document.getElementById(canvasId), {
+            type: 'pie',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: values,
+                    backgroundColor: labels.map(function(lbl){ return _colorMap[lbl]; }),
+                    borderWidth: 1,
+                    borderColor: '#fff'
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                        labels: {
+                            font: { size: 11 },
+                            padding: 10,
+                            generateLabels: function(chart) {
+                                var ds = chart.data.datasets[0];
+                                var tot = ds.data.reduce(function(a,b){ return a+b; }, 0);
+                                return chart.data.labels.map(function(lbl, i) {
+                                    var pct = tot > 0 ? (ds.data[i]/tot*100).toFixed(1) : '0.0';
+                                    return { text: lbl + ' (' + pct + '%)', fillStyle: ds.backgroundColor[i], strokeStyle: '#fff', lineWidth: 1, index: i };
+                                });
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(ctx) {
+                                var mins = ctx.parsed;
+                                var pct = total > 0 ? (mins/total*100).toFixed(1) : 0;
+                                return ' ' + ctx.label + ': ' + minsToHM(mins) + ' (' + pct + '%)';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+    buildPie('dailyPieChart', 'daily-pie-data');
+    buildPie('jobPieChart',   'job-pie-data');
+})();
+</script>
+{% endif %}
+</div><!-- end pieChartsSection -->
+
+{% if report.job.include_signatures %}
+<!-- Signature Section -->
+<div style="margin-top:32px; border:1px solid #ccc; border-radius:6px; padding:24px 28px; background:#fff;">
+    <div style="font-size:1.05em; font-weight:bold; color:#1a3a5c; margin-bottom:20px; border-bottom:2px solid #1a3a5c; padding-bottom:8px;">Signatures</div>
+    <div style="display:flex; gap:48px; flex-wrap:wrap;">
+        <div style="flex:1; min-width:220px;">
+            <div style="font-size:0.85em; color:#666; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">Observer</div>
+            <div style="border-bottom:1px solid #333; height:48px; margin-bottom:6px;"></div>
+            <div style="font-size:0.82em; color:#555;">Name: <span style="display:inline-block; border-bottom:1px solid #999; min-width:140px;">&nbsp;</span></div>
+            <div style="font-size:0.82em; color:#555; margin-top:6px;">Date: <span style="display:inline-block; border-bottom:1px solid #999; min-width:140px;">&nbsp;</span></div>
+        </div>
+        <div style="flex:1; min-width:220px;">
+            <div style="font-size:0.85em; color:#666; margin-bottom:6px; text-transform:uppercase; letter-spacing:0.05em;">Client</div>
+            <div style="border-bottom:1px solid #333; height:48px; margin-bottom:6px;"></div>
+            <div style="font-size:0.82em; color:#555;">Name: <span style="display:inline-block; border-bottom:1px solid #999; min-width:140px;">&nbsp;</span></div>
+            <div style="font-size:0.82em; color:#555; margin-top:6px;">Date: <span style="display:inline-block; border-bottom:1px solid #999; min-width:140px;">&nbsp;</span></div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+</div>
+</div>
+
+<!-- Tab: QC -->
+<div id="tab-pane-qc" class="tab-pane" style="display:block; height:0; overflow:hidden;">
+{% if pss_qc_maps_by_unit %}
+{% for unit_set in pss_qc_maps_by_unit %}
+<div style="border:1px solid #ddd; border-radius:6px; padding:12px 20px 16px; margin-bottom:16px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="font-size:1.1em; text-transform:uppercase; letter-spacing:0.05em; color:#0d1f33; font-weight:bold;">PSS QC Maps — Unit {{ unit_set.label }}</span>
+        <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.83em; color:#555; font-weight:normal;">
+            <input type="checkbox" class="pss-export-check" data-unit="{{ unit_set.label }}" checked style="cursor:pointer;">
+            Include in export
+        </label>
+    </div>
+    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+        {% for param, data in unit_set.maps.items %}
+        <div style="border:1px solid #ddd; border-radius:4px; overflow:hidden;">
+            <div style="padding:4px 8px; background:#f5f5f5; font-size:0.78em; font-weight:bold;">
+                <div style="margin-bottom:2px;">{{ param }}</div>
+                <div style="display:flex; justify-content:space-between; font-weight:normal; font-size:0.9em; color:#000;">
+                    {% if data.higher %}
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4caf50;margin-right:3px;"></span>≥ {{ data.g }}{{ data.unit }}</span>
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff9800;margin-right:3px;"></span>{{ data.a }}–{{ data.g }}{{ data.unit }}</span>
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e63946;margin-right:3px;"></span>&lt; {{ data.a }}{{ data.unit }}</span>
+                    {% else %}
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4caf50;margin-right:3px;"></span>≤ {{ data.g }}{{ data.unit }}</span>
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff9800;margin-right:3px;"></span>{{ data.g }}–{{ data.a }}{{ data.unit }}</span>
+                    <span><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#e63946;margin-right:3px;"></span>&gt; {{ data.a }}{{ data.unit }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if data.leader %}
+            <iframe id="pssLeader_{{ unit_set.slug }}" src="{{ data.url }}" style="width:100%; height:200px; border:none; display:block;" scrolling="no"></iframe>
+            {% else %}
+            <iframe class="pssFollower_{{ unit_set.slug }}" src="{{ data.url }}" style="width:100%; height:200px; border:none; display:block;" scrolling="no"></iframe>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endfor %}
+<script>
+(function() {
+    function getLeafletMap(iframe) {
+        try {
+            var w = iframe.contentWindow;
+            for (var k in w) {
+                try {
+                    var obj = w[k];
+                    if (obj && typeof obj.getCenter === 'function' && typeof obj.getZoom === 'function' && typeof obj.setView === 'function') {
+                        return obj;
+                    }
+                } catch(e) {}
+            }
+        } catch(e) {}
+        return null;
+    }
+    function setupPssSync(leaderId, followerClass) {
+        function syncFollowers(center, zoom) {
+            document.querySelectorAll('.' + followerClass).forEach(function(frame) {
+                var m = getLeafletMap(frame);
+                if (m) m.setView(center, zoom, {animate: false});
+            });
+        }
+
+        function attachLeader() {
+            var frame = document.getElementById(leaderId);
+            if (!frame) return;
+            var m = getLeafletMap(frame);
+            if (!m) { setTimeout(attachLeader, 500); return; }
+            m.on('moveend', function() { syncFollowers(m.getCenter(), m.getZoom()); });
+        }
+
+        var frame = document.getElementById(leaderId);
+        if (frame) {
+            frame.addEventListener('load', function() { setTimeout(attachLeader, 300); });
+            setTimeout(attachLeader, 1000);
+        }
+    }
+    {% for unit_set in pss_qc_maps_by_unit %}
+    setupPssSync('pssLeader_{{ unit_set.slug }}', 'pssFollower_{{ unit_set.slug }}');
+    {% endfor %}
+})();
+</script>
+<script>
+(function() {
+    var STORAGE_KEY = 'pss_export_{{ report.pk }}';
+    var BASE_PDF  = '{% url "report_pdf"  report.pk %}';
+    var BASE_WORD = '{% url "report_word" report.pk %}';
+
+    function getCheckedUnits() {
+        return Array.from(document.querySelectorAll('.pss-export-check:checked'))
+            .map(function(cb) { return cb.dataset.unit; });
+    }
+
+    function getIframeMapView(iframeId) {
+        try {
+            var iframe = document.getElementById(iframeId);
+            if (!iframe || !iframe.contentWindow) return null;
+            var iWin = iframe.contentWindow;
+            for (var k in iWin) {
+                try {
+                    var obj = iWin[k];
+                    if (obj && typeof obj.setView === 'function' && typeof obj.getCenter === 'function') {
+                        var c = obj.getCenter();
+                        return { lat: c.lat, lng: c.lng, zoom: obj.getZoom() };
+                    }
+                } catch(e) {}
+            }
+        } catch(e) {}
+        return null;
+    }
+
+    function updateExportUrls() {
+        var units = getCheckedUnits();
+        var params = [];
+        params.push('pss_units=' + encodeURIComponent(units.join(',')));
+
+        var pv = getIframeMapView('progressMapIframe');
+        if (pv) {
+            params.push('progress_lat=' + pv.lat.toFixed(6));
+            params.push('progress_lng=' + pv.lng.toFixed(6));
+            params.push('progress_zoom=' + pv.zoom);
+        }
+        var dv = getIframeMapView('deploymentMapIframe');
+        if (dv) {
+            params.push('deployment_lat=' + dv.lat.toFixed(6));
+            params.push('deployment_lng=' + dv.lng.toFixed(6));
+            params.push('deployment_zoom=' + dv.zoom);
+        }
+        if (window._getDeployMode && window._getDeployMode() === 'patch') {
+            params.push('deployment_mode=patch');
+        }
+        // Capture PSS view from first leader iframe (all PSS maps share same area)
+        var firstLeader = document.querySelector('[id^="pssLeader_"]');
+        if (firstLeader) {
+            var psv = getIframeMapView(firstLeader.id);
+            if (psv) {
+                params.push('pss_lat=' + psv.lat.toFixed(6));
+                params.push('pss_lng=' + psv.lng.toFixed(6));
+                params.push('pss_zoom=' + psv.zoom);
+            }
+        }
+
+        var suffix = params.length ? '?' + params.join('&') : '';
+        var pdf  = document.getElementById('pdfDownloadBtn');
+        var word = document.getElementById('wordDownloadBtn');
+        if (pdf)  pdf.href  = BASE_PDF  + suffix;
+        if (word) word.href = BASE_WORD + suffix;
+    }
+
+    // Expose globally so download buttons can call it at click time
+    window._updateExportUrls = updateExportUrls;
+
+    function saveState() {
+        var state = {};
+        document.querySelectorAll('.pss-export-check').forEach(function(cb) {
+            state[cb.dataset.unit] = cb.checked;
+        });
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    try {
+        var stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+        document.querySelectorAll('.pss-export-check').forEach(function(cb) {
+            if (cb.dataset.unit in stored) cb.checked = stored[cb.dataset.unit];
+        });
+    } catch(e) {}
+
+    updateExportUrls();
+
+    document.querySelectorAll('.pss-export-check').forEach(function(cb) {
+        cb.addEventListener('change', function() { saveState(); updateExportUrls(); });
+    });
+})();
+</script>
+{% else %}
+<p style="color:#999;">No PSS file uploaded for this report.</p>
+{% endif %}
+</div>
+
+<!-- Tab: Settings -->
+<div id="tab-pane-settings" class="tab-pane" style="display:block; height:0; overflow:hidden;">
+<form method="post">
+{% csrf_token %}
+<input type="hidden" name="form_type" value="pss_settings">
+<div class="card">
+    <h3>PSS QC Thresholds</h3>
+    <p style="color:#666; font-size:0.9em; margin-top:-8px;">These thresholds apply to all reports for this job.</p>
+
+    <!-- Preset loader -->
+    {% if pss_presets %}
+    <div style="margin-bottom:20px; padding:12px; background:#f5f5f5; border-radius:6px;">
+        <div style="font-weight:bold; font-size:0.9em; margin-bottom:10px;">Presets</div>
+        <div style="display:flex; flex-direction:column; gap:6px;">
+            {% for p in pss_presets %}
+            <div style="display:flex; align-items:center; gap:8px;">
+                <span style="flex:1; font-size:0.9em;">{{ p.name }}</span>
+                <button type="button" class="btn" style="background:#1a3a5c; color:white; font-size:0.82em; padding:3px 12px; white-space:nowrap;"
+                    onclick="loadPresetData({{ p.pss_force_avg_green }},{{ p.pss_force_avg_amber }},{{ p.pss_force_max_green }},{{ p.pss_force_max_amber }},{{ p.pss_phase_avg_green }},{{ p.pss_phase_avg_amber }},{{ p.pss_phase_max_green }},{{ p.pss_phase_max_amber }},{{ p.pss_thd_avg_green }},{{ p.pss_thd_avg_amber }},{{ p.pss_thd_max_green }},{{ p.pss_thd_max_amber }})">
+                    Load
+                </button>
+                <form method="post" action="{% url 'pss_preset_delete' p.pk %}" style="margin:0;" onsubmit="return confirm('Delete preset \'{{ p.name }}\'?');">
+                    {% csrf_token %}
+                    <button type="submit" style="background:#e63946; color:white; border:none; border-radius:4px; padding:3px 12px; cursor:pointer; font-size:0.82em; white-space:nowrap;">Delete</button>
+                </form>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <table style="width:100%; border-collapse:collapse; font-size:0.93em;">
+        <thead>
+            <tr style="background:#1a3a5c; color:white;">
+                <th style="padding:9px 14px; text-align:left;">Parameter</th>
+                <th style="padding:9px 14px; text-align:center;"><span style="color:#4caf50;">●</span> Green</th>
+                <th style="padding:9px 14px; text-align:center;"><span style="color:#ff9800;">●</span> Amber</th>
+                <th style="padding:9px 14px; text-align:center;"><span style="color:#e63946;">●</span> Red</th>
+            </tr>
+        </thead>
+        <tbody>
+
+            {% with job=report.job %}
+
+            <!-- Force Avg -->
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:10px 14px; font-weight:500;">Force Avg</td>
+                <td style="padding:10px 14px; text-align:center;">
+                    &gt;= <input type="number" name="pss_force_avg_green" value="{{ job.pss_force_avg_green }}" step="0.1" min="0" max="100" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">%
+                </td>
+                <td style="padding:10px 14px; text-align:center;">
+                    between <input type="number" name="pss_force_avg_amber" value="{{ job.pss_force_avg_amber }}" step="0.1" min="0" max="100" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">% and green
+                </td>
+                <td style="padding:10px 14px; text-align:center; color:#888;">&lt; amber</td>
+            </tr>
+
+            <!-- Force Max -->
+            <tr style="border-bottom:1px solid #eee; background:#f9f9f9;">
+                <td style="padding:10px 14px; font-weight:500;">Force Max</td>
+                <td style="padding:10px 14px; text-align:center;">
+                    &gt;= <input type="number" name="pss_force_max_green" value="{{ job.pss_force_max_green }}" step="0.1" min="0" max="100" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">%
+                </td>
+                <td style="padding:10px 14px; text-align:center;">
+                    between <input type="number" name="pss_force_max_amber" value="{{ job.pss_force_max_amber }}" step="0.1" min="0" max="100" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">% and green
+                </td>
+                <td style="padding:10px 14px; text-align:center; color:#888;">&lt; amber</td>
+            </tr>
+
+            <!-- Phase Avg -->
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:10px 14px; font-weight:500;">Phase Avg</td>
+                <td style="padding:10px 14px; text-align:center;">
+                    abs &lt; <input type="number" name="pss_phase_avg_green" value="{{ job.pss_phase_avg_green }}" step="0.1" min="0" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">°
+                </td>
+                <td style="padding:10px 14px; text-align:center;">
+                    between green and <input type="number" name="pss_phase_avg_amber" value="{{ job.pss_phase_avg_amber }}" step="0.1" min="0" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">°
+                </td>
+                <td style="padding:10px 14px; text-align:center; color:#888;">&gt; amber</td>
+            </tr>
+
+            <!-- Phase Max -->
+            <tr style="border-bottom:1px solid #eee; background:#f9f9f9;">
+                <td style="padding:10px 14px; font-weight:500;">Phase Max</td>
+                <td style="padding:10px 14px; text-align:center;">
+                    abs &lt;= <input type="number" name="pss_phase_max_green" value="{{ job.pss_phase_max_green }}" step="0.1" min="0" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">°
+                </td>
+                <td style="padding:10px 14px; text-align:center;">
+                    between green and <input type="number" name="pss_phase_max_amber" value="{{ job.pss_phase_max_amber }}" step="0.1" min="0" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">°
+                </td>
+                <td style="padding:10px 14px; text-align:center; color:#888;">&gt; amber</td>
+            </tr>
+
+            <!-- THD Avg -->
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:10px 14px; font-weight:500;">THD Avg</td>
+                <td style="padding:10px 14px; text-align:center;">
+                    &lt;= <input type="number" name="pss_thd_avg_green" value="{{ job.pss_thd_avg_green }}" step="0.1" min="0" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">%
+                </td>
+                <td style="padding:10px 14px; text-align:center;">
+                    between green and <input type="number" name="pss_thd_avg_amber" value="{{ job.pss_thd_avg_amber }}" step="0.1" min="0" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">%
+                </td>
+                <td style="padding:10px 14px; text-align:center; color:#888;">&gt; amber</td>
+            </tr>
+
+            <!-- THD Max -->
+            <tr style="border-bottom:1px solid #eee; background:#f9f9f9;">
+                <td style="padding:10px 14px; font-weight:500;">THD Max</td>
+                <td style="padding:10px 14px; text-align:center;">
+                    &lt;= <input type="number" name="pss_thd_max_green" value="{{ job.pss_thd_max_green }}" step="0.1" min="0" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">%
+                </td>
+                <td style="padding:10px 14px; text-align:center;">
+                    between green and <input type="number" name="pss_thd_max_amber" value="{{ job.pss_thd_max_amber }}" step="0.1" min="0" style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; text-align:center;">%
+                </td>
+                <td style="padding:10px 14px; text-align:center; color:#888;">&gt; amber</td>
+            </tr>
+
+            {% endwith %}
+
+        </tbody>
+    </table>
+
+    <div style="margin-top:16px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+        <button type="submit" class="btn btn-primary">Save Settings</button>
+        <span style="color:#ccc;">|</span>
+        <input type="text" id="presetNameInput" placeholder="Preset name (e.g. IVI AHV-IV)" style="width:220px; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        <button type="button" onclick="savePreset()" class="btn" style="background:#eee; color:#333;">Save as Preset</button>
+    </div>
+</div>
+</form>
+
+<!-- Map Colors -->
+<form method="post" style="margin-top:20px;">
+{% csrf_token %}
+<input type="hidden" name="form_type" value="map_colors">
+<div class="card">
+    <h3>Map Colors</h3>
+
+    <p style="font-size:0.88em; font-weight:600; color:#1a3a5c; margin:4px 0 6px;">Shot Progress</p>
+    <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:center; padding:4px 0 12px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em;">
+            <input type="color" name="progress_color_today" value="{{ report.job.progress_color_today }}" style="width:40px; height:32px; border:1px solid #ccc; border-radius:4px; cursor:pointer; padding:2px;">
+            Today
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em;">
+            <input type="color" name="progress_color_prev" value="{{ report.job.progress_color_prev }}" style="width:40px; height:32px; border:1px solid #ccc; border-radius:4px; cursor:pointer; padding:2px;">
+            Previous Days
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em;">
+            <input type="color" name="progress_color_planned" value="{{ report.job.progress_color_planned }}" style="width:40px; height:32px; border:1px solid #ccc; border-radius:4px; cursor:pointer; padding:2px;">
+            Planned
+        </label>
+    </div>
+
+    <p style="font-size:0.88em; font-weight:600; color:#1a3a5c; margin:4px 0 6px;">Node Deployment Progress</p>
+    <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:center; padding:4px 0 8px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em;">
+            <input type="color" name="deployment_color_today" value="{{ report.job.deployment_color_today }}" style="width:40px; height:32px; border:1px solid #ccc; border-radius:4px; cursor:pointer; padding:2px;">
+            Today
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em;">
+            <input type="color" name="deployment_color_prev" value="{{ report.job.deployment_color_prev }}" style="width:40px; height:32px; border:1px solid #ccc; border-radius:4px; cursor:pointer; padding:2px;">
+            Previous Days
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em;">
+            <input type="color" name="deployment_color_planned" value="{{ report.job.deployment_color_planned }}" style="width:40px; height:32px; border:1px solid #ccc; border-radius:4px; cursor:pointer; padding:2px;">
+            Planned
+        </label>
+    </div>
+
+    <div style="margin-top:16px; padding-top:14px; border-top:1px solid #eee;">
+        <p style="font-size:0.88em; font-weight:600; color:#1a3a5c; margin:0 0 8px;">Map Overlay</p>
+        <label style="display:flex; align-items:center; gap:10px; font-size:0.93em; cursor:pointer;">
+            <input type="checkbox" name="show_map_overlay" value="1" {% if report.job.show_map_overlay %}checked{% endif %} style="width:16px; height:16px; cursor:pointer;">
+            Show roads &amp; town names on maps
+        </label>
+    </div>
+
+    <button type="submit" class="btn btn-primary" style="margin-top:16px;">Save Colors</button>
+</div>
+</form>
+
+<!-- Finish Date Estimation Settings -->
+<form method="post" style="margin-top:20px;">
+{% csrf_token %}
+<input type="hidden" name="form_type" value="finish_settings">
+<div class="card">
+    <h3>Finish Date Estimation</h3>
+    <p style="color:#666; font-size:0.9em; margin-top:-8px;">Configure which methods appear in the Production Summary.</p>
+
+    <div style="display:flex; gap:32px; flex-wrap:wrap; margin-bottom:16px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em;">
+            <input type="checkbox" name="finish_show_linear" {% if report.job.finish_show_linear %}checked{% endif %}>
+            Daily Average method
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em;">
+            <input type="checkbox" name="finish_show_calendar" {% if report.job.finish_show_calendar %}checked{% endif %}>
+            Calendar Rate method
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em;">
+            <input type="checkbox" name="finish_show_rolling" {% if report.job.finish_show_rolling %}checked{% endif %}>
+            Rolling Average method
+        </label>
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em; border-left:1px solid #ddd; padding-left:24px;">
+            <input type="checkbox" name="finish_include_in_report" {% if report.job.finish_include_in_report %}checked{% endif %}>
+            Include in exported report
+        </label>
+    </div>
+
+    <div style="display:flex; gap:32px; flex-wrap:wrap; align-items:center;">
+        <label style="font-size:0.93em;">
+            Days per week on site &nbsp;
+            <select name="finish_days_per_week" style="padding:5px 8px; border:1px solid #ccc; border-radius:4px;">
+                <option value="5" {% if report.job.finish_days_per_week == 5 %}selected{% endif %}>5</option>
+                <option value="6" {% if report.job.finish_days_per_week == 6 %}selected{% endif %}>6</option>
+                <option value="7" {% if report.job.finish_days_per_week == 7 %}selected{% endif %}>7</option>
+            </select>
+        </label>
+        <label style="font-size:0.93em;">
+            Rolling window &nbsp;
+            <input type="number" name="finish_rolling_window" value="{{ report.job.finish_rolling_window }}"
+                   min="1" max="60" style="width:60px; padding:5px 8px; border:1px solid #ccc; border-radius:4px;"> days
+        </label>
+    </div>
+
+    <div style="margin-top:14px;">
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</div>
+</form>
+
+
+<!-- Export Filename -->
+<form method="post" style="margin-top:20px;">
+{% csrf_token %}
+<input type="hidden" name="form_type" value="export_filename">
+<div class="card">
+    <h3>Export Filename</h3>
+    <p style="color:#666; font-size:0.9em; margin-top:-8px; margin-bottom:8px;">Template for the exported PDF/Word filename.</p>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px;">
+        <button type="button" onclick="insertFilenameVar('{date}')"         style="padding:3px 10px; border:1px solid #1a3a5c; border-radius:12px; background:white; color:#1a3a5c; font-size:0.82em; cursor:pointer; font-family:monospace;">{date}</button>
+        <button type="button" onclick="insertFilenameVar('{job_number}')"   style="padding:3px 10px; border:1px solid #1a3a5c; border-radius:12px; background:white; color:#1a3a5c; font-size:0.82em; cursor:pointer; font-family:monospace;">{job_number}</button>
+        <button type="button" onclick="insertFilenameVar('{client}')"       style="padding:3px 10px; border:1px solid #1a3a5c; border-radius:12px; background:white; color:#1a3a5c; font-size:0.82em; cursor:pointer; font-family:monospace;">{client}</button>
+        <button type="button" onclick="insertFilenameVar('{project}')"      style="padding:3px 10px; border:1px solid #1a3a5c; border-radius:12px; background:white; color:#1a3a5c; font-size:0.82em; cursor:pointer; font-family:monospace;">{project}</button>
+    </div>
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-bottom:16px;">
+        <input type="text" name="export_filename_template" id="exportFilenameTemplate"
+               value="{{ report.job.export_filename_template }}"
+               style="flex:1; min-width:260px; padding:7px 10px; border:1px solid #ccc; border-radius:4px; font-size:0.93em; font-family:monospace;">
+    </div>
+    <div style="margin-top:-8px; margin-bottom:16px; font-size:0.82em; color:#888;">
+        Preview: <strong id="filenamePreview"></strong>.pdf
+    </div>
+
+    <div style="border-top:1px solid #eee; padding-top:14px; margin-top:4px;">
+        <label style="display:flex; align-items:center; gap:8px; font-size:0.93em; margin-bottom:10px; cursor:pointer;">
+            <input type="checkbox" name="export_save_to_disk" id="exportSaveToDisk"
+                   {% if report.job.export_save_to_disk %}checked{% endif %}
+                   onchange="document.getElementById('exportSavePathRow').style.display=this.checked?'flex':'none'">
+            Also save a copy to a folder on this computer
+        </label>
+        <div id="exportSavePathRow" style="display:{% if report.job.export_save_to_disk %}flex{% else %}none{% endif %}; gap:8px; align-items:center; flex-wrap:wrap;">
+            <label style="font-size:0.9em; color:#555; white-space:nowrap;">Folder path</label>
+            <input type="text" name="export_save_path" id="exportSavePath"
+                   value="{{ report.job.export_save_path }}"
+                   placeholder="e.g. C:\Reports\Job1234"
+                   style="flex:1; min-width:260px; padding:7px 10px; border:1px solid #ccc; border-radius:4px; font-size:0.9em; font-family:monospace;">
+            <button type="button" onclick="browseFolder()" class="btn"
+                    style="background:#f0f0f0; color:#333; border:1px solid #ccc; white-space:nowrap;">
+                Browse…
+            </button>
+        </div>
+    </div>
+
+    <div style="margin-top:16px;">
+        <button type="submit" class="btn" style="background:#1a3a5c; color:white;">Save</button>
+    </div>
+</div>
+</form>
+<script>
+(function() {
+    var inp = document.getElementById('exportFilenameTemplate');
+    var prev = document.getElementById('filenamePreview');
+    function update() {
+        var val = inp.value
+            .replace(/\{date\}/g, '{{ report.date|date:"d-m-Y" }}')
+            .replace(/\{job_number\}/g, '{{ report.job.job_number }}')
+            .replace(/\{client\}/g, '{{ report.job.client }}')
+            .replace(/\{project\}/g, '{{ report.job.project_name }}');
+        prev.textContent = val;
+    }
+    inp.addEventListener('input', update);
+    update();
+})();
+
+function insertFilenameVar(v) {
+    var inp = document.getElementById('exportFilenameTemplate');
+    var start = inp.selectionStart, end = inp.selectionEnd;
+    inp.value = inp.value.slice(0, start) + v + inp.value.slice(end);
+    inp.selectionStart = inp.selectionEnd = start + v.length;
+    inp.focus();
+    inp.dispatchEvent(new Event('input'));
+}
+
+function browseFolder() {
+    var current = document.getElementById('exportSavePath').value;
+    var url = '{% url "browse_folder" %}' + (current ? '?initial=' + encodeURIComponent(current) : '');
+    fetch(url)
+        .then(function(r) { return r.json(); })
+        .then(function(d) { if (d.path) document.getElementById('exportSavePath').value = d.path; })
+        .catch(function() {});
+}
+</script>
+
+<!-- Signature Section Setting -->
+<form method="post" style="margin-top:20px;">
+{% csrf_token %}
+<input type="hidden" name="form_type" value="signature_settings">
+<div class="card">
+    <h3>Signature Section</h3>
+    <label style="display:flex; align-items:center; gap:8px; font-size:0.93em; cursor:pointer;">
+        <input type="checkbox" name="include_signatures" {% if report.job.include_signatures %}checked{% endif %}>
+        Include Observer &amp; Client signature section in the report
+    </label>
+    <div style="margin-top:12px;">
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</div>
+</form>
+
+<!-- Daily Average Days -->
+{% if report_shot_rows %}
+<form method="post" style="margin-top:20px;">
+{% csrf_token %}
+<input type="hidden" name="form_type" value="avg_days">
+<div class="card">
+    <h3>Daily Average — Shot Days</h3>
+    <p style="color:#666; font-size:0.9em; margin-top:-8px;">Check the days to include in the daily average calculation.</p>
+    <table id="avgDaysTable" style="width:100%; border-collapse:collapse; font-size:0.9em;">
+        <thead>
+            <tr style="border-bottom:2px solid #1a3a5c;">
+                <th style="text-align:left; padding:6px 8px; width:40px;">Include</th>
+                <th style="text-align:left; padding:6px 8px;">Date</th>
+                <th style="text-align:right; padding:6px 8px;">Shots</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for row in report_shot_rows %}
+            <tr class="avg-day-row" style="border-bottom:1px solid #eee;">
+                <td style="padding:6px 8px; text-align:center;">
+                    <input type="checkbox" class="avg-day-cb" name="include_in_avg" value="{{ row.report.pk }}"
+                           data-shots="{% if row.shots is not None %}{{ row.shots }}{% else %}{% endif %}"
+                           {% if row.report.include_in_avg %} checked{% endif %}>
+                </td>
+                <td style="padding:6px 8px;">{{ row.report.date|date:"d M Y" }}{% if row.report.pk == report.pk %} <span style="color:#1a3a5c; font-size:0.8em;">(this report)</span>{% endif %}</td>
+                <td style="padding:6px 8px; text-align:right;">{% if row.shots is not None %}{{ row.shots }}{% else %}<span style="color:#aaa;">—</span>{% endif %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="border-top:2px solid #1a3a5c; font-weight:bold; background:#f5f5f5;">
+                <td colspan="2" style="padding:7px 8px; color:#1a3a5c;">Daily Average</td>
+                <td style="padding:7px 8px; text-align:right; color:#1a3a5c;" id="avgDaysResult">—</td>
+            </tr>
+        </tfoot>
+    </table>
+    <div style="margin-top:10px;">
+        <button type="submit" class="btn btn-primary">Save</button>
+    </div>
+</div>
+</form>
+<script>
+(function() {
+    function recalcAvg() {
+        var total = 0, days = 0;
+        document.querySelectorAll('.avg-day-cb').forEach(function(cb) {
+            var shots = cb.dataset.shots;
+            var row = cb.closest('tr');
+            if (cb.checked) {
+                row.style.opacity = '1';
+                if (shots !== '') { total += parseInt(shots, 10); days++; }
+            } else {
+                row.style.opacity = '0.45';
+            }
+        });
+        document.getElementById('avgDaysResult').textContent = days ? Math.round(total / days) : '—';
+    }
+    document.querySelectorAll('.avg-day-cb').forEach(function(cb) {
+        cb.addEventListener('change', recalcAvg);
+    });
+    recalcAvg();
+})();
+</script>
+{% endif %}
+
+
+<script>
+function loadPresetData(fag,faa,fmg,fma,pag,paa,pmg,pma,tag,taa,tmg,tma) {
+    document.querySelector('[name=pss_force_avg_green]').value  = fag;
+    document.querySelector('[name=pss_force_avg_amber]').value  = faa;
+    document.querySelector('[name=pss_force_max_green]').value  = fmg;
+    document.querySelector('[name=pss_force_max_amber]').value  = fma;
+    document.querySelector('[name=pss_phase_avg_green]').value  = pag;
+    document.querySelector('[name=pss_phase_avg_amber]').value  = paa;
+    document.querySelector('[name=pss_phase_max_green]').value  = pmg;
+    document.querySelector('[name=pss_phase_max_amber]').value  = pma;
+    document.querySelector('[name=pss_thd_avg_green]').value    = tag;
+    document.querySelector('[name=pss_thd_avg_amber]').value    = taa;
+    document.querySelector('[name=pss_thd_max_green]').value    = tmg;
+    document.querySelector('[name=pss_thd_max_amber]').value    = tma;
+}
+
+function savePreset() {
+    const name = document.getElementById('presetNameInput').value.trim();
+    if (!name) { alert('Enter a preset name.'); return; }
+    const form = document.createElement('form');
+    form.method = 'post';
+    form.action = '{% url "pss_preset_save" %}';
+    const fields = {
+        csrfmiddlewaretoken: '{{ csrf_token }}',
+        preset_name: name,
+        report_pk: '{{ report.pk }}'
+    };
+    // Also submit current spinbox values to job first — done via main Save Settings form
+    // Here we just save current job values as preset (job already saved by user)
+    for (const [k, v] of Object.entries(fields)) {
+        const i = document.createElement('input');
+        i.type = 'hidden'; i.name = k; i.value = v;
+        form.appendChild(i);
+    }
+    document.body.appendChild(form);
+    form.submit();
+}
+</script>
+
+<!-- Manage Activity Types -->
+<div class="card" style="margin-top:24px;">
+    <h3>Activity Types</h3>
+    <table style="width:100%; border-collapse:collapse; margin-top:8px; font-size:0.9em;">
+        <thead>
+            <tr style="border-bottom:2px solid #1a3a5c; text-align:left;">
+                <th style="padding:6px 10px;">Name</th>
+                <th style="padding:6px 10px; width:160px;">Chargeable %</th>
+                <th style="padding:6px 10px; width:40px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for t in activity_types %}
+            <tr style="border-bottom:1px solid #eee;">
+                <td style="padding:6px 10px;">{{ t.name }}</td>
+                <td style="padding:4px 10px;">
+                    <form method="post" action="{% url 'activity_type_update' t.pk %}" style="display:flex; gap:6px; align-items:center;">
+                        {% csrf_token %}
+                        <input type="number" name="chargeable_percentage" value="{{ t.chargeable_percentage }}" min="0" max="100"
+                            style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; font-size:0.9em;">
+                        <button type="submit" style="background:#1a3a5c; color:white; border:none; border-radius:4px; padding:4px 10px; cursor:pointer; font-size:0.85em;">Save</button>
+                    </form>
+                </td>
+                <td style="padding:6px 10px; text-align:center;">
+                    <form method="post" action="{% url 'activity_type_delete' t.pk %}" style="margin:0;">
+                        {% csrf_token %}
+                        <button type="submit" style="background:none; border:none; color:#999; cursor:pointer; font-size:1.1em; line-height:1;">×</button>
+                    </form>
+                </td>
+            </tr>
+        {% empty %}
+            <tr><td colspan="3" style="padding:10px; color:#999;">No activity types defined.</td></tr>
+        {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr style="border-top:2px solid #eee;">
+                <td colspan="3" style="padding:8px 10px;">
+                    <form method="post" action="{% url 'activity_type_add' %}" style="display:flex; gap:6px; align-items:center;">
+                        {% csrf_token %}
+                        <input type="text" name="name" placeholder="New type..." style="padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:0.85em; width:160px;">
+                        <input type="number" name="chargeable_percentage" value="100" min="0" max="100"
+                            style="width:70px; padding:4px 6px; border:1px solid #ccc; border-radius:4px; font-size:0.85em;" placeholder="%">
+                        <button type="submit" class="btn" style="background:#1a3a5c; color:white; font-size:0.85em; padding:4px 12px;">Add</button>
+                    </form>
+                </td>
+            </tr>
+        </tfoot>
+    </table>
+</div>
+
+
+<!-- Manage Categories -->
+<div class="card" style="margin-top:24px;">
+    <h3>Activity Categories</h3>
+    <div style="display:flex; flex-wrap:wrap; gap:6px; margin-top:8px;">
+        {% for c in categories %}
+        <span style="background:#f0f0f0; border-radius:4px; padding:4px 10px; font-size:0.85em; display:flex; align-items:center; gap:6px;">
+            {{ c.name }}
+            <form method="post" action="{% url 'category_delete' c.pk %}" style="display:inline; margin:0;">
+                {% csrf_token %}
+                <button type="submit" style="background:none; border:none; color:#999; cursor:pointer; padding:0; font-size:1em; line-height:1;">×</button>
+            </form>
+        </span>
+        {% endfor %}
+        <form method="post" action="{% url 'category_add' %}" style="display:flex; gap:6px; align-items:center;"
+              onsubmit="clearTimeout(_activitySaveTimer);">
+            {% csrf_token %}
+            <input type="text" name="name" placeholder="New category..." style="padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:0.85em; width:160px;">
+            <button type="submit" class="btn" style="background:#1a3a5c; color:white; font-size:0.85em; padding:4px 12px;">Add</button>
+        </form>
+    </div>
+</div>
+</div>
+
+<!-- Tab: Diary -->
+<div id="tab-pane-diary" class="tab-pane" style="display:block; height:0; overflow:hidden;">
+<form id="diaryForm" method="post">
+{% csrf_token %}
+<input type="hidden" name="form_type" value="diary">
+<div class="card">
+    <h3>Diary — {{ report.date|date:"D, d M Y" }}</h3>
+    <textarea name="diary" spellcheck="true" style="width:100%; height:400px; padding:12px; border:1px solid #ccc; border-radius:4px; font-size:14px; line-height:1.6; box-sizing:border-box; resize:vertical;">{{ report.diary }}</textarea>
+    <div style="margin-top:12px;">
+        <span id="diarySaveStatus" style="font-size:0.85em; color:#888;"></span>
+    </div>
+</div>
+</form>
+
+<!-- Diary Templates -->
+<div class="card" style="margin-top:16px;">
+    <h3>Diary Templates</h3>
+
+    {% if diary_templates %}
+    <div style="display:flex; flex-direction:column; gap:8px; margin-bottom:20px;">
+        {% for t in diary_templates %}
+        <div style="border:1px solid #eee; border-radius:6px; overflow:hidden;">
+
+            <!-- View row -->
+            <div id="tpl-view-{{ t.pk }}" style="display:flex; align-items:flex-start; gap:8px; padding:10px 12px; background:#f9f9f9;">
+                <div style="flex:1;">
+                    <div style="font-weight:bold; font-size:0.9em; margin-bottom:4px;">{{ t.name }}</div>
+                    <div style="font-size:0.85em; color:#555; white-space:pre-wrap;">{{ t.body }}</div>
+                </div>
+                <div style="display:flex; flex-direction:column; gap:4px; flex-shrink:0;">
+                    <button type="button" class="btn" style="background:#1a3a5c; color:white; font-size:0.8em; padding:4px 12px; white-space:nowrap;"
+                        onclick="sendTemplateToDiary('{{ t.body|escapejs }}')">Send to Diary</button>
+                    <button type="button" style="background:#eee; color:#333; border:none; border-radius:4px; padding:4px 12px; cursor:pointer; font-size:0.8em;"
+                        onclick="toggleTemplateEdit({{ t.pk }})">Edit</button>
+                    <form method="post" action="{% url 'diary_template_delete' t.pk %}?tab=diary" style="margin:0;" onsubmit="return confirm('Delete template \'{{ t.name }}\'?');">
+                        {% csrf_token %}
+                        <button type="submit" style="width:100%; background:#e63946; color:white; border:none; border-radius:4px; padding:4px 12px; cursor:pointer; font-size:0.8em;">Delete</button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Edit row (hidden) -->
+            <div id="tpl-edit-{{ t.pk }}" style="display:none; padding:12px; background:#fff; border-top:1px solid #eee;">
+                <form method="post" action="{% url 'diary_template_update' t.pk %}?tab=diary">
+                    {% csrf_token %}
+                    <div style="display:flex; flex-direction:column; gap:8px;">
+                        <input type="text" name="name" value="{{ t.name }}" required
+                            style="padding:7px; border:1px solid #ccc; border-radius:4px; font-size:0.9em;">
+                        <textarea name="body" rows="4" required
+                            style="padding:7px; border:1px solid #ccc; border-radius:4px; font-size:0.9em; resize:vertical;">{{ t.body }}</textarea>
+                        <div style="display:flex; gap:8px;">
+                            <button type="submit" class="btn btn-primary" style="font-size:0.85em;">Save</button>
+                            <button type="button" style="background:#eee; color:#333; border:none; border-radius:4px; padding:6px 14px; cursor:pointer; font-size:0.85em;"
+                                onclick="toggleTemplateEdit({{ t.pk }})">Cancel</button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <form method="post" action="{% url 'diary_template_add' %}?tab=diary">
+        {% csrf_token %}
+        <div style="display:flex; flex-direction:column; gap:8px;">
+            <input type="text" name="name" placeholder="Template name" required
+                style="padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.9em;">
+            <textarea name="body" placeholder="Template text…" rows="4" required
+                style="padding:8px; border:1px solid #ccc; border-radius:4px; font-size:0.9em; resize:vertical;"></textarea>
+            <div>
+                <button type="submit" class="btn btn-primary">Save Template</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function toggleTemplateEdit(pk) {
+    var view = document.getElementById('tpl-view-' + pk);
+    var edit = document.getElementById('tpl-edit-' + pk);
+    var isEditing = edit.style.display !== 'none';
+    view.style.display = isEditing ? 'flex' : 'none';
+    edit.style.display = isEditing ? 'none' : 'block';
+}
+
+function sendTemplateToDiary(text) {
+    var ta = document.querySelector('#diaryForm textarea');
+    var current = ta.value;
+    ta.value = current ? current + '\n\n' + text : text;
+    ta.dispatchEvent(new Event('input'));
+    ta.focus();
+    ta.scrollTop = ta.scrollHeight;
+}
+</script>
+
+<script>
+(function() {
+    var timer;
+    var status = document.getElementById('diarySaveStatus');
+    document.querySelector('#diaryForm textarea').addEventListener('input', function() {
+        // Live-update the report tab diary preview
+        var val = this.value;
+        var section = document.getElementById('reportDiarySection');
+        var text    = document.getElementById('reportDiaryText');
+        if (section) section.style.display = val.trim() ? '' : 'none';
+        if (text)    text.textContent = val;
+
+        status.textContent = '';
+        clearTimeout(timer);
+        timer = setTimeout(function() {
+            status.textContent = 'Saving…';
+            var data = new FormData(document.getElementById('diaryForm'));
+            fetch('', {method:'POST', body:data})
+                .then(function() { status.textContent = 'Saved'; })
+                .catch(function() { status.textContent = 'Error saving'; });
+        }, 1500);
+    });
+})();
+</script>
+</div>
+
+<script>
+function addRow(containerId, rowClass, fieldName, listId) {
+    const row = document.createElement('div');
+    row.className = rowClass;
+    row.style.cssText = 'display:flex; gap:6px; margin-bottom:6px;';
+    row.innerHTML = `<input type="text" name="${fieldName}" list="${listId}" placeholder="Type or select name" autocomplete="off" style="flex:1;"><button type="button" onclick="removeRow(this, '${rowClass}')" style="background:#ccc; border:none; border-radius:4px; padding:0 10px; cursor:pointer; font-size:1.1em;">×</button>`;
+    document.getElementById(containerId).appendChild(row);
+}
+
+function removeRow(btn, rowClass) {
+    if (document.querySelectorAll('.' + rowClass).length > 1) btn.parentElement.remove();
+}
+
+function toggleEstimated(type, cb) {
+    document.getElementById(type + '-estimated').style.display = cb.checked ? 'none' : 'block';
+}
+
+function toggleCustomOffset(val) {
+    document.getElementById('custom-offset-wrap').style.display = val === 'custom' ? 'block' : 'none';
+    if (val === 'custom') document.getElementById('custom-offset-input').focus();
+}
+
+function showMethod(method) {
+    ['zip', 'folder', 'individual'].forEach(m => {
+        document.getElementById('method-' + m).style.display = m === method ? 'block' : 'none';
+        const btn = document.getElementById('btn-' + m);
+        btn.style.background = m === method ? '#1a3a5c' : '#eee';
+        btn.style.color = m === method ? 'white' : '#333';
+    });
+}
+
+// End of Day Folder
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('eodFolderInput');
+    if (!input) return;
+    input.addEventListener('change', function() {
+        const files = Array.from(this.files);
+
+        const cogFile  = files.find(f => /\/Reports\/FinalCOG_/i.test(f.webkitRelativePath));
+        const obsFile  = files.find(f => /\/Reports\/ObserverLog_Detailed_\d{4}_/i.test(f.webkitRelativePath));
+        const pssFile  = files.find(f => /\/Reports\/PSS_/i.test(f.webkitRelativePath));
+
+        const found = cogFile || obsFile || pssFile;
+        document.getElementById('eodPreview').style.display = found ? 'block' : 'none';
+
+        function setRow(nameId, statusId, file) {
+            document.getElementById(nameId).textContent = file ? file.name : '—';
+            const s = document.getElementById(statusId);
+            if (file) { s.textContent = 'Found'; s.style.color = '#2a7a2a'; }
+            else       { s.textContent = 'Not found'; s.style.color = '#c00'; }
+        }
+        setRow('prev-cog-name', 'prev-cog-status', cogFile);
+        setRow('prev-obs-name', 'prev-obs-status', obsFile);
+        setRow('prev-pss-name', 'prev-pss-status', pssFile);
+
+        const missing = [!cogFile && 'COG', !obsFile && 'Observer Log', !pssFile && 'PSS'].filter(Boolean);
+        const warn = document.getElementById('eodWarning');
+        if (missing.length) {
+            warn.textContent = 'Warning: missing ' + missing.join(', ') + ' — these will not be uploaded.';
+            warn.style.display = 'block';
+        } else {
+            warn.style.display = 'none';
+        }
+
+        document.getElementById('eodUploadBtn').style.display = found ? 'inline-block' : 'none';
+    });
+});
+
+function submitEodFolder() {
+    const input = document.getElementById('eodFolderInput');
+    const files = Array.from(input.files);
+
+    const cogFile = files.find(f => /\/Reports\/FinalCOG_/i.test(f.webkitRelativePath));
+    const obsFile = files.find(f => /\/Reports\/ObserverLog_Detailed_/i.test(f.webkitRelativePath));
+    const pssFile = files.find(f => /\/Reports\/PSS_/i.test(f.webkitRelativePath));
+
+    const formData = new FormData();
+    formData.append('upload_method', 'folder');
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    if (cogFile) formData.append('cog_file', cogFile);
+    if (obsFile) formData.append('obs_file', obsFile);
+    if (pssFile) formData.append('pss_file', pssFile);
+
+    document.getElementById('eodUploadBtn').style.display = 'none';
+    document.getElementById('eodProgress').style.display = 'block';
+
+    fetch('{% url "report_file_upload" report.pk %}', { method: 'POST', body: formData })
+        .then(r => { if (r.redirected) window.location.href = r.url; else window.location.reload(); })
+        .catch(() => { document.getElementById('eodProgress').textContent = 'Upload failed.'; });
+}
+</script>
+
+<!-- Tab: Photos -->
+<div id="tab-pane-photos" class="tab-pane" style="display:block; height:0; overflow:hidden;">
+<div class="card">
+
+    <p style="margin:0 0 16px; padding:8px 12px; background:#f0f4f8; border-left:3px solid #1a3a5c; border-radius:4px; font-size:0.88em; color:#555;">
+        Photos will be added to end of report when exported.
+    </p>
+
+    <!-- Upload + column controls -->
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:20px; flex-wrap:wrap; gap:12px;">
+        <form method="post" action="{% url 'report_photo_upload' report.pk %}" enctype="multipart/form-data" style="display:flex; gap:8px; align-items:center;">
+            {% csrf_token %}
+            <input type="file" name="images" multiple accept="image/*" style="font-size:0.9em;">
+            <button type="submit" class="btn btn-primary">Upload</button>
+        </form>
+        <div style="display:flex; align-items:center; gap:10px;">
+            <span style="font-size:0.85em; color:#666;">PDF layout:</span>
+            <button id="colBtn1" type="button" onclick="setColumns(1)"
+                style="padding:5px 14px; border-radius:4px; font-size:0.85em; border:2px solid {% if report.photo_columns == 1 %}#1a3a5c{% else %}#ccc{% endif %}; background:{% if report.photo_columns == 1 %}#1a3a5c{% else %}white{% endif %}; color:{% if report.photo_columns == 1 %}white{% else %}#333{% endif %}; cursor:pointer;">
+                1 per row
+            </button>
+            <button id="colBtn2" type="button" onclick="setColumns(2)"
+                style="padding:5px 14px; border-radius:4px; font-size:0.85em; border:2px solid {% if report.photo_columns == 2 %}#1a3a5c{% else %}#ccc{% endif %}; background:{% if report.photo_columns == 2 %}#1a3a5c{% else %}white{% endif %}; color:{% if report.photo_columns == 2 %}white{% else %}#333{% endif %}; cursor:pointer;">
+                2 per row
+            </button>
+        </div>
+    </div>
+
+    {% if not photos %}
+    <p style="color:#999;">No photos uploaded yet.</p>
+    {% else %}
+
+    <!-- Photo grid (sortable) -->
+    <div id="photoGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+        {% for photo in photos %}
+        <div class="photo-card" data-pk="{{ photo.pk }}" style="border:1px solid #ddd; border-radius:8px; overflow:hidden; background:#fafafa; cursor:grab;">
+            <div style="position:relative;">
+                <img src="{{ photo.image.url }}" style="width:100%; display:block; max-height:200px; object-fit:cover;">
+                <div style="position:absolute; top:6px; right:6px; display:flex; gap:4px;">
+                    <span style="background:rgba(0,0,0,0.45); color:white; border-radius:4px; padding:2px 6px; font-size:0.75em; cursor:grab;">⠿ drag</span>
+                </div>
+            </div>
+            <div style="padding:10px;">
+                <!-- Border picker -->
+                <div style="display:flex; gap:6px; margin-bottom:8px; align-items:center;">
+                    <span style="font-size:0.78em; color:#888;">Border:</span>
+                    {% for val, label in photo.BORDER_CHOICES %}
+                    <label style="display:flex; align-items:center; gap:3px; font-size:0.78em; cursor:pointer;">
+                        <input type="radio" name="border_{{ photo.pk }}" value="{{ val }}" {% if photo.border_style == val %}checked{% endif %}
+                            onchange="savePhoto({{ photo.pk }})">
+                        {{ label }}
+                    </label>
+                    {% endfor %}
+                </div>
+                <!-- Caption -->
+                <textarea rows="2" placeholder="Caption (optional)"
+                    style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:0.85em; resize:vertical;"
+                    onchange="savePhoto({{ photo.pk }})" onblur="savePhoto({{ photo.pk }})"
+                    id="caption_{{ photo.pk }}">{{ photo.caption }}</textarea>
+                <!-- Delete -->
+                <form method="post" action="{% url 'report_photo_delete' photo.pk %}" style="margin-top:6px; text-align:right;">
+                    {% csrf_token %}
+                    <button type="submit" style="background:none; border:none; color:#c00; cursor:pointer; font-size:0.82em;" onclick="return confirm('Delete this photo?')">Delete</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+</div>
+</div>
+
+<script>
+// Save caption + border for a photo via AJAX
+function savePhoto(pk) {
+    var caption = document.getElementById('caption_' + pk);
+    var borderEl = document.querySelector('input[name="border_' + pk + '"]:checked');
+    if (!caption || !borderEl) return;
+    var fd = new FormData();
+    fd.append('caption', caption.value);
+    fd.append('border_style', borderEl.value);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('/report-photos/' + pk + '/update/', { method: 'POST', body: fd });
+}
+
+// Set 1 or 2 columns
+function setColumns(n) {
+    var fd = new FormData();
+    fd.append('columns', n);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "report_photo_columns" report.pk %}', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function() {
+            ['1','2'].forEach(function(v) {
+                var btn = document.getElementById('colBtn' + v);
+                if (!btn) return;
+                var active = parseInt(v) === n;
+                btn.style.background = active ? '#1a3a5c' : 'white';
+                btn.style.color = active ? 'white' : '#333';
+                btn.style.borderColor = active ? '#1a3a5c' : '#ccc';
+            });
+        });
+}
+
+// Sortable drag-and-drop
+(function() {
+    var grid = document.getElementById('photoGrid');
+    if (!grid) return;
+    var Sortable = window.Sortable;
+    if (!Sortable) {
+        var s = document.createElement('script');
+        s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js';
+        s.onload = function() { initSortable(); };
+        document.head.appendChild(s);
+    } else {
+        initSortable();
+    }
+
+    function initSortable() {
+        new Sortable(grid, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function() {
+                var order = Array.from(grid.querySelectorAll('.photo-card')).map(function(el, i) {
+                    return { pk: parseInt(el.dataset.pk), order: i + 1 };
+                });
+                fetch('{% url "report_photo_reorder" report.pk %}', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify(order),
+                });
+            },
+        });
+    }
+})();
+</script>
+
+
+<script>
+(function() {
+    var DARK = '#1a3a5c';
+    function switchTab(name) {
+        document.querySelectorAll('.tab-pane').forEach(function(p) {
+            p.style.height = '0';
+            p.style.overflow = 'hidden';
+        });
+        var pane = document.getElementById('tab-pane-' + name);
+        if (pane) {
+            pane.style.height = '';
+            pane.style.overflow = '';
+        }
+        document.querySelectorAll('.tab-link').forEach(function(a) {
+            var isActive = a.dataset.tab === name;
+            a.style.background = isActive ? DARK : '';
+            a.style.color = isActive ? 'white' : (a.dataset.tab === 'debug' ? '#999' : DARK);
+        });
+        history.replaceState(null, '', '?tab=' + name);
+    }
+    window.switchTab = switchTab;
+    document.querySelectorAll('.tab-link').forEach(function(a) {
+        a.addEventListener('click', function(e) {
+            e.preventDefault();
+            switchTab(this.dataset.tab);
+        });
+    });
+    switchTab('{{ active_tab }}');
+})();
+
+// When Report tab is clicked, rebuild pie charts after the pane is visible
+document.querySelectorAll('[data-tab="report"]').forEach(function(a) {
+    a.addEventListener('click', function() {
+        setTimeout(function() { if (typeof updatePieCharts === 'function') updatePieCharts(); }, 0);
+    });
+});
+
+function _escHtml(str) {
+    return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function _fmtMins(mins) {
+    return Math.floor(mins / 60) + 'h ' + String(mins % 60).padStart(2, '0') + 'm';
+}
+
+function updateChargeableHours() {
+    var container = document.getElementById('reportChargeableContent');
+    var section = document.getElementById('reportChargeableSection');
+    if (!container || !section) return;
+
+    var atEl = document.getElementById('activity-types-data');
+    var pctMap = {};
+    if (atEl) {
+        JSON.parse(atEl.textContent).forEach(function(t) { pctMap[t.name] = t.chargeable_percentage; });
+    }
+
+    var byType = {};
+    Array.from(document.querySelectorAll('#activityRows tr')).forEach(function(row) {
+        var mins = 0;
+        if (isSupervisorReport) {
+            var hoursInp = row.querySelector('[name="hours"]');
+            var h = hoursInp ? hoursInp.value.trim() : '';
+            if (!h) return;
+            var parsed = parseFloat(h);
+            mins = isNaN(parsed) ? 0 : Math.round(parsed * 60);
+            if (mins <= 0) return;
+        } else {
+            var inputs = row.querySelectorAll('input');
+            var start = inputs[0] ? inputs[0].value : '';
+            var end = inputs[1] ? inputs[1].value : '';
+            if (!start || !end) return;
+            var sh = parseInt(start.split(':')[0], 10), sm = parseInt(start.split(':')[1], 10);
+            var eh = parseInt(end.split(':')[0], 10), em = parseInt(end.split(':')[1], 10);
+            mins = (eh * 60 + em) - (sh * 60 + sm);
+            if (mins < 0) mins += 1440;
+        }
+        var typeSel = row.querySelector('[name="activity_type"]');
+        var typ = typeSel ? typeSel.value : 'Work';
+        var pct = pctMap.hasOwnProperty(typ) ? pctMap[typ] : 100;
+        if (!byType[typ]) byType[typ] = {totalMins: 0, chargeableMins: 0, pct: pct};
+        byType[typ].totalMins += mins;
+        byType[typ].chargeableMins += Math.round(mins * pct / 100);
+    });
+
+    var types = Object.keys(byType);
+    if (types.length === 0) {
+        section.style.display = 'none';
+        return;
+    }
+    section.style.display = '';
+
+    var totalChargeable = types.reduce(function(s, k) { return s + byType[k].chargeableMins; }, 0);
+    var html = '<table style="width:100%; border-collapse:collapse; font-size:0.92em;"><thead>' +
+        '<tr style="background:#1a3a5c; color:white;">' +
+        '<th style="padding:7px 10px; text-align:left;">Activity Type</th>' +
+        '<th style="padding:7px 10px; text-align:center; width:80px;">Chargeable %</th>' +
+        '<th style="padding:7px 10px; text-align:right; width:100px;">Total Hours</th>' +
+        '<th style="padding:7px 10px; text-align:right; width:120px;">Chargeable Hours</th>' +
+        '</tr></thead><tbody>';
+    types.forEach(function(typ, idx) {
+        var v = byType[typ];
+        var bg = idx % 2 === 0 ? '#f9f9f9' : 'white';
+        html += '<tr style="background:' + bg + '; border-bottom:1px solid #eee;">' +
+            '<td style="padding:6px 10px;">' + _escHtml(typ) + '</td>' +
+            '<td style="padding:6px 10px; text-align:center;">' + v.pct + '%</td>' +
+            '<td style="padding:6px 10px; text-align:right;">' + _fmtMins(v.totalMins) + '</td>' +
+            '<td style="padding:6px 10px; text-align:right;">' + _fmtMins(v.chargeableMins) + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody><tfoot><tr style="background:#f0f0f0; border-top:2px solid #1a3a5c; font-weight:bold;">' +
+        '<td style="padding:7px 10px;" colspan="3">Total Chargeable</td>' +
+        '<td style="padding:7px 10px; text-align:right; color:#1a3a5c;">' + _fmtMins(totalChargeable) + '</td>' +
+        '</tr></tfoot></table>';
+    container.innerHTML = html;
+}
+
+var _svPieColors = ['#2196f3','#4caf50','#ff9800','#9c27b0','#00bcd4','#ff5722','#795548','#f06292','#607d8b','#cddc39','#e91e63','#009688','#ffc107','#3f51b5','#8bc34a'];
+var _svColorMap = {}, _svColorIdx = 0;
+function _svGetColor(label) {
+    if (!_svColorMap.hasOwnProperty(label)) _svColorMap[label] = _svPieColors[_svColorIdx++ % _svPieColors.length];
+    return _svColorMap[label];
+}
+function _svBuildPie(canvasId, data) {
+    var existing = typeof Chart !== 'undefined' && Chart.getChart(canvasId);
+    if (existing) existing.destroy();
+    var canvas = document.getElementById(canvasId);
+    if (!canvas || !data || !data.length) return;
+    var labels = data.map(function(d){ return d.label; });
+    var values = data.map(function(d){ return d.mins; });
+    var total = values.reduce(function(a,b){ return a+b; }, 0);
+    new Chart(canvas, {
+        type: 'pie',
+        data: { labels: labels, datasets: [{ data: values, backgroundColor: labels.map(_svGetColor), borderWidth: 1, borderColor: '#fff' }] },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { position: 'bottom', labels: { font: { size: 11 }, padding: 10, generateLabels: function(chart) {
+                    var ds = chart.data.datasets[0];
+                    var tot = ds.data.reduce(function(a,b){ return a+b; }, 0);
+                    return chart.data.labels.map(function(lbl, i) {
+                        var pct = tot > 0 ? (ds.data[i]/tot*100).toFixed(1) : '0.0';
+                        return { text: (lbl || '(Uncategorised)') + ' (' + pct + '%)', fillStyle: ds.backgroundColor[i], strokeStyle: '#fff', lineWidth: 1, index: i };
+                    });
+                }}},
+                tooltip: { callbacks: { label: function(ctx) {
+                    var mins = ctx.parsed, pct = total > 0 ? (mins/total*100).toFixed(1) : 0;
+                    return ' ' + (ctx.label || '(Uncategorised)') + ': ' + Math.floor(mins/60) + 'h ' + String(mins%60).padStart(2,'0') + 'm (' + pct + '%)';
+                }}}
+            }
+        }
+    });
+}
+
+function updatePieCharts() {
+    if (!isSupervisorReport) return;
+    var card = document.getElementById('pieChartsCard');
+    if (!card) return;
+    // Daily pie: computed live from the activity form
+    var byCat = {};
+    Array.from(document.querySelectorAll('#activityRows tr')).forEach(function(row) {
+        var h = (row.querySelector('[name="hours"]') || {}).value || '';
+        if (!h) return;
+        var mins = Math.round(parseFloat(h) * 60);
+        if (isNaN(mins) || mins <= 0) return;
+        var cat = (row.querySelector('[name="category"]') || {}).value || '';
+        byCat[cat] = (byCat[cat] || 0) + mins;
+    });
+    var dailyData = Object.keys(byCat).filter(function(k){ return byCat[k] > 0; }).map(function(k){ return {label: k, mins: byCat[k]}; });
+    // Job pie: from server-rendered JSON (refreshed after auto-save)
+    var jobData = [];
+    var jobEl = document.getElementById('job-pie-data');
+    if (jobEl) { try { jobData = JSON.parse(jobEl.textContent); } catch(e) {} }
+    var hasData = dailyData.length > 0 || jobData.length > 0;
+    card.style.display = hasData ? '' : 'none';
+    if (!hasData) return;
+    // Seed color map so same category = same color across both charts
+    dailyData.concat(jobData).forEach(function(d) { _svGetColor(d.label); });
+    _svBuildPie('dailyPieChart', dailyData);
+    _svBuildPie('jobPieChart', jobData);
+}
+
+function updateReportTabActivities() {
+    var container = document.getElementById('reportActivityContent');
+    if (!container) return;
+    var rows = Array.from(document.querySelectorAll('#activityRows tr'));
+
+    if (isSupervisorReport) {
+        var valid = rows.filter(function(r) {
+            var d = r.querySelector('[name="details"]');
+            var n = r.querySelector('[name="notes"]');
+            var h = r.querySelector('[name="hours"]');
+            return (d && d.value) || (n && n.value) || (h && h.value);
+        });
+        if (valid.length === 0) {
+            container.innerHTML = '<p style="color:#bbb; margin:0;">No activities recorded.</p>';
+            return;
+        }
+        var html = '<table style="width:100%; border-collapse:collapse; font-size:0.92em;"><thead><tr style="background:#1a3a5c; color:white;">' +
+            '<th style="padding:7px 10px; text-align:left;">Contractor</th>' +
+            '<th style="padding:7px 10px; text-align:left;">Name</th>' +
+            '<th style="padding:7px 10px; text-align:left; width:130px;">Job Title</th>' +
+            '<th style="padding:7px 10px; text-align:left; width:60px;">Hours</th>' +
+            '<th style="padding:7px 10px; text-align:left; width:140px;">Category</th>' +
+            '<th style="padding:7px 10px; text-align:left; width:90px;">Type</th>' +
+            '</tr></thead><tbody>';
+        valid.forEach(function(row, idx) {
+            var contractor = (row.querySelector('[name="details"]') || {}).value || '';
+            var name = (row.querySelector('[name="notes"]') || {}).value || '';
+            var jobTitle = (row.querySelector('[name="job_title"]') || {}).value || '';
+            var hours = (row.querySelector('[name="hours"]') || {}).value || '';
+            var cat = (row.querySelector('[name="category"]') || {}).value || '';
+            var typ = (row.querySelector('[name="activity_type"]') || {}).value || '';
+            var bg = idx % 2 === 0 ? '#f9f9f9' : 'white';
+            html += '<tr style="background:' + bg + '; border-bottom:1px solid #eee;">' +
+                '<td style="padding:6px 10px;">' + _escHtml(contractor) + '</td>' +
+                '<td style="padding:6px 10px;">' + _escHtml(name) + '</td>' +
+                '<td style="padding:6px 10px; color:#555;">' + _escHtml(jobTitle) + '</td>' +
+                '<td style="padding:6px 10px;">' + _escHtml(hours) + '</td>' +
+                '<td style="padding:6px 10px;">' + _escHtml(cat) + '</td>' +
+                '<td style="padding:6px 10px;">' + _escHtml(typ) + '</td>' +
+                '</tr>';
+        });
+        html += '</tbody></table>';
+        container.innerHTML = html;
+        updatePieCharts();
+        return;
+    }
+
+    var valid = rows.filter(function(r) {
+        var s = r.querySelector('[name="start_time"]');
+        var e = r.querySelector('[name="end_time"]');
+        return s && e && s.value && e.value;
+    });
+    if (valid.length === 0) {
+        container.innerHTML = '<p style="color:#bbb; margin:0;">No activities recorded.</p>';
+        return;
+    }
+    var html = '<table style="width:100%; border-collapse:collapse; font-size:0.92em;"><thead><tr style="background:#1a3a5c; color:white;">' +
+        '<th style="padding:7px 10px; text-align:left; width:70px;">Start</th>' +
+        '<th style="padding:7px 10px; text-align:left; width:70px;">End</th>' +
+        '<th style="padding:7px 10px; text-align:left; width:65px;">Duration</th>' +
+        '<th style="padding:7px 10px; text-align:left;">Category</th>' +
+        '<th style="padding:7px 10px; text-align:left; width:90px;">Type</th>' +
+        '<th style="padding:7px 10px; text-align:left;">Details</th>' +
+        '</tr></thead><tbody>';
+    valid.forEach(function(row, idx) {
+        var inputs = row.querySelectorAll('input');
+        var start = inputs[0] ? inputs[0].value : '';
+        var end = inputs[1] ? inputs[1].value : '';
+        var dur = inputs[2] ? inputs[2].value : '';
+        var cat = (row.querySelector('[name="category"]') || {}).value || '';
+        var typ = (row.querySelector('[name="activity_type"]') || {}).value || '';
+        var det = (row.querySelector('[name="details"]') || {}).value || '';
+        var bg = idx % 2 === 0 ? '#f9f9f9' : 'white';
+        html += '<tr style="background:' + bg + '; border-bottom:1px solid #eee;">' +
+            '<td style="padding:6px 10px;">' + _escHtml(start) + '</td>' +
+            '<td style="padding:6px 10px;">' + _escHtml(end) + '</td>' +
+            '<td style="padding:6px 10px;">' + _escHtml(dur) + '</td>' +
+            '<td style="padding:6px 10px;">' + _escHtml(cat) + '</td>' +
+            '<td style="padding:6px 10px;">' + _escHtml(typ) + '</td>' +
+            '<td style="padding:6px 10px; color:#555;">' + _escHtml(det) + '</td>' +
+            '</tr>';
+    });
+    html += '</tbody></table>';
+    container.innerHTML = html;
+}
+
+// Initial page load: run once if report tab is already active
+if (isSupervisorReport) { updatePieCharts(); }
+</script>
+
+{% endblock %}

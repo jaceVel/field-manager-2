@@ -1,0 +1,11 @@
+Sigma Observer's log Report,,,Thursday  Apr 13  2023 12:31 PM
+,,,,,,,,,,,,,,
+File#,Status,Line,Station,EPID,ShotID,UTC Date, UTC Time, Local Date, Local Time, Trigger Time, Chans,Proc,RecLen,SRate,SRC Type,Spread, Total, Missing, PSS Info, Missing PSS, Sweep Length, Uphole, Hole Depth, Charge Size, Comment,Source Group, Source Units, delta time(s),Sweep
+101,Acquired,139,200.5,1,101,Apr 13 2023,01:48:41.736000,Apr 13 2023,11:48:41.736000,2023/04/13 01:48:41.736000,0,vibroseis,12000,1,Vibroseis,,0,0,1 of 1 PSS Received,0,12000,0.00,,,7-180 12s,1,7,0,1
+102,Acquired,139,200.5,1,102,Apr 13 2023,01:56:21.600000,Apr 13 2023,11:56:21.600000,2023/04/13 01:56:21.600000,0,vibroseis,12000,1,Vibroseis,,0,0,1 of 1 PSS Received,0,12000,0.00,,,7-180 12s,1,7,459.864,1
+103,Acquired,139,198.5,1,103,Apr 13 2023,02:00:34.072000,Apr 13 2023,12:00:34.072000,2023/04/13 02:00:34.072000,0,vibroseis,12000,1,Vibroseis,,0,0,1 of 1 PSS Received,0,10000,0.00,,,7-180 10s,1,7,252.472,1
+104,Acquired,139,198.5,1,104,Apr 13 2023,02:01:07.352000,Apr 13 2023,12:01:07.352000,2023/04/13 02:01:07.352000,0,vibroseis,12000,1,Vibroseis,,0,0,1 of 1 PSS Received,0,10000,0.00,,,7-180 10s,1,7,33.28,1
+105,Acquired,139,196.5,1,105,Apr 13 2023,02:05:11.584000,Apr 13 2023,12:05:11.584000,2023/04/13 02:05:11.584000,0,vibroseis,12000,1,Vibroseis,,0,0,1 of 1 PSS Received,0,8000,0.00,,,7-180 8s,1,7,244.232,1
+106,Acquired,139,196.5,1,106,Apr 13 2023,02:05:57.400000,Apr 13 2023,12:05:57.400000,2023/04/13 02:05:57.400000,0,vibroseis,12000,1,Vibroseis,,0,0,1 of 1 PSS Received,0,8000,0.00,,,7-180 8s,1,7,45.816,1
+107,Acquired,139,194.5,1,107,Apr 13 2023,02:08:44.128000,Apr 13 2023,12:08:44.128000,2023/04/13 02:08:44.128000,0,vibroseis,12000,1,Vibroseis,,0,0,1 of 1 PSS Received,0,12000,0.00,,,7-200 12s,1,7,166.728,1
+108,Acquired,139,194.5,1,108,Apr 13 2023,02:09:20.968000,Apr 13 2023,12:09:20.968000,2023/04/13 02:09:20.968000,0,vibroseis,12000,1,Vibroseis,,0,0,1 of 1 PSS Received,0,12000,0.00,,,7-200 12s,1,7,36.84,1

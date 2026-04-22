@@ -1,0 +1,243 @@
+{% extends "base.html" %}
+{% block content %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
+<div style="display:flex; align-items:center; gap:10px; margin-bottom:6px;">
+    <a href="{% url 'job_detail' job.pk %}" style="color:#1a3a5c; text-decoration:none; font-size:0.9em;">← {{ job.project_name }} ({{ job.job_number }})</a>
+</div>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
+    <h2 style="color:#1a3a5c; margin:0;">Pre Job Vib Tests</h2>
+    <a href="{% url 'pre_job_vib_pdf' job.pk %}" target="_blank"
+       style="display:inline-flex; align-items:center; gap:8px; background:#1a3a5c; color:white; text-decoration:none; border-radius:7px; padding:8px 16px; font-size:0.88em; font-weight:600;">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            <line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/>
+        </svg>
+        View PDF
+    </a>
+</div>
+
+<!-- Upload -->
+<div style="border:2px solid #c5d5e8; border-radius:10px; padding:18px 20px; background:#f8fafc; margin-bottom:20px;">
+    <div style="font-size:1em; font-weight:bold; color:#1a3a5c; margin-bottom:14px;">Upload PSS File</div>
+
+    <!-- Method tabs -->
+    <div style="display:flex; gap:8px; margin-bottom:18px;">
+        <button type="button" onclick="vibShowMethod('zip')" id="vib-btn-zip"
+                style="padding:6px 14px; border-radius:6px; border:none; cursor:pointer; font-size:0.88em; background:#1a3a5c; color:white;">Zip Archive</button>
+        <button type="button" onclick="vibShowMethod('folder')" id="vib-btn-folder"
+                style="padding:6px 14px; border-radius:6px; border:none; cursor:pointer; font-size:0.88em; background:#eee; color:#333;">End of Day Folder</button>
+        <button type="button" onclick="vibShowMethod('individual')" id="vib-btn-individual"
+                style="padding:6px 14px; border-radius:6px; border:none; cursor:pointer; font-size:0.88em; background:#eee; color:#333;">Individual Files</button>
+    </div>
+
+    <!-- Zip -->
+    <form method="post" action="{% url 'pre_job_vib_upload' job.pk %}" enctype="multipart/form-data" id="vib-method-zip">
+        {% csrf_token %}
+        <input type="hidden" name="upload_method" value="zip">
+        <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+            <div>
+                <label style="font-size:0.82em; color:#555; display:block; margin-bottom:4px;">Zip File</label>
+                <input type="file" name="zip_file" accept=".zip"
+                       style="font-size:0.9em; border:1px solid #c5d5e8; border-radius:6px; padding:5px 8px; background:white;">
+            </div>
+            <div>
+                <label style="font-size:0.82em; color:#555; display:block; margin-bottom:4px;">Label (optional)</label>
+                <input type="text" name="label" placeholder="e.g. Pre-mob test" maxlength="100"
+                       style="font-size:0.9em; border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; width:180px;">
+            </div>
+            <button type="submit" style="background:#1a3a5c; color:white; border:none; border-radius:6px; padding:7px 18px; font-size:0.9em; cursor:pointer;">Upload</button>
+        </div>
+        <div style="font-size:0.8em; color:#888; margin-top:8px;">Extracts PSS_ files from the Reports folder inside the zip.</div>
+    </form>
+
+    <!-- Folder -->
+    <div id="vib-method-folder" style="display:none;">
+        <div style="margin-bottom:10px;">
+            <label style="font-size:0.82em; color:#555; display:block; margin-bottom:4px;">Select End of Day Folder</label>
+            <input type="file" id="vibFolderInput" webkitdirectory multiple
+                   style="font-size:0.9em; border:1px solid #c5d5e8; border-radius:6px; padding:5px 8px; background:white;">
+        </div>
+        <div id="vibFolderPreview" style="display:none; margin:12px 0; padding:10px 14px; background:#f0f4f8; border-radius:6px; font-size:0.88em;">
+            <strong>PSS file found:</strong>
+            <span id="vibPssName" style="margin-left:8px; color:#1a3a5c;"></span>
+            <span id="vibPssStatus" style="margin-left:8px;"></span>
+        </div>
+        <div id="vibFolderNone" style="display:none; color:#c00; font-size:0.85em; margin-bottom:10px;">No PSS_ file found in Reports folder.</div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+            <div>
+                <label style="font-size:0.82em; color:#555; display:block; margin-bottom:4px;">Label (optional)</label>
+                <input type="text" id="vibFolderLabel" placeholder="e.g. Pre-mob test" maxlength="100"
+                       style="font-size:0.9em; border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; width:180px;">
+            </div>
+            <button type="button" id="vibFolderUploadBtn" onclick="vibSubmitFolder()" style="display:none; background:#1a3a5c; color:white; border:none; border-radius:6px; padding:7px 18px; font-size:0.9em; cursor:pointer; margin-top:18px;">Upload</button>
+        </div>
+        <div id="vibFolderProgress" style="display:none; color:#666; font-size:0.9em; margin-top:8px;">Uploading...</div>
+    </div>
+
+    <!-- Individual -->
+    <form method="post" action="{% url 'pre_job_vib_upload' job.pk %}" enctype="multipart/form-data" id="vib-method-individual" style="display:none;">
+        {% csrf_token %}
+        <input type="hidden" name="upload_method" value="individual">
+        <div style="display:flex; gap:12px; align-items:flex-end; flex-wrap:wrap;">
+            <div>
+                <label style="font-size:0.82em; color:#555; display:block; margin-bottom:4px;">PSS File(s)</label>
+                <input type="file" name="pss_file" multiple accept=".csv,.txt"
+                       style="font-size:0.9em; border:1px solid #c5d5e8; border-radius:6px; padding:5px 8px; background:white;">
+            </div>
+            <div>
+                <label style="font-size:0.82em; color:#555; display:block; margin-bottom:4px;">Label (optional)</label>
+                <input type="text" name="label" placeholder="e.g. Pre-mob test" maxlength="100"
+                       style="font-size:0.9em; border:1px solid #c5d5e8; border-radius:6px; padding:6px 10px; width:180px;">
+            </div>
+            <button type="submit" style="background:#1a3a5c; color:white; border:none; border-radius:6px; padding:7px 18px; font-size:0.9em; cursor:pointer;">Upload</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function vibShowMethod(method) {
+    ['zip', 'folder', 'individual'].forEach(function(m) {
+        const el = document.getElementById('vib-method-' + m);
+        const btn = document.getElementById('vib-btn-' + m);
+        el.style.display = m === method ? 'block' : 'none';
+        btn.style.background = m === method ? '#1a3a5c' : '#eee';
+        btn.style.color = m === method ? 'white' : '#333';
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.getElementById('vibFolderInput');
+    if (!input) return;
+    input.addEventListener('change', function() {
+        const files = Array.from(this.files);
+        const pssFile = files.find(f => /\/Reports\/PSS_/i.test(f.webkitRelativePath));
+        const preview = document.getElementById('vibFolderPreview');
+        const none = document.getElementById('vibFolderNone');
+        const uploadBtn = document.getElementById('vibFolderUploadBtn');
+        if (pssFile) {
+            document.getElementById('vibPssName').textContent = pssFile.name;
+            const s = document.getElementById('vibPssStatus');
+            s.textContent = 'Found';
+            s.style.color = '#2a7a2a';
+            preview.style.display = 'block';
+            none.style.display = 'none';
+            uploadBtn.style.display = 'inline-block';
+        } else {
+            preview.style.display = 'none';
+            none.style.display = 'block';
+            uploadBtn.style.display = 'none';
+        }
+    });
+});
+
+function vibSubmitFolder() {
+    const files = Array.from(document.getElementById('vibFolderInput').files);
+    const pssFile = files.find(f => /\/Reports\/PSS_/i.test(f.webkitRelativePath));
+    if (!pssFile) return;
+    const formData = new FormData();
+    formData.append('upload_method', 'folder');
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    formData.append('pss_file', pssFile);
+    formData.append('label', document.getElementById('vibFolderLabel').value);
+    document.getElementById('vibFolderUploadBtn').style.display = 'none';
+    document.getElementById('vibFolderProgress').style.display = 'block';
+    fetch('{% url "pre_job_vib_upload" job.pk %}', { method: 'POST', body: formData })
+        .then(r => { if (r.redirected) window.location.href = r.url; else window.location.reload(); })
+        .catch(() => { document.getElementById('vibFolderProgress').textContent = 'Upload failed.'; });
+}
+</script>
+
+<!-- Uploaded files -->
+{% if vib_files %}
+<div style="border:2px solid #c5d5e8; border-radius:10px; padding:14px 20px; background:#f8fafc; margin-bottom:20px;">
+    <div style="font-size:0.9em; font-weight:bold; color:#1a3a5c; margin-bottom:10px;">Uploaded Files</div>
+    {% for vf in vib_files %}
+    <div style="display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #e8eef4;">
+        <div>
+            <span style="font-size:0.9em; color:#1a3a5c; font-weight:600;">{{ vf.label|default:vf.original_name }}</span>
+            {% if vf.label %}<span style="font-size:0.8em; color:#888; margin-left:8px;">{{ vf.original_name }}</span>{% endif %}
+            <span style="font-size:0.78em; color:#aaa; margin-left:8px;">{{ vf.uploaded_at|date:"d M Y H:i" }}</span>
+        </div>
+        <form method="post" action="{% url 'pre_job_vib_file_delete' vf.pk %}" style="margin:0;"
+              onsubmit="return confirm('Delete this file?')">
+            {% csrf_token %}
+            <button type="submit"
+                    style="background:none; border:none; color:#c00; font-size:0.85em; cursor:pointer; padding:2px 6px;">✕ Remove</button>
+        </form>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Charts -->
+{% if charts_by_unit %}
+<div id="vib-charts"></div>
+<script>
+(function(){
+    const allCharts = {{ charts_json|safe }};
+    const container = document.getElementById('vib-charts');
+
+    allCharts.forEach(function(unit) {
+        // Section header
+        const hdr = document.createElement('div');
+        hdr.style.cssText = 'border:2px solid #c5d5e8; border-radius:10px; padding:16px 20px; background:#f8fafc; margin-bottom:18px;';
+        hdr.innerHTML = '<div style="font-size:1em; font-weight:bold; color:#1a3a5c; margin-bottom:4px;">Unit ID: ' + unit.unit_id + '</div>' +
+                        '<div style="font-size:0.8em; color:#888; margin-bottom:14px;">Source: ' + unit.file_name + '</div>';
+
+        const canvas = document.createElement('canvas');
+        canvas.style.cssText = 'width:100%; max-height:320px;';
+        hdr.appendChild(canvas);
+        container.appendChild(hdr);
+
+        const datasets = unit.datasets.map(function(ds) {
+            return {
+                label: ds.label,
+                data: ds.data,
+                borderColor: ds.color,
+                backgroundColor: ds.color + '22',
+                borderWidth: 2,
+                pointRadius: unit.labels.length > 200 ? 0 : 3,
+                pointHoverRadius: 4,
+                tension: 0.2,
+                spanGaps: true,
+            };
+        });
+
+        new Chart(canvas, {
+            type: 'line',
+            data: {
+                labels: unit.labels,
+                datasets: datasets,
+            },
+            options: {
+                responsive: true,
+                interaction: { mode: 'index', intersect: false },
+                plugins: {
+                    legend: { position: 'top', labels: { font: { size: 11 }, boxWidth: 14 } },
+                    tooltip: { callbacks: {
+                        title: function(items) { return 'Record #' + items[0].label; }
+                    }},
+                },
+                scales: {
+                    x: {
+                        title: { display: true, text: 'Record #', font: { size: 11 } },
+                        ticks: { maxTicksLimit: 20, font: { size: 10 } },
+                    },
+                    y: {
+                        title: { display: true, text: 'Value', font: { size: 11 } },
+                        ticks: { font: { size: 10 } },
+                    },
+                },
+            },
+        });
+    });
+})();
+</script>
+{% elif vib_files %}
+<div style="color:#888; font-size:0.9em; padding:16px 0;">No Unit ID data found in uploaded files — check the PSS file format.</div>
+{% else %}
+<div style="color:#aaa; font-size:0.9em; padding:16px 0;">Upload a PSS file to see charts.</div>
+{% endif %}
+
+{% endblock %}

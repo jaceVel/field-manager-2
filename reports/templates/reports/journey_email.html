@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Email Journey Plan{% endblock %}
+{% block content %}
+
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;">
+    <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' plan.job.pk %}" style="color:#999;">{{ plan.job.job_number }}</a> /
+    <a href="{% url 'journey_list' plan.job.pk %}" style="color:#999;">Journey Management</a> /
+</p>
+<h1 style="margin:4px 0 24px;">Email Journey Management Plan</h1>
+
+{% if sent %}
+<div class="card" style="border-left:4px solid #2e7d32;">
+    <div style="font-weight:600; color:#2e7d32; margin-bottom:8px;">Sent successfully.</div>
+    <div style="font-size:0.9em; color:#555;">Emailed to: {{ to_addrs|join:", " }}</div>
+    <div style="margin-top:14px;">
+        <a href="{% url 'journey_list' plan.job.pk %}" class="btn btn-primary">Back to Journey Plans</a>
+    </div>
+</div>
+
+{% else %}
+
+<div class="card" style="margin-bottom:16px;">
+    <div style="font-weight:bold; font-size:1.05em; color:#1a3a5c; margin-bottom:4px;">
+        {% if plan.departing_from %}{{ plan.departing_from }}{% endif %}{% if plan.arriving_at %} → {{ plan.arriving_at }}{% endif %}
+    </div>
+    {% if plan.depart_date %}
+    <div style="font-size:0.88em; color:#666;">Depart: {{ plan.depart_date|date:"d M Y" }}</div>
+    {% endif %}
+</div>
+
+{% if error %}
+<div class="card" style="border-left:4px solid #c00; margin-bottom:16px;">
+    <span style="color:#c00;">{{ error }}</span>
+</div>
+{% endif %}
+
+<form method="post">
+{% csrf_token %}
+<div class="card">
+    <h3 style="margin-top:0; color:#1a3a5c; border-bottom:2px solid #1a3a5c; padding-bottom:6px;">Recipients</h3>
+
+    {% if recipients %}
+    <table style="width:100%; border-collapse:collapse; font-size:0.9em; margin-bottom:14px;">
+        <thead>
+            <tr>
+                <th style="text-align:left; padding:6px 8px; background:#1a3a5c; color:white;">Name</th>
+                <th style="text-align:left; padding:6px 8px; background:#1a3a5c; color:white;">Email</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for r in recipients %}
+            <tr style="{% if forloop.counter|divisibleby:2 %}background:#f9f9f9;{% endif %}">
+                <td style="padding:6px 8px; border-bottom:1px solid #eee;">{{ r.name }}</td>
+                <td style="padding:6px 8px; border-bottom:1px solid #eee;">{{ r.email }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% else %}
+    <p style="color:#888; margin-bottom:14px;">No personnel in this plan have email addresses on file.</p>
+    {% endif %}
+
+    <div style="margin-bottom:16px;">
+        <label style="font-weight:600; display:block; margin-bottom:4px;">Additional recipients <span style="font-weight:400; color:#999; font-size:0.88em;">(comma or newline separated)</span></label>
+        <textarea name="extra_emails" rows="3" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;"></textarea>
+    </div>
+
+    <div style="display:flex; gap:10px; align-items:center;">
+        <button type="submit" class="btn btn-primary" {% if not recipients %}style="opacity:0.7;"{% endif %}>Send PDF</button>
+        <a href="{% url 'journey_list' plan.job.pk %}" style="color:#666; font-size:0.9em;">Cancel</a>
+    </div>
+</div>
+</form>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Field Manager{% endblock %}
+{% block content %}
+
+<h1 style="margin-bottom:4px;">Field Manager</h1>
+<p style="color:#666; margin-top:0; margin-bottom:32px;">Select a section to get started.</p>
+
+<div style="display:grid; grid-template-columns:repeat(1,1fr); gap:20px; max-width:220px;">
+
+    <a href="{% url 'job_list' %}" style="text-decoration:none;">
+        <div style="border:2px solid #1a3a5c; border-radius:10px; padding:32px 16px; text-align:center; background:white;"
+             onmouseover="this.style.background='#f0f4f8'" onmouseout="this.style.background='white'">
+            <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:12px;">
+                <rect x="6" y="8" width="36" height="32" rx="3" stroke="#1a3a5c" stroke-width="2.5" fill="none"/>
+                <line x1="14" y1="18" x2="34" y2="18" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round"/>
+                <line x1="14" y1="24" x2="34" y2="24" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round"/>
+                <line x1="14" y1="30" x2="26" y2="30" stroke="#1a3a5c" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <div style="font-size:1.1em; font-weight:bold; color:#1a3a5c; margin-bottom:4px;">Jobs</div>
+            <div style="font-size:0.85em; color:#888;">{{ job_count }} job{{ job_count|pluralize }}</div>
+        </div>
+    </a>
+
+</div>
+
+{% endblock %}

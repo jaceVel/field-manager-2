@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @page { size: A4; margin: 1.5cm 1.5cm 1.5cm 1.5cm; }
+  body { font-family: Arial, Helvetica, sans-serif; font-size: 9pt; color: #111; margin: 0; }
+  * { box-sizing: border-box; }
+
+  /* ── Header ─────────────────────────────────────────────────── */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .header h1 { font-size: 13pt; font-weight: bold; color: #1a3a5c; margin: 0 0 2px; }
+  .header p { margin: 0; font-size: 8pt; color: #555; }
+  .logo { max-height: 40px; max-width: 130px; }
+  .title-bar { background: #1a3a5c; color: white; font-size: 11pt; font-weight: bold;
+               text-align: center; padding: 5px 10px; margin-bottom: 14px; }
+
+  /* ── Summary stats ───────────────────────────────────────────── */
+  .stat-row { display: flex; gap: 10px; margin-bottom: 14px; }
+  .stat-box { flex: 1; border: 1.5pt solid #c5d5e8; border-radius: 4px; padding: 8px 10px; text-align: center; }
+  .stat-box .val { font-size: 18pt; font-weight: bold; color: #1a3a5c; line-height: 1; }
+  .stat-box .lbl { font-size: 7.5pt; color: #777; margin-top: 3px; }
+
+  /* ── Charts grid ─────────────────────────────────────────────── */
+  .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px; }
+  .chart-full { margin-bottom: 14px; }
+  .chart-box { border: 0.5pt solid #ddd; border-radius: 4px; padding: 6px; }
+  .chart-box img { width: 100%; display: block; }
+
+  /* ── Summary tables ──────────────────────────────────────────── */
+  .tables-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+  .sec-hdr { background: #1a3a5c; color: white; font-weight: bold; font-size: 8.5pt;
+             padding: 4px 8px; margin-bottom: 0; }
+  table.sum { width: 100%; border-collapse: collapse; font-size: 8pt; }
+  table.sum th { background: #eef3f8; color: #1a3a5c; font-weight: 600; padding: 4px 7px;
+                 border: 0.5pt solid #c5d5e8; text-align: left; }
+  table.sum td { border: 0.5pt solid #ddd; padding: 4px 7px; vertical-align: top; }
+  table.sum td.num { text-align: center; font-weight: 600; color: #1a3a5c; }
+  table.sum td.pct { text-align: center; color: #888; }
+
+  /* ── Page break before records ───────────────────────────────── */
+  .records-section { page-break-before: always; }
+  .records-title { font-size: 10pt; font-weight: bold; color: #1a3a5c;
+                   border-bottom: 1.5pt solid #1a3a5c; padding-bottom: 4px; margin-bottom: 10px; }
+
+  /* ── Individual records ──────────────────────────────────────── */
+  .record { border: 0.5pt solid #c5d5e8; border-radius: 3px; margin-bottom: 8px;
+            page-break-inside: avoid; break-inside: avoid; }
+  .record-header { background: #eef3f8; padding: 4px 10px; display: flex;
+                   justify-content: space-between; align-items: center; }
+  .record-header .name { font-weight: bold; font-size: 9.5pt; color: #1a3a5c; }
+  .record-header .meta { font-size: 7.5pt; color: #666; }
+  .record-body { padding: 6px 10px; }
+  .task-label { font-size: 7pt; font-weight: bold; color: #888; text-transform: uppercase;
+                letter-spacing: 0.05em; margin-bottom: 2px; }
+  .task-text { font-size: 9pt; margin-bottom: 6px; }
+
+  table.hc { width: 100%; border-collapse: collapse; font-size: 8pt; }
+  table.hc th { background: #1a3a5c; color: white; padding: 3px 7px; text-align: left; font-size: 7.5pt; }
+  table.hc td { border: 0.5pt solid #ddd; padding: 4px 7px; vertical-align: top; }
+  table.hc td.haz { background: #f8fafc; font-weight: 600; color: #1a3a5c; width: 35%; }
+  table.hc ul { margin: 0; padding-left: 14px; }
+  table.hc li { margin-bottom: 2px; }
+  .ack { font-size: 7.5pt; color: #2e7d32; margin-top: 4px; font-style: italic; }
+  .empty { text-align: center; color: #999; padding: 30px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div>
+    <h1>{{ job.job_number }} — {{ job.project_name }}</h1>
+    <p>{{ job.client }}{% if job.client_representative %} &nbsp;|&nbsp; {{ job.client_representative }}{% endif %}</p>
+  </div>
+  {% if logo_b64 %}<img src="{{ logo_b64 }}" class="logo">{% endif %}
+</div>
+<div class="title-bar">{{ title }}</div>
+
+{% if records %}
+
+<!-- Summary stats -->
+<div class="stat-row">
+  <div class="stat-box">
+    <div class="val">{{ tables.total }}</div>
+    <div class="lbl">Take 5 Records</div>
+  </div>
+  <div class="stat-box">
+    <div class="val">{{ tables.persons|length }}</div>
+    <div class="lbl">People</div>
+  </div>
+  <div class="stat-box">
+    <div class="val">{{ tables.hazards|length }}</div>
+    <div class="lbl">Unique Hazards</div>
+  </div>
+  <div class="stat-box">
+    <div class="val">{{ tables.controls|length }}</div>
+    <div class="lbl">Unique Controls</div>
+  </div>
+</div>
+
+<!-- Charts -->
+{% if charts.days %}
+<div class="chart-full chart-box">
+  <img src="{{ charts.days }}">
+</div>
+{% endif %}
+
+<div class="chart-grid">
+  {% if charts.hazards %}
+  <div class="chart-box"><img src="{{ charts.hazards }}"></div>
+  {% endif %}
+  {% if charts.controls %}
+  <div class="chart-box"><img src="{{ charts.controls }}"></div>
+  {% endif %}
+  {% if charts.persons %}
+  <div class="chart-box"><img src="{{ charts.persons }}"></div>
+  {% endif %}
+</div>
+
+<!-- Summary tables -->
+<div class="tables-grid">
+
+  <!-- Hazard frequency -->
+  {% if tables.hazards %}
+  <div>
+    <div class="sec-hdr">Hazard Frequency</div>
+    <table class="sum">
+      <thead><tr><th>Hazard</th><th style="width:40px;">Count</th><th style="width:40px;">% Records</th></tr></thead>
+      <tbody>
+        {% for hazard, count, pct in tables.hazards %}
+        <tr>
+          <td>{{ hazard }}</td>
+          <td class="num">{{ count }}</td>
+          <td class="pct">{{ pct }}%</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <!-- Control frequency -->
+  {% if tables.controls %}
+  <div>
+    <div class="sec-hdr">Control Frequency</div>
+    <table class="sum">
+      <thead><tr><th>Control</th><th style="width:40px;">Count</th></tr></thead>
+      <tbody>
+        {% for control, count in tables.controls %}
+        <tr>
+          <td>{{ control }}</td>
+          <td class="num">{{ count }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- Individual records -->
+<div class="records-section">
+  <div class="records-title">Individual Take 5 Records ({{ tables.total }})</div>
+
+  {% for r in records %}
+  <div class="record">
+    <div class="record-header">
+      <span class="name">{{ r.submitted_by }}</span>
+      <span class="meta">{{ r.submitted_at|date:"d M Y — H:i" }}</span>
+    </div>
+    <div class="record-body">
+      <div class="task-label">Task</div>
+      <div class="task-text">{{ r.task_description }}</div>
+      {% if r.hazards.all %}
+      <table class="hc">
+        <thead><tr><th>Hazard</th><th>Controls</th></tr></thead>
+        <tbody>
+          {% for h in r.hazards.all %}
+          <tr>
+            <td class="haz">{{ h.hazard }}</td>
+            <td>
+              {% if h.controls.all %}
+              <ul>{% for c in h.controls.all %}<li>{{ c.control }}</li>{% endfor %}</ul>
+              {% else %}<span style="color:#bbb;">—</span>{% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+      <div class="ack">&#10003; Acknowledged by {{ r.submitted_by }}</div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+{% else %}
+<div class="empty">No Take 5 records found for this period.</div>
+{% endif %}
+
+</body>
+</html>

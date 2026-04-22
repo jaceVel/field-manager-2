@@ -1,0 +1,45 @@
+# Django
+*.pyc
+__pycache__/
+db.sqlite3
+media/
+
+# Python
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude memory
+.claude/
+
+# Large data / binary files in project root
+*.pdf
+*.xls
+*.xlsx
+*.docx
+*.rps
+*.sps
+*.bin
+deployment_map_debug.html
+pre_plot.csv
+personnel.csv
+Crew\ List.csv
+
+# Root-level screenshots / debug images (not app assets)
+[1-9].png
+Screenshot*.png
+box\ too\ big.png
+charable.png
+piecharts.png
+deployment_map_debug.html

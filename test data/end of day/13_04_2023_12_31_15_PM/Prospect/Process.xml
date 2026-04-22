@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfTProcess xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <tProcess>
+    <mProcessID>1</mProcessID>
+    <mProcessDescription>vibroseis</mProcessDescription>
+    <mRecordLength>12000</mRecordLength>
+    <mSampleRate>1000</mSampleRate>
+    <mStackFold>1</mStackFold>
+    <mType>eVibroSeis</mType>
+    <mSweepID>
+      <unsignedInt>1</unsignedInt>
+    </mSweepID>
+    <mDelays>
+      <unsignedInt>0</unsignedInt>
+    </mDelays>
+    <mUseSameSweep>true</mUseSameSweep>
+    <mAutoEPStart>true</mAutoEPStart>
+    <mUseSourceCodeFromSPS>false</mUseSourceCodeFromSPS>
+    <mPreTriggerDelay>0</mPreTriggerDelay>
+    <mApplyPreTriggerDelayToShots>false</mApplyPreTriggerDelayToShots>
+    <mSweepLength>12000</mSweepLength>
+    <mColorInitialized>true</mColorInitialized>
+    <mAlpha>255</mAlpha>
+    <mRed>165</mRed>
+    <mGreen>42</mGreen>
+    <mBlue>42</mBlue>
+  </tProcess>
+</ArrayOfTProcess>

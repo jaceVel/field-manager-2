@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block title %}Journey Management V2 — {{ job.job_number }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-3">
+
+  <div class="d-flex align-items-center mb-3 gap-2">
+    <a href="{% url 'job_detail' job.pk %}" class="btn btn-sm btn-outline-secondary">&larr; Job</a>
+    <h4 class="mb-0">Journey Management V2 — Job {{ job.job_number }}</h4>
+    <div class="ms-auto">
+      <a href="{% url 'journey_v2_create' job.pk %}" class="btn btn-sm btn-primary">+ New Plan</a>
+    </div>
+  </div>
+
+  {% if plans %}
+  <table class="table table-sm table-hover align-middle">
+    <thead class="table-dark">
+      <tr>
+        <th>Plan No.</th>
+        <th>Depart Date</th>
+        <th>From</th>
+        <th>To</th>
+        <th>Personnel</th>
+        <th>Signed</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for p in plans %}
+      <tr>
+        <td><span class="badge bg-primary">{{ p.plan_number }}</span></td>
+        <td>{% if p.depart_date %}{{ p.depart_date|date:"d M Y" }}{% else %}<span class="text-muted">—</span>{% endif %}</td>
+        <td>{{ p.departing_from|default:"—"|truncatechars:30 }}</td>
+        <td>{{ p.arriving_at|default:"—"|truncatechars:30 }}</td>
+        <td>{{ p.personnel.count }}</td>
+        <td>{{ p.personnel.count }}</td>
+        <td class="text-end">
+          <a href="{% url 'journey_v2_pdf' p.pk %}" target="_blank" class="btn btn-xs btn-outline-secondary">View PDF</a>
+          <a href="{% url 'journey_v2_image' p.pk %}" class="btn btn-xs btn-outline-success" title="Download Image for SMS">⬇ Image</a>
+          <a href="{% url 'journey_v2_edit' p.pk %}" class="btn btn-xs btn-outline-primary">Edit</a>
+          <form method="post" action="{% url 'journey_v2_delete' p.pk %}" class="d-inline" onsubmit="return confirm('Delete this plan?')">
+            {% csrf_token %}
+            <button class="btn btn-xs btn-outline-danger">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p class="text-muted">No journey plans yet. Use the button above to create one.</p>
+  {% endif %}
+
+</div>
+<style>.btn-xs { padding: 2px 8px; font-size: 0.75rem; }</style>
+{% endblock %}

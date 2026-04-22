@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfTUnit xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <tUnit>
+    <mUnitID>7</mUnitID>
+    <mLastSweepID>0</mLastSweepID>
+    <mCurrentActiveSweepID>0</mCurrentActiveSweepID>
+    <mGroupID>1</mGroupID>
+    <mRadioGPSQuality>0</mRadioGPSQuality>
+    <UnitID>7</UnitID>
+    <SerialNumber>0</SerialNumber>
+    <VSSSampleRate>0</VSSSampleRate>
+    <VSSLowCutFilter>0</VSSLowCutFilter>
+    <DecoderType>eForce3</DecoderType>
+    <DriverName />
+    <mAntennaHeightInfoValid>true</mAntennaHeightInfoValid>
+    <mApplyGPSAntennaHeightInReports>false</mApplyGPSAntennaHeightInReports>
+    <mGPSAntennaHeight>0</mGPSAntennaHeight>
+    <GroupID>1</GroupID>
+    <Status>eReady</Status>
+  </tUnit>
+  <tUnit>
+    <mUnitID>9</mUnitID>
+    <mLastSweepID>0</mLastSweepID>
+    <mCurrentActiveSweepID>0</mCurrentActiveSweepID>
+    <mGroupID>0</mGroupID>
+    <mRadioGPSQuality>0</mRadioGPSQuality>
+    <UnitID>9</UnitID>
+    <SerialNumber>0</SerialNumber>
+    <VSSSampleRate>0</VSSSampleRate>
+    <VSSLowCutFilter>0</VSSLowCutFilter>
+    <DecoderType>eForce3</DecoderType>
+    <DriverName />
+    <mAntennaHeightInfoValid>true</mAntennaHeightInfoValid>
+    <mApplyGPSAntennaHeightInReports>false</mApplyGPSAntennaHeightInReports>
+    <mGPSAntennaHeight>0</mGPSAntennaHeight>
+    <GroupID>0</GroupID>
+    <Status>eNoResponse</Status>
+  </tUnit>
+  <tUnit>
+    <mUnitID>10</mUnitID>
+    <mLastSweepID>0</mLastSweepID>
+    <mCurrentActiveSweepID>0</mCurrentActiveSweepID>
+    <mGroupID>0</mGroupID>
+    <mRadioGPSQuality>0</mRadioGPSQuality>
+    <UnitID>10</UnitID>
+    <SerialNumber>0</SerialNumber>
+    <VSSSampleRate>0</VSSSampleRate>
+    <VSSLowCutFilter>0</VSSLowCutFilter>
+    <DecoderType>eForce3</DecoderType>
+    <DriverName />
+    <mAntennaHeightInfoValid>false</mAntennaHeightInfoValid>
+    <mApplyGPSAntennaHeightInReports>false</mApplyGPSAntennaHeightInReports>
+    <mGPSAntennaHeight>0</mGPSAntennaHeight>
+    <GroupID>0</GroupID>
+    <Status>eNoResponse</Status>
+  </tUnit>
+</ArrayOfTUnit>

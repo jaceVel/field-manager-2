@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+{% block title %}Personnel Schedule — {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:16px;">
+    <p style="margin:0; color:#999; font-size:0.9em;">
+        <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+        <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+        <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+    </p>
+    <h1 style="margin:4px 0;">Personnel Schedule — {{ job.job_number }}</h1>
+    <p style="margin:0; color:#666;">{{ job.project_name }}</p>
+</div>
+<div style="margin-bottom:16px; display:flex; gap:8px; align-items:center;">
+    <a href="{% url 'job_personnel_page' job.pk %}?next={% url 'personnel_schedule' job.pk %}" class="btn" style="background:#1a3a5c; color:white;">Manage Personnel</a>
+    <a id="pdf-link" href="{% url 'personnel_schedule_pdf' job.pk %}?start={{ range_start }}&end={{ range_end }}" class="btn" style="background:#2d6a4f; color:white;">Download PDF</a>
+    <a id="pdf-view-link" href="{% url 'personnel_schedule_pdf' job.pk %}?start={{ range_start }}&end={{ range_end }}&inline=1" target="_blank" class="btn" style="background:#4a7c59; color:white;">View PDF</a>
+</div>
+
+<form id="range-form" method="get" style="display:inline-flex; align-items:center; gap:8px; margin-bottom:14px; background:#f8fafc; border:1px solid #c5d5e8; border-radius:8px; padding:6px 12px;">
+    <label style="font-size:0.85em; color:#555; font-weight:600; white-space:nowrap;">From</label>
+    <input id="range-start" type="date" name="start" value="{{ range_start }}" style="padding:4px 8px; border:1px solid #c5d5e8; border-radius:5px; font-size:0.88em;">
+    <label style="font-size:0.85em; color:#555; font-weight:600; white-space:nowrap;">To</label>
+    <input id="range-end" type="date" name="end" value="{{ range_end }}" style="padding:4px 8px; border:1px solid #c5d5e8; border-radius:5px; font-size:0.88em;">
+    <button type="submit" class="btn btn-primary" style="padding:4px 14px; font-size:0.88em;">Apply</button>
+    <a href="?" style="font-size:0.82em; color:#aaa; text-decoration:none; white-space:nowrap;">Reset</a>
+</form>
+<script>
+(function() {
+    const pdfBase = "{% url 'personnel_schedule_pdf' job.pk %}";
+    const pdfLink = document.getElementById('pdf-link');
+    const pdfViewLink = document.getElementById('pdf-view-link');
+    function updatePdfLink() {
+        const s = document.getElementById('range-start').value;
+        const e = document.getElementById('range-end').value;
+        pdfLink.href = pdfBase + '?start=' + s + '&end=' + e;
+        pdfViewLink.href = pdfBase + '?start=' + s + '&end=' + e + '&inline=1';
+    }
+    document.getElementById('range-start').addEventListener('change', updatePdfLink);
+    document.getElementById('range-end').addEventListener('change', updatePdfLink);
+})();
+</script>
+
+<!-- Status toolbar -->
+<div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:16px;">
+    <button id="status-eraser" onclick="selectStatus(null, this)"
+            style="display:flex; align-items:center; gap:6px; padding:7px 14px; border:2px solid #1a3a5c; border-radius:8px; background:white; cursor:pointer; font-size:0.9em; font-weight:600; color:#1a3a5c;">
+        ✕ Clear
+    </button>
+    {% for s in statuses %}
+    <button onclick="selectStatus('{{ s.name }}', this)"
+            data-status="{{ s.name }}"
+            style="display:flex; align-items:center; gap:8px; padding:7px 14px; border:2px solid transparent; border-radius:8px; background:white; cursor:pointer; font-size:0.9em; font-weight:600; color:#1a3a5c; box-shadow:0 1px 3px rgba(0,0,0,0.12);">
+        <span style="display:inline-block; width:22px; height:16px; border-radius:3px; border:1px solid rgba(0,0,0,0.15);
+            {% if s.pattern == 'stripes' %}background: repeating-linear-gradient(45deg, {{ s.color }}, {{ s.color }} 4px, white 4px, white 8px);
+            {% elif s.pattern == 'dots' %}background-color:white; background-image:radial-gradient({{ s.color }} 35%, transparent 35%); background-size:7px 7px;
+            {% elif s.pattern == 'cross' %}background: repeating-linear-gradient(0deg, {{ s.color }}, {{ s.color }} 3px, white 3px, white 10px), repeating-linear-gradient(90deg, {{ s.color }}, {{ s.color }} 3px, white 3px, white 10px);
+            {% else %}background:{{ s.color }};{% endif %}"></span>
+        {{ s.name }}
+        <form method="post" style="margin:0;" onclick="event.stopPropagation()">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="delete_status">
+            <input type="hidden" name="pk" value="{{ s.pk }}">
+            <button type="submit" style="background:none; border:none; color:#bbb; cursor:pointer; font-size:0.8em; padding:0; line-height:1;" onclick="return confirm('Delete {{ s.name }}?')">×</button>
+        </form>
+    </button>
+    {% endfor %}
+
+</div>
+
+<!-- Schedule grid -->
+{% if schedule_rows %}
+<div style="border:1px solid #c5d5e8; border-radius:10px; overflow:hidden;">
+    <div style="background:#1a3a5c; color:white; padding:10px 16px; font-weight:600; font-size:0.95em; display:flex; justify-content:space-between; align-items:center;">
+        <div style="display:flex; align-items:center; gap:10px;">
+          <span>Schedule</span>
+          <button onclick="showAddPerson()" style="background:rgba(255,255,255,0.15); border:none; color:white; border-radius:5px; padding:3px 10px; font-size:0.8em; cursor:pointer;">+ Add Person</button>
+          <button onclick="addSeparator()" style="background:rgba(255,255,255,0.1); border:none; color:#c5d5e8; border-radius:5px; padding:3px 10px; font-size:0.8em; cursor:pointer;">+ Separator</button>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px;">
+            <button onclick="adjustZoom(-0.1)" style="background:rgba(255,255,255,0.15); border:none; color:white; border-radius:4px; width:26px; height:26px; font-size:1.1em; cursor:pointer; line-height:1;">−</button>
+            <span id="zoom-label" style="font-size:0.8em; font-weight:400; min-width:36px; text-align:center;">100%</span>
+            <button onclick="adjustZoom(0.1)" style="background:rgba(255,255,255,0.15); border:none; color:white; border-radius:4px; width:26px; height:26px; font-size:1.1em; cursor:pointer; line-height:1;">+</button>
+            <button onclick="resetZoom()" style="background:rgba(255,255,255,0.1); border:none; color:white; border-radius:4px; padding:0 8px; height:26px; font-size:0.78em; cursor:pointer;">Reset</button>
+        </div>
+    </div>
+    <div style="overflow-x:auto;">
+        <div id="schedule-table-wrap" style="transform-origin:top left; display:inline-block; min-width:100%;">
+        <table style="border-collapse:collapse; min-width:100%;">
+            <thead>
+                <tr>
+                    <th style="padding:8px 16px; text-align:left; background:#1a3a5c; color:white; border-right:2px solid #c5d5e8; font-size:0.85em; white-space:nowrap; min-width:190px; position:sticky; left:0; z-index:2;">Personnel</th>
+                    {% for d in schedule_days %}
+                    <th style="padding:6px 3px; text-align:center; background:{% if d == today %}#2c5282{% else %}#1a3a5c{% endif %}; border-right:1px solid #2c5282; font-size:0.72em; min-width:40px; white-space:nowrap; color:{% if d == today %}#90caf9{% else %}#c5d5e8{% endif %}; font-weight:{% if d == today %}700{% else %}400{% endif %};">
+                        <div>{{ d|date:"D" }}</div>
+                        <div style="font-size:1.15em; font-weight:700; color:white;">{{ d|date:"j" }}</div>
+                        <div>{{ d|date:"M" }}</div>
+                    </th>
+                    {% endfor %}
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in schedule_rows %}
+                {% if row.is_separator %}
+                <tr data-jp="{{ row.person.pk }}" draggable="true" data-separator="1">
+                    <td style="padding:0 4px; background:#f0f4f8; border-bottom:1px solid #c5d5e8; border-right:2px solid #c5d5e8; position:sticky; left:0; z-index:1;">
+                      <div style="display:flex; align-items:center; gap:4px;">
+                        <span class="drag-handle" title="Drag to reorder" style="cursor:grab; color:#bbb; font-size:0.85em; user-select:none; padding:0 2px;">☰</span>
+                        <button type="button" onclick="removePerson({{ row.person.pk }}, null)" title="Remove separator" style="background:none; border:none; color:#ccc; cursor:pointer; font-size:0.85em; padding:0 2px; line-height:1; margin-left:auto;">✕</button>
+                      </div>
+                    </td>
+                    <td colspan="{{ schedule_days|length }}" style="background:#f0f4f8; border-bottom:1px solid #c5d5e8; height:8px;"></td>
+                </tr>
+                {% else %}
+                <tr data-jp="{{ row.person.pk }}" draggable="true">
+                    <td style="padding:4px 8px 4px 4px; background:#f8fafc; border-bottom:1px solid #eef2f7; border-right:2px solid #c5d5e8; font-size:0.9em; font-weight:600; white-space:nowrap; position:sticky; left:0; z-index:1; box-shadow:2px 0 4px rgba(0,0,0,0.04);">
+                      <div style="display:flex; align-items:center; gap:6px;">
+                        <span class="drag-handle" title="Drag to reorder" style="cursor:grab; color:#aaa; font-size:1em; user-select:none; padding:0 2px;">☰</span>
+                        <span style="flex:1;">{{ row.person.name }}</span>
+                        <button type="button" onclick="removePerson({{ row.person.pk }}, '{{ row.person.name|escapejs }}')" title="Remove from schedule" style="background:none; border:none; color:#ccc; cursor:pointer; font-size:0.85em; padding:0 2px; line-height:1;">✕</button>
+                      </div>
+                    </td>
+                    {% for cell in row.cells %}
+                    <td data-jp="{{ row.person.pk }}" data-date="{{ cell.0|date:'Y-m-d' }}" data-status="{{ cell.1 }}" data-note="{{ cell.2|escapejs }}"
+                        onmousedown="onCellMouseDown(this,event)"
+                        onmouseover="onCellMouseOver(this,event)"
+                        ondblclick="onCellDblClick(this,event)"
+                        title="{% if cell.1 %}{{ cell.1 }}{% endif %}{% if cell.1 and cell.2 %}: {% endif %}{{ cell.2 }}"
+                        style="border-bottom:1px solid #eef2f7; border-right:1px solid #eef2f7; cursor:pointer; width:40px; height:36px; position:relative; overflow:hidden;
+                        {% if cell.1 %}{% for s in statuses %}{% if s.name == cell.1 %}{% if s.pattern == 'stripes' %}background:repeating-linear-gradient(45deg,{{ s.color }},{{ s.color }} 4px,white 4px,white 8px);{% elif s.pattern == 'dots' %}background-color:white;background-image:radial-gradient({{ s.color }} 35%,transparent 35%);background-size:7px 7px;{% elif s.pattern == 'cross' %}background:repeating-linear-gradient(0deg,{{ s.color }},{{ s.color }} 3px,white 3px,white 10px),repeating-linear-gradient(90deg,{{ s.color }},{{ s.color }} 3px,white 3px,white 10px);{% else %}background:{{ s.color }};{% endif %}{% endif %}{% endfor %}{% else %}background:{% if cell.0 == today %}#eff6ff{% else %}white{% endif %};{% endif %}">
+                        {% if cell.2 %}<span class="cell-note" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.6em;font-weight:700;color:rgba(0,0,0,0.6);line-height:1;text-align:center;padding:1px;overflow:hidden;word-break:break-all;pointer-events:none;">{{ cell.2 }}</span>{% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endif %}
+                {% endfor %}
+            </tbody>
+            <tfoot id="schedule-foot">
+                <tr>
+                    <td style="padding:4px 8px; background:#f0f4f8; border-top:2px solid #c5d5e8; border-right:2px solid #c5d5e8; font-size:0.72em; font-weight:600; color:#555; white-space:nowrap; position:sticky; left:0; z-index:1;">Totals</td>
+                    {% for d in schedule_days %}
+                    <td data-foot-date="{{ d|date:'Y-m-d' }}" style="padding:2px 1px; background:#f0f4f8; border-top:2px solid #c5d5e8; border-right:1px solid #dde6ef; vertical-align:top; min-width:40px;"></td>
+                    {% endfor %}
+                </tr>
+            </tfoot>
+        </table>
+        </div><!-- /schedule-table-wrap -->
+    </div>
+</div>
+<!-- Legend -->
+{% if statuses %}
+<div style="display:flex; flex-wrap:wrap; gap:8px; margin-top:10px; padding:8px 12px; background:#f8fafc; border:1px solid #c5d5e8; border-radius:8px;">
+    {% for s in statuses %}
+    <div style="display:flex; align-items:center; gap:6px; font-size:0.82em; color:#333;">
+        <span style="display:inline-block; width:28px; height:18px; border-radius:3px; border:1px solid rgba(0,0,0,0.12); flex-shrink:0;
+            {% if s.pattern == 'stripes' %}background:repeating-linear-gradient(45deg,{{ s.color }},{{ s.color }} 4px,white 4px,white 8px);
+            {% elif s.pattern == 'dots' %}background-color:white;background-image:radial-gradient({{ s.color }} 35%,transparent 35%);background-size:7px 7px;
+            {% elif s.pattern == 'cross' %}background:repeating-linear-gradient(0deg,{{ s.color }},{{ s.color }} 3px,white 3px,white 10px),repeating-linear-gradient(90deg,{{ s.color }},{{ s.color }} 3px,white 3px,white 10px);
+            {% else %}background:{{ s.color }};{% endif %}"></span>
+        {{ s.name }}
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+<!-- Add person inline form -->
+<div id="addPersonForm" style="display:none; margin-top:10px; background:#f0f4f8; border:1px solid #c5d5e8; border-radius:8px; padding:10px 14px;">
+  <div style="font-size:0.85em; font-weight:600; color:#1a3a5c; margin-bottom:6px;">Add person to schedule</div>
+  <div style="display:flex; gap:8px; align-items:center;">
+    <input id="addPersonInput" type="text" list="addPersonList" placeholder="Name…" style="padding:6px 10px; border:1px solid #ccc; border-radius:6px; font-size:0.9em; width:220px;">
+    <datalist id="addPersonList">
+      {% for name in all_personnel_names %}<option value="{{ name|escapejs }}">{% endfor %}
+    </datalist>
+    <button onclick="submitAddPerson()" class="btn btn-primary" style="padding:5px 14px; font-size:0.9em;">Add</button>
+    <button onclick="hideAddPerson()" style="background:none; border:none; color:#aaa; cursor:pointer; font-size:0.9em;">Cancel</button>
+  </div>
+</div>
+{% else %}
+<div class="card" style="color:#aaa;">No personnel assigned to this job yet. <a href="{% url 'job_personnel_page' job.pk %}">Add personnel</a> first.</div>
+{% endif %}
+
+<script>
+const toggleUrl    = "{% url 'personnel_schedule_toggle' job.pk %}";
+const setNoteUrl   = "{% url 'personnel_schedule_set_note' job.pk %}";
+const setUrl       = "{% url 'personnel_schedule_set' job.pk %}";
+const reorderUrl   = "{% url 'personnel_schedule_reorder' job.pk %}";
+const addUrl       = "{% url 'personnel_schedule_add_person' job.pk %}";
+const removeUrl    = "{% url 'personnel_schedule_remove_person' job.pk %}";
+const csrf = "{{ csrf_token }}";
+const statuses = {{ statuses_json|safe }};
+let selectedStatus = null;
+let selectedBtn = null;
+
+// Drag state
+let isDragging = false;
+let dragApplyStatus = '';
+let draggedCells = [];
+let draggedSet = new Set();
+
+const CELL_BASE = 'border-bottom:1px solid #eef2f7;border-right:1px solid #eef2f7;cursor:crosshair;width:40px;height:36px;';
+
+function getCellStyle(statusName) {
+    if (!statusName) return 'background:white;';
+    const s = statuses.find(x => x.name === statusName);
+    if (!s) return 'background:white;';
+    if (s.pattern === 'stripes')
+        return `background:repeating-linear-gradient(45deg,${s.color},${s.color} 4px,white 4px,white 8px);`;
+    if (s.pattern === 'dots')
+        return `background-color:white;background-image:radial-gradient(${s.color} 35%,transparent 35%);background-size:7px 7px;`;
+    if (s.pattern === 'cross')
+        return `background:repeating-linear-gradient(0deg,${s.color},${s.color} 3px,white 3px,white 10px),repeating-linear-gradient(90deg,${s.color},${s.color} 3px,white 3px,white 10px);`;
+    return `background:${s.color};`;
+}
+
+function applyStyleToCell(td, statusName) {
+    td.dataset.status = statusName;
+    const note = td.dataset.note || '';
+    td.title = [statusName, note].filter(Boolean).join(': ');
+    td.setAttribute('style', CELL_BASE + 'position:relative;overflow:hidden;' + (statusName ? getCellStyle(statusName) : 'background:white;'));
+    // keep note label
+    let lbl = td.querySelector('.cell-note');
+    if (lbl) lbl.remove();
+    if (note) {
+        lbl = document.createElement('span');
+        lbl.className = 'cell-note';
+        lbl.style.cssText = 'position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.6em;font-weight:700;color:rgba(0,0,0,0.6);line-height:1;text-align:center;padding:1px;overflow:hidden;word-break:break-all;pointer-events:none;';
+        lbl.textContent = note;
+        td.appendChild(lbl);
+    }
+}
+
+function onCellDblClick(td, e) {
+    e.preventDefault();
+    e.stopPropagation();
+    const current = td.dataset.note || '';
+    const newNote = prompt('Cell note (leave blank to clear):', current);
+    if (newNote === null) return; // cancelled
+    td.dataset.note = newNote.trim();
+    applyStyleToCell(td, td.dataset.status);
+    fetch(setNoteUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({jp_pk: td.dataset.jp, date: td.dataset.date, note: newNote.trim()}),
+    });
+}
+
+function selectStatus(name, btn) {
+    selectedStatus = name;
+    if (selectedBtn) {
+        selectedBtn.style.border = '2px solid transparent';
+        selectedBtn.style.boxShadow = '0 1px 3px rgba(0,0,0,0.12)';
+    }
+    if (btn) {
+        btn.style.border = '2px solid #1a3a5c';
+        btn.style.boxShadow = '0 0 0 3px rgba(26,58,92,0.2)';
+    }
+    selectedBtn = btn;
+}
+
+function onCellMouseDown(td, e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    isDragging = true;
+    draggedCells = [];
+    draggedSet = new Set();
+
+    const applyStatus = selectedStatus === null ? '' : selectedStatus;
+    // If cell already has this status, clear it; otherwise set it
+    dragApplyStatus = (td.dataset.status === applyStatus) ? '' : applyStatus;
+
+    paintDragCell(td);
+}
+
+function onCellMouseOver(td, e) {
+    if (!isDragging) return;
+    paintDragCell(td);
+}
+
+function paintDragCell(td) {
+    const key = td.dataset.jp + '|' + td.dataset.date;
+    if (draggedSet.has(key)) return;
+    draggedSet.add(key);
+    draggedCells.push({jp_pk: td.dataset.jp, date: td.dataset.date});
+    applyStyleToCell(td, dragApplyStatus);
+}
+
+// ── Column status counts ──────────────────────────────────
+function updateColumnCounts() {
+    document.querySelectorAll('[data-foot-date]').forEach(footCell => {
+        const date = footCell.dataset.footDate;
+        const counts = {};
+        document.querySelectorAll(`td[data-date="${date}"]`).forEach(td => {
+            const s = td.dataset.status;
+            if (s) counts[s] = (counts[s] || 0) + 1;
+        });
+        footCell.innerHTML = '';
+        Object.entries(counts).forEach(([name, n]) => {
+            const s = statuses.find(x => x.name === name);
+            if (!s) return;
+            const d = document.createElement('div');
+            d.title = `${name}: ${n}`;
+            d.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:1.3em;font-weight:700;line-height:1.2;border-radius:2px;margin:1px;padding:1px 2px;';
+            if (s.pattern === 'stripes')
+                d.style.background = `repeating-linear-gradient(45deg,${s.color},${s.color} 4px,white 4px,white 8px)`;
+            else if (s.pattern === 'dots')
+                d.style.cssText += `background-color:white;background-image:radial-gradient(${s.color} 35%,transparent 35%);background-size:7px 7px;`;
+            else if (s.pattern === 'cross')
+                d.style.background = `repeating-linear-gradient(0deg,${s.color},${s.color} 3px,white 3px,white 10px),repeating-linear-gradient(90deg,${s.color},${s.color} 3px,white 3px,white 10px)`;
+            else
+                d.style.background = s.color;
+            d.style.color = '#000';
+            d.textContent = n;
+            footCell.appendChild(d);
+        });
+    });
+}
+
+function contrastText(hex) {
+    const c = hex.replace('#','');
+    const r = parseInt(c.length===3?c[0]+c[0]:c.slice(0,2),16);
+    const g = parseInt(c.length===3?c[1]+c[1]:c.slice(2,4),16);
+    const b = parseInt(c.length===3?c[2]+c[2]:c.slice(4,6),16);
+    return (0.299*r+0.587*g+0.114*b) > 140 ? '#000' : '#fff';
+}
+
+document.addEventListener('mouseup', () => {
+    if (!isDragging) return;
+    isDragging = false;
+    if (!draggedCells.length) return;
+    fetch(setUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({status: dragApplyStatus, cells: draggedCells}),
+    });
+    updateColumnCounts();
+    draggedCells = [];
+    draggedSet = new Set();
+});
+
+// Prevent text selection during drag
+document.addEventListener('selectstart', e => { if (isDragging) e.preventDefault(); });
+
+// Zoom
+let zoomLevel = 1.0;
+const wrap = document.getElementById('schedule-table-wrap');
+const zoomLabel = document.getElementById('zoom-label');
+
+function adjustZoom(delta) {
+    zoomLevel = Math.round(Math.min(2.0, Math.max(0.3, zoomLevel + delta)) * 10) / 10;
+    wrap.style.transform = `scale(${zoomLevel})`;
+    wrap.style.height = (wrap.scrollHeight * zoomLevel) + 'px';
+    zoomLabel.textContent = Math.round(zoomLevel * 100) + '%';
+}
+
+function resetZoom() {
+    zoomLevel = 1.0;
+    wrap.style.transform = 'scale(1)';
+    wrap.style.height = '';
+    zoomLabel.textContent = '100%';
+}
+
+// Initial count on page load
+updateColumnCounts();
+
+// ── Row drag-to-reorder ──────────────────────────────────────
+let dragSrcRow = null;
+let dragHandleActive = false;
+
+document.querySelectorAll('.drag-handle').forEach(handle => {
+    handle.addEventListener('mousedown', () => { dragHandleActive = true; });
+});
+document.addEventListener('mouseup', () => { dragHandleActive = false; });
+
+const tbody = document.querySelector('#schedule-table-wrap tbody');
+if (tbody) {
+    tbody.addEventListener('dragstart', e => {
+        if (!dragHandleActive) { e.preventDefault(); return; }
+        dragSrcRow = e.target.closest('tr');
+        e.dataTransfer.effectAllowed = 'move';
+    });
+    tbody.addEventListener('dragover', e => {
+        e.preventDefault();
+        const target = e.target.closest('tr');
+        if (!target || target === dragSrcRow) return;
+        const rows = [...tbody.querySelectorAll('tr')];
+        const srcIdx = rows.indexOf(dragSrcRow);
+        const tgtIdx = rows.indexOf(target);
+        if (srcIdx < tgtIdx) target.after(dragSrcRow);
+        else target.before(dragSrcRow);
+    });
+    tbody.addEventListener('drop', e => { e.preventDefault(); });
+    tbody.addEventListener('dragend', () => {
+        if (!dragSrcRow) return;
+        dragSrcRow = null;
+        const order = [...tbody.querySelectorAll('tr[data-jp]')].map(r => r.dataset.jp);
+        fetch(reorderUrl, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+            body: JSON.stringify({order}),
+        });
+    });
+}
+
+// ── Add person ───────────────────────────────────────────────
+function showAddPerson() {
+    document.getElementById('addPersonForm').style.display = 'block';
+    document.getElementById('addPersonInput').focus();
+}
+function hideAddPerson() {
+    document.getElementById('addPersonForm').style.display = 'none';
+    document.getElementById('addPersonInput').value = '';
+}
+function submitAddPerson() {
+    const name = document.getElementById('addPersonInput').value.trim();
+    if (!name) return;
+    fetch(addUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({name}),
+    }).then(r => r.json()).then(data => {
+        if (data.error) { alert(data.error); return; }
+        location.reload();
+    });
+}
+document.getElementById('addPersonInput')?.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { e.preventDefault(); submitAddPerson(); }
+});
+
+// ── Add separator ────────────────────────────────────────────
+function addSeparator() {
+    fetch(addUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({is_separator: true}),
+    }).then(() => location.reload());
+}
+
+// ── Remove person ────────────────────────────────────────────
+function removePerson(jp_pk, name) {
+    const msg = name ? `Remove ${name} from this job's schedule?` : 'Remove this separator?';
+    if (!confirm(msg)) return;
+    fetch(removeUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({jp_pk}),
+    }).then(() => location.reload());
+}
+</script>
+
+<!-- Add status -->
+<div style="border:1px solid #c5d5e8; border-radius:10px; overflow:hidden; margin-top:20px;">
+    <div style="background:#f0f4f8; color:#1a3a5c; padding:10px 16px; font-weight:600; font-size:0.9em;">Add Status</div>
+    <div style="padding:14px 16px; background:white;">
+        <form method="post" style="display:flex; gap:8px; align-items:center;">
+            {% csrf_token %}
+            <input type="hidden" name="action" value="add_status">
+            <input type="text" name="name" placeholder="Status name" required style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:0.9em; width:180px;">
+            <input type="color" name="color" value="#90caf9" style="width:40px; height:34px; border:1px solid #ccc; border-radius:4px; cursor:pointer; padding:2px;">
+            <select name="pattern" style="padding:7px 10px; border:1px solid #ccc; border-radius:6px; font-size:0.9em;">
+                <option value="solid">Solid</option>
+                <option value="stripes">Stripes</option>
+                <option value="dots">Dots</option>
+                <option value="cross">Cross-hatch</option>
+            </select>
+            <button type="submit" class="btn btn-primary" style="padding:7px 16px;">Add</button>
+        </form>
+    </div>
+</div>
+
+{% endblock %}

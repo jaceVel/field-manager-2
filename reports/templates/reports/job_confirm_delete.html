@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Delete Job {{ job.job_number }}{% endblock %}
+{% block content %}
+<div style="max-width:480px; margin:60px auto; text-align:center;">
+    <h2 style="color:#c00;">Delete Job {{ job.job_number }}?</h2>
+    <p style="color:#555; margin:12px 0 24px;">{{ job.project_name }}<br>
+    This will permanently delete all reports, survey files, personnel, and other data for this job.</p>
+    <form method="post" style="display:inline-flex; gap:12px;">
+        {% csrf_token %}
+        <button type="submit" class="btn" style="background:#c00; color:white; padding:8px 24px;">Yes, Delete</button>
+        <a href="{% url 'job_list' %}" class="btn" style="background:#eee; color:#333; padding:8px 24px; text-decoration:none;">Cancel</a>
+    </form>
+</div>
+{% endblock %}

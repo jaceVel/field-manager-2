@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Delete Toolbox Meeting V2{% endblock %}
+{% block content %}
+<div style="margin-bottom:8px;">
+  <h1 style="margin:4px 0;">Delete Toolbox Meeting?</h1>
+  <p style="color:#666;">{{ meeting.date|default:"No date" }} — {{ meeting.job.job_number }}</p>
+</div>
+<div class="card" style="margin-top:16px; background:#fdecea; border:2px solid #ef9a9a;">
+  <p style="margin:0; color:#c62828;">This will permanently delete the meeting and all attendee signatures. This cannot be undone.</p>
+</div>
+<form method="post" style="margin-top:16px; display:flex; gap:8px;">
+  {% csrf_token %}
+  <a href="{% url 'toolbox_v2_edit' meeting.pk %}" class="btn" style="background:#eee; color:#333;">Cancel</a>
+  <button type="submit" class="btn" style="background:#c62828; color:white;">Delete</button>
+</form>
+{% endblock %}

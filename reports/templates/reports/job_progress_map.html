@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% block title %}Progress Map — {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;">
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+    Progress Map
+</p>
+<h1 style="margin-bottom:4px;">Shot Progress Map</h1>
+<p style="color:#666; margin-top:0;">{{ job.client }} — {{ job.project_name }}</p>
+
+{% if error %}
+<div style="background:#fff3cd; border:1px solid #ffc107; border-radius:6px; padding:16px; color:#856404;">{{ error }}</div>
+{% else %}
+
+<div style="display:flex; gap:12px; margin-bottom:16px; flex-wrap:wrap;">
+    <div style="background:#1a3a5c; color:white; border-radius:6px; padding:12px 20px; text-align:center; min-width:100px;">
+        <div style="font-size:1.5em; font-weight:bold;">{{ stats.acquired }}</div>
+        <div style="font-size:0.8em; opacity:0.85; margin-top:2px;">Acquired</div>
+    </div>
+    <div style="background:#e63946; color:white; border-radius:6px; padding:12px 20px; text-align:center; min-width:100px;">
+        <div style="font-size:1.5em; font-weight:bold;">{{ stats.void }}</div>
+        <div style="font-size:0.8em; opacity:0.85; margin-top:2px;">Void</div>
+    </div>
+    <div style="background:#f0f0f0; color:#333; border-radius:6px; padding:12px 20px; text-align:center; min-width:100px;">
+        <div style="font-size:1.5em; font-weight:bold;">{{ stats.remaining }}</div>
+        <div style="font-size:0.8em; color:#666; margin-top:2px;">Remaining</div>
+    </div>
+    <div style="background:#f0f0f0; color:#333; border-radius:6px; padding:12px 20px; text-align:center; min-width:100px;">
+        <div style="font-size:1.5em; font-weight:bold;">{{ stats.planned }}</div>
+        <div style="font-size:0.8em; color:#666; margin-top:2px;">Total Planned</div>
+    </div>
+</div>
+
+<div style="display:flex; gap:12px; margin-bottom:10px; font-size:0.85em; align-items:center;">
+    <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#2196f3; margin-right:4px;"></span>Acquired</span>
+    <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#e63946; margin-right:4px;"></span>Void</span>
+    <span><span style="display:inline-block; width:12px; height:12px; border-radius:50%; background:#aaaaaa; margin-right:4px;"></span>Planned</span>
+</div>
+
+<div style="border-radius:8px; overflow:hidden; border:1px solid #ddd;">
+    {{ map_html|safe }}
+</div>
+
+{% endif %}
+{% endblock %}

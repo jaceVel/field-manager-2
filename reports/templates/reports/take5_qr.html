@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Take 5 QR — {{ job.job_number }}{% endblock %}
+{% block content %}
+<div style="margin-bottom:8px;">
+  <p style="margin:0; color:#999; font-size:0.9em;">
+    <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+    <a href="{% url 'qhse_list' job.pk %}" style="color:#999;">QHSE</a> /
+  </p>
+  <h1 style="margin:4px 0;">Take 5 QR Code</h1>
+  <p style="margin:0; color:#666;">{{ job.job_number }} — {{ job.project_name }}</p>
+</div>
+
+<div class="card" style="margin-top:20px; text-align:center; max-width:400px; margin-left:auto; margin-right:auto;">
+  <img src="data:image/png;base64,{{ qr_b64 }}" style="width:100%; max-width:300px; border:1px solid #eee; border-radius:8px;">
+  <p style="margin:16px 0 4px; font-size:0.85em; color:#888; word-break:break-all;">{{ url }}</p>
+  <p style="margin:0 0 16px; font-size:0.8em; color:#aaa;">Scan to open the Take 5 form</p>
+  <a href="{{ url }}" target="_blank" class="btn" style="background:#1a3a5c; color:white; display:inline-block; margin-bottom:8px;">Open Form</a>
+</div>
+{% endblock %}

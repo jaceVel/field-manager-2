@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tPSSTransmissionParameters xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <mPSSTransmission>AfterSweep</mPSSTransmission>
+  <mPSSRequestType>IndividualUnit</mPSSRequestType>
+  <mPSSType>PSS45</mPSSType>
+  <mPSSDelay>0</mPSSDelay>
+  <mPSSTransmissionLimitType>All</mPSSTransmissionLimitType>
+  <mPSSTransmissionLimit>20</mPSSTransmissionLimit>
+</tPSSTransmissionParameters>

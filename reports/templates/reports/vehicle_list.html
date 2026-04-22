@@ -1,0 +1,594 @@
+{% extends "base.html" %}
+{% block title %}Vehicles{% endblock %}
+{% block content %}
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;"><a href="{% url 'home' %}" style="color:#999;">Home</a> /</p>
+<h1 style="margin:4px 0 16px;">Vehicles</h1>
+
+<!-- ── Load from XLS ─────────────────────────────────────── -->
+<div style="display:flex; align-items:center; gap:12px; margin-bottom:14px; background:#f8fafc; border:1px solid #c5d5e8; border-radius:8px; padding:10px 16px;">
+    <span style="font-weight:600; font-size:0.9em; color:#1a3a5c; white-space:nowrap;">Load from XLS</span>
+    <input type="file" id="xlsFile" accept=".xls,.xlsx" style="font-size:0.9em;">
+    <span id="parseStatus" style="font-size:0.85em; color:#888;"></span>
+</div>
+
+<!-- ── Tabs ──────────────────────────────────────────────── -->
+<div style="display:flex; gap:0; border-bottom:2px solid #1a3a5c; margin-bottom:16px;">
+    <button id="tab-lv" onclick="switchTab('lv')"
+            style="padding:8px 20px; border:none; border-bottom:3px solid #1a3a5c; background:#1a3a5c; color:white; font-weight:600; cursor:pointer; font-size:0.95em; margin-bottom:-2px; border-radius:6px 6px 0 0;">
+        LV
+    </button>
+    <button id="tab-mv" onclick="switchTab('mv')"
+            style="padding:8px 20px; border:none; border-bottom:3px solid transparent; background:#f0f4f8; color:#1a3a5c; font-weight:600; cursor:pointer; font-size:0.95em; margin-bottom:-2px; border-radius:6px 6px 0 0;">
+        MV
+    </button>
+    <button id="tab-hv" onclick="switchTab('hv')"
+            style="padding:8px 20px; border:none; border-bottom:3px solid transparent; background:#f0f4f8; color:#1a3a5c; font-weight:600; cursor:pointer; font-size:0.95em; margin-bottom:-2px; border-radius:6px 6px 0 0;">
+        HV
+    </button>
+    <button id="tab-tt" onclick="switchTab('tt')"
+            style="padding:8px 20px; border:none; border-bottom:3px solid transparent; background:#f0f4f8; color:#1a3a5c; font-weight:600; cursor:pointer; font-size:0.95em; margin-bottom:-2px; border-radius:6px 6px 0 0;">
+        Tilt Tray
+    </button>
+    <button id="tab-vib" onclick="switchTab('vib')"
+            style="padding:8px 20px; border:none; border-bottom:3px solid transparent; background:#f0f4f8; color:#1a3a5c; font-weight:600; cursor:pointer; font-size:0.95em; margin-bottom:-2px; border-radius:6px 6px 0 0;">
+        Vibrator
+    </button>
+    <button id="tab-atv" onclick="switchTab('atv')"
+            style="padding:8px 20px; border:none; border-bottom:3px solid transparent; background:#f0f4f8; color:#1a3a5c; font-weight:600; cursor:pointer; font-size:0.95em; margin-bottom:-2px; border-radius:6px 6px 0 0;">
+        ATV
+    </button>
+</div>
+
+<!-- ── LV tab ────────────────────────────────────────────── -->
+<div id="panel-lv">
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:0.85em; color:#888;" id="lvCount">{{ lv_vehicles|length }} vehicles</span>
+            <label style="font-size:0.85em; color:#555; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                <input type="checkbox" id="activeOnly-lv" onchange="filterActive('lv')" checked style="width:auto;"> Active only
+            </label>
+        </span>
+        <button onclick="addManualRow('lv')" class="btn" style="background:#f0f4f8; color:#1a3a5c; border:1px solid #c5d5e8; padding:5px 14px; font-size:0.88em;">+ Add Vehicle</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+        <thead>
+            <tr style="background:#1a3a5c; color:white;">
+                <th style="padding:6px 10px; text-align:left;">Asset #</th>
+                <th style="padding:6px 10px; text-align:left;">Description</th>
+                <th style="padding:6px 10px; text-align:left;">Category</th>
+                <th style="padding:6px 10px; text-align:left;">Make</th>
+                <th style="padding:6px 10px; text-align:left;">Model</th>
+                <th style="padding:6px 10px; text-align:left;">Rego</th>
+                <th style="padding:6px 8px; text-align:center; width:50px;">Active</th>
+                <th style="width:60px;"></th>
+            </tr>
+        </thead>
+        <tbody id="lvBody">
+            {% for v in lv_vehicles %}
+            <tr id="lv-row-{{ v.pk }}" data-active="{% if v.is_active %}1{% else %}0{% endif %}" style="border-bottom:1px solid #eee; {% if forloop.counter|divisibleby:2 %}background:#f9f9f9;{% endif %}">
+                <td style="padding:6px 10px; font-weight:600;">{{ v.name }}</td>
+                <td style="padding:6px 10px;">{{ v.description }}</td>
+                <td style="padding:6px 10px; color:#666;">{{ v.category }}</td>
+                <td style="padding:6px 10px;">{{ v.make }}</td>
+                <td style="padding:6px 10px;">{{ v.model_name }}</td>
+                <td style="padding:6px 10px;">{{ v.rego }}</td>
+                <td style="padding:6px 8px; text-align:center;">{% if v.is_active %}✓{% endif %}</td>
+                <td style="padding:6px 4px; text-align:center; white-space:nowrap;">
+                    <button type="button" onclick="editVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.95em;" title="Edit">✎</button>
+                    <button type="button" onclick="deleteVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;">×</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr id="lv-emptyRow"><td colspan="8" style="padding:20px; text-align:center; color:#aaa; font-size:0.9em;">No light vehicles yet. Load an XLS file or click + Add Vehicle.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+</div>
+
+<!-- ── ATV tab ───────────────────────────────────────────── -->
+<div id="panel-atv" style="display:none;">
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:0.85em; color:#888;" id="atvCount">{{ atv_vehicles|length }} vehicles</span>
+            <label style="font-size:0.85em; color:#555; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                <input type="checkbox" id="activeOnly-atv" onchange="filterActive('atv')" checked style="width:auto;"> Active only
+            </label>
+        </span>
+        <button onclick="addManualRow('atv')" class="btn" style="background:#f0f4f8; color:#1a3a5c; border:1px solid #c5d5e8; padding:5px 14px; font-size:0.88em;">+ Add Vehicle</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+        <thead>
+            <tr style="background:#1a3a5c; color:white;">
+                <th style="padding:6px 10px; text-align:left;">Asset #</th>
+                <th style="padding:6px 10px; text-align:left;">Description</th>
+                <th style="padding:6px 10px; text-align:left;">Category</th>
+                <th style="padding:6px 10px; text-align:left;">Make</th>
+                <th style="padding:6px 10px; text-align:left;">Model</th>
+                <th style="padding:6px 10px; text-align:left;">Rego</th>
+                <th style="padding:6px 8px; text-align:center; width:50px;">Active</th>
+                <th style="width:60px;"></th>
+            </tr>
+        </thead>
+        <tbody id="atvBody">
+            {% for v in atv_vehicles %}
+            <tr id="atv-row-{{ v.pk }}" data-active="{% if v.is_active %}1{% else %}0{% endif %}" style="border-bottom:1px solid #eee; {% if forloop.counter|divisibleby:2 %}background:#f9f9f9;{% endif %}">
+                <td style="padding:6px 10px; font-weight:600;">{{ v.name }}</td>
+                <td style="padding:6px 10px;">{{ v.description }}</td>
+                <td style="padding:6px 10px; color:#666;">{{ v.category }}</td>
+                <td style="padding:6px 10px;">{{ v.make }}</td>
+                <td style="padding:6px 10px;">{{ v.model_name }}</td>
+                <td style="padding:6px 10px;">{{ v.rego }}</td>
+                <td style="padding:6px 8px; text-align:center;">{% if v.is_active %}✓{% endif %}</td>
+                <td style="padding:6px 4px; text-align:center;">
+                    <button type="button" onclick="editVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.95em;" title="Edit">✎</button>
+                    <button type="button" onclick="deleteVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;">×</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr id="atv-emptyRow"><td colspan="8" style="padding:20px; text-align:center; color:#aaa; font-size:0.9em;">No ATVs yet. Load an XLS file or click + Add Vehicle.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+</div>
+
+<!-- ── VIB tab ───────────────────────────────────────────── -->
+<div id="panel-vib" style="display:none;">
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:0.85em; color:#888;" id="vibCount">{{ vib_vehicles|length }} vehicles</span>
+            <label style="font-size:0.85em; color:#555; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                <input type="checkbox" id="activeOnly-vib" onchange="filterActive('vib')" checked style="width:auto;"> Active only
+            </label>
+        </span>
+        <button onclick="addManualRow('vib')" class="btn" style="background:#f0f4f8; color:#1a3a5c; border:1px solid #c5d5e8; padding:5px 14px; font-size:0.88em;">+ Add Vehicle</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+        <thead>
+            <tr style="background:#1a3a5c; color:white;">
+                <th style="padding:6px 10px; text-align:left;">Asset #</th>
+                <th style="padding:6px 10px; text-align:left;">Description</th>
+                <th style="padding:6px 10px; text-align:left;">Category</th>
+                <th style="padding:6px 10px; text-align:left;">Make</th>
+                <th style="padding:6px 10px; text-align:left;">Model</th>
+                <th style="padding:6px 10px; text-align:left;">Rego</th>
+                <th style="padding:6px 8px; text-align:center; width:50px;">Active</th>
+                <th style="width:60px;"></th>
+            </tr>
+        </thead>
+        <tbody id="vibBody">
+            {% for v in vib_vehicles %}
+            <tr id="vib-row-{{ v.pk }}" data-active="{% if v.is_active %}1{% else %}0{% endif %}" style="border-bottom:1px solid #eee; {% if forloop.counter|divisibleby:2 %}background:#f9f9f9;{% endif %}">
+                <td style="padding:6px 10px; font-weight:600;">{{ v.name }}</td>
+                <td style="padding:6px 10px;">{{ v.description }}</td>
+                <td style="padding:6px 10px; color:#666;">{{ v.category }}</td>
+                <td style="padding:6px 10px;">{{ v.make }}</td>
+                <td style="padding:6px 10px;">{{ v.model_name }}</td>
+                <td style="padding:6px 10px;">{{ v.rego }}</td>
+                <td style="padding:6px 8px; text-align:center;">{% if v.is_active %}✓{% endif %}</td>
+                <td style="padding:6px 4px; text-align:center;">
+                    <button type="button" onclick="editVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.95em;" title="Edit">✎</button>
+                    <button type="button" onclick="deleteVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;">×</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr id="vib-emptyRow"><td colspan="8" style="padding:20px; text-align:center; color:#aaa; font-size:0.9em;">No vibrators yet. Load an XLS file or click + Add Vehicle.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+</div>
+
+<!-- ── TT tab ────────────────────────────────────────────── -->
+<div id="panel-tt" style="display:none;">
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:0.85em; color:#888;" id="ttCount">{{ tt_vehicles|length }} vehicles</span>
+            <label style="font-size:0.85em; color:#555; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                <input type="checkbox" id="activeOnly-tt" onchange="filterActive('tt')" checked style="width:auto;"> Active only
+            </label>
+        </span>
+        <button onclick="addManualRow('tt')" class="btn" style="background:#f0f4f8; color:#1a3a5c; border:1px solid #c5d5e8; padding:5px 14px; font-size:0.88em;">+ Add Vehicle</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+        <thead>
+            <tr style="background:#1a3a5c; color:white;">
+                <th style="padding:6px 10px; text-align:left;">Asset #</th>
+                <th style="padding:6px 10px; text-align:left;">Description</th>
+                <th style="padding:6px 10px; text-align:left;">Category</th>
+                <th style="padding:6px 10px; text-align:left;">Make</th>
+                <th style="padding:6px 10px; text-align:left;">Model</th>
+                <th style="padding:6px 10px; text-align:left;">Rego</th>
+                <th style="padding:6px 8px; text-align:center; width:50px;">Active</th>
+                <th style="width:60px;"></th>
+            </tr>
+        </thead>
+        <tbody id="ttBody">
+            {% for v in tt_vehicles %}
+            <tr id="tt-row-{{ v.pk }}" data-active="{% if v.is_active %}1{% else %}0{% endif %}" style="border-bottom:1px solid #eee; {% if forloop.counter|divisibleby:2 %}background:#f9f9f9;{% endif %}">
+                <td style="padding:6px 10px; font-weight:600;">{{ v.name }}</td>
+                <td style="padding:6px 10px;">{{ v.description }}</td>
+                <td style="padding:6px 10px; color:#666;">{{ v.category }}</td>
+                <td style="padding:6px 10px;">{{ v.make }}</td>
+                <td style="padding:6px 10px;">{{ v.model_name }}</td>
+                <td style="padding:6px 10px;">{{ v.rego }}</td>
+                <td style="padding:6px 8px; text-align:center;">{% if v.is_active %}✓{% endif %}</td>
+                <td style="padding:6px 4px; text-align:center;">
+                    <button type="button" onclick="editVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.95em;" title="Edit">✎</button>
+                    <button type="button" onclick="deleteVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;">×</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr id="tt-emptyRow"><td colspan="8" style="padding:20px; text-align:center; color:#aaa; font-size:0.9em;">No tilt trays yet. Load an XLS file or click + Add Vehicle.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+</div>
+
+<!-- ── HV tab ────────────────────────────────────────────── -->
+<div id="panel-hv" style="display:none;">
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:0.85em; color:#888;" id="hvCount">{{ hv_vehicles|length }} vehicles</span>
+            <label style="font-size:0.85em; color:#555; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                <input type="checkbox" id="activeOnly-hv" onchange="filterActive('hv')" checked style="width:auto;"> Active only
+            </label>
+        </span>
+        <button onclick="addManualRow('hv')" class="btn" style="background:#f0f4f8; color:#1a3a5c; border:1px solid #c5d5e8; padding:5px 14px; font-size:0.88em;">+ Add Vehicle</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+        <thead>
+            <tr style="background:#1a3a5c; color:white;">
+                <th style="padding:6px 10px; text-align:left;">Asset #</th>
+                <th style="padding:6px 10px; text-align:left;">Description</th>
+                <th style="padding:6px 10px; text-align:left;">Category</th>
+                <th style="padding:6px 10px; text-align:left;">Make</th>
+                <th style="padding:6px 10px; text-align:left;">Model</th>
+                <th style="padding:6px 10px; text-align:left;">Rego</th>
+                <th style="padding:6px 8px; text-align:center; width:50px;">Active</th>
+                <th style="width:60px;"></th>
+            </tr>
+        </thead>
+        <tbody id="hvBody">
+            {% for v in hv_vehicles %}
+            <tr id="hv-row-{{ v.pk }}" data-active="{% if v.is_active %}1{% else %}0{% endif %}" style="border-bottom:1px solid #eee; {% if forloop.counter|divisibleby:2 %}background:#f9f9f9;{% endif %}">
+                <td style="padding:6px 10px; font-weight:600;">{{ v.name }}</td>
+                <td style="padding:6px 10px;">{{ v.description }}</td>
+                <td style="padding:6px 10px; color:#666;">{{ v.category }}</td>
+                <td style="padding:6px 10px;">{{ v.make }}</td>
+                <td style="padding:6px 10px;">{{ v.model_name }}</td>
+                <td style="padding:6px 10px;">{{ v.rego }}</td>
+                <td style="padding:6px 8px; text-align:center;">{% if v.is_active %}✓{% endif %}</td>
+                <td style="padding:6px 4px; text-align:center;">
+                    <button type="button" onclick="editVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.95em;" title="Edit">✎</button>
+                    <button type="button" onclick="deleteVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;">×</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr id="hv-emptyRow"><td colspan="8" style="padding:20px; text-align:center; color:#aaa; font-size:0.9em;">No heavy vehicles yet. Load an XLS file or click + Add Vehicle.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+</div>
+
+<!-- ── MV tab ────────────────────────────────────────────── -->
+<div id="panel-mv" style="display:none;">
+<div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+        <span style="display:flex; align-items:center; gap:12px;">
+            <span style="font-size:0.85em; color:#888;" id="mvCount">{{ mv_vehicles|length }} vehicles</span>
+            <label style="font-size:0.85em; color:#555; display:flex; align-items:center; gap:5px; cursor:pointer;">
+                <input type="checkbox" id="activeOnly-mv" onchange="filterActive('mv')" checked style="width:auto;"> Active only
+            </label>
+        </span>
+        <button onclick="addManualRow('mv')" class="btn" style="background:#f0f4f8; color:#1a3a5c; border:1px solid #c5d5e8; padding:5px 14px; font-size:0.88em;">+ Add Vehicle</button>
+    </div>
+    <div style="overflow-x:auto;">
+    <table style="width:100%; border-collapse:collapse; font-size:0.88em;">
+        <thead>
+            <tr style="background:#1a3a5c; color:white;">
+                <th style="padding:6px 10px; text-align:left;">Asset #</th>
+                <th style="padding:6px 10px; text-align:left;">Description</th>
+                <th style="padding:6px 10px; text-align:left;">Category</th>
+                <th style="padding:6px 10px; text-align:left;">Make</th>
+                <th style="padding:6px 10px; text-align:left;">Model</th>
+                <th style="padding:6px 10px; text-align:left;">Rego</th>
+                <th style="padding:6px 8px; text-align:center; width:50px;">Active</th>
+                <th style="width:60px;"></th>
+            </tr>
+        </thead>
+        <tbody id="mvBody">
+            {% for v in mv_vehicles %}
+            <tr id="mv-row-{{ v.pk }}" data-active="{% if v.is_active %}1{% else %}0{% endif %}" style="border-bottom:1px solid #eee; {% if forloop.counter|divisibleby:2 %}background:#f9f9f9;{% endif %}">
+                <td style="padding:6px 10px; font-weight:600;">{{ v.name }}</td>
+                <td style="padding:6px 10px;">{{ v.description }}</td>
+                <td style="padding:6px 10px; color:#666;">{{ v.category }}</td>
+                <td style="padding:6px 10px;">{{ v.make }}</td>
+                <td style="padding:6px 10px;">{{ v.model_name }}</td>
+                <td style="padding:6px 10px;">{{ v.rego }}</td>
+                <td style="padding:6px 8px; text-align:center;">{% if v.is_active %}✓{% endif %}</td>
+                <td style="padding:6px 4px; text-align:center;">
+                    <button type="button" onclick="editVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.95em;" title="Edit">✎</button>
+                    <button type="button" onclick="deleteVehicle({{ v.pk }}, this)"
+                            style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;">×</button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr id="mv-emptyRow"><td colspan="8" style="padding:20px; text-align:center; color:#aaa; font-size:0.9em;">No medium vehicles yet. Load an XLS file or click + Add Vehicle.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    </div>
+</div>
+</div>
+
+<script>
+const VEHICLE_TYPE = { lv: 'Light Vehicle', mv: 'Medium Vehicle', hv: 'Heavy Vehicle', tt: 'Tilt Tray', vib: 'Vibrator', atv: 'ATV' };
+const EMPTY_MSG    = { lv: 'No light vehicles yet.', mv: 'No medium vehicles yet.', hv: 'No heavy vehicles yet.', tt: 'No tilt trays yet.', vib: 'No vibrators yet.', atv: 'No ATVs yet.' };
+
+document.addEventListener('DOMContentLoaded', () => { ['lv','mv','hv','tt','vib','atv'].forEach(filterActive); });
+
+const parseUrl  = "{% url 'vehicle_parse_xls' %}";
+const addUrl    = "{% url 'vehicle_add_json' %}";
+const deleteUrl = pk => `/vehicles/${pk}/delete-json/`;
+const editUrl   = pk => `/vehicles/${pk}/edit-json/`;
+const csrf      = '{{ csrf_token }}';
+
+function switchTab(tab) {
+    document.querySelectorAll('[id^="panel-"]').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('[id^="tab-"]').forEach(b => {
+        b.style.background = '#f0f4f8'; b.style.color = '#1a3a5c';
+        b.style.borderBottom = '3px solid transparent';
+    });
+    document.getElementById('panel-' + tab).style.display = '';
+    const btn = document.getElementById('tab-' + tab);
+    btn.style.background = '#1a3a5c'; btn.style.color = 'white';
+    btn.style.borderBottom = '3px solid #1a3a5c';
+}
+
+// ── XLS load ─────────────────────────────────────────────
+document.getElementById('xlsFile').addEventListener('change', function () {
+    const file = this.files[0];
+    if (!file) return;
+    const status = document.getElementById('parseStatus');
+    status.textContent = 'Saving…';
+    const fd = new FormData();
+    fd.append('file', file);
+    fd.append('csrfmiddlewaretoken', csrf);
+    fetch(parseUrl, { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.error) { status.textContent = 'Error: ' + data.error; return; }
+            status.textContent = data.added ? `${data.added} added` : 'No new vehicles';
+            rebuildTable('lv', data.lv_vehicles);
+            rebuildTable('mv', data.mv_vehicles);
+            rebuildTable('hv', data.hv_vehicles);
+            rebuildTable('tt', data.tt_vehicles);
+            rebuildTable('vib', data.vib_vehicles);
+            rebuildTable('atv', data.atv_vehicles);
+        });
+});
+
+function rebuildTable(tab, vehicles) {
+    const tbody = document.getElementById(tab + 'Body');
+    tbody.innerHTML = '';
+    document.getElementById(tab + 'Count').textContent = vehicles.length + ' vehicles';
+    if (!vehicles.length) {
+        tbody.innerHTML = `<tr id="${tab}-emptyRow"><td colspan="8" style="padding:20px;text-align:center;color:#aaa;font-size:0.9em;">${EMPTY_MSG[tab]}</td></tr>`;
+        return;
+    }
+    vehicles.forEach((v, i) => tbody.appendChild(makeRow(tab, v, i)));
+    filterActive(tab);
+}
+
+function filterActive(tab) {
+    const activeOnly = document.getElementById('activeOnly-' + tab).checked;
+    document.querySelectorAll(`#${tab}Body tr[id^="${tab}-row"]`).forEach(tr => {
+        tr.style.display = (activeOnly && tr.dataset.active === '0') ? 'none' : '';
+    });
+}
+
+function makeRow(tab, v, i) {
+    const tr = document.createElement('tr');
+    tr.id = `${tab}-row-${v.pk}`;
+    tr.dataset.active = v.is_active ? '1' : '0';
+    tr.style.cssText = `border-bottom:1px solid #eee; background:${i%2?'#f9f9f9':'white'};`;
+    tr.innerHTML = `
+        <td style="padding:6px 10px; font-weight:600;">${v.name}</td>
+        <td style="padding:6px 10px;">${v.description}</td>
+        <td style="padding:6px 10px; color:#666;">${v.category}</td>
+        <td style="padding:6px 10px;">${v.make}</td>
+        <td style="padding:6px 10px;">${v.model_name}</td>
+        <td style="padding:6px 10px;">${v.rego}</td>
+        <td style="padding:6px 8px; text-align:center;">${v.is_active ? '✓' : ''}</td>
+        <td style="padding:6px 4px; text-align:center; white-space:nowrap;">
+            <button type="button" onclick="editVehicle(${v.pk}, this)"
+                    style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.95em;" title="Edit">✎</button>
+            <button type="button" onclick="deleteVehicle(${v.pk}, this)"
+                    style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;">×</button>
+        </td>`;
+    return tr;
+}
+
+// ── Delete ───────────────────────────────────────────────
+function deleteVehicle(pk, btn) {
+    const name = btn.closest('tr').querySelector('td').textContent.trim();
+    if (!confirm(`Remove "${name}" from the fleet?\n\nThis cannot be undone.`)) return;
+    fetch(deleteUrl(pk), { method: 'POST', headers: {'X-CSRFToken': csrf} })
+        .then(r => r.json()).then(data => {
+            if (!data.ok) return;
+            const tr = btn.closest('tr');
+            const tab = tr.id.split('-')[0];
+            tr.remove();
+            const count = document.querySelectorAll(`#${tab}Body tr[id^="${tab}-row"]`).length;
+            document.getElementById(tab + 'Count').textContent = count + ' vehicles';
+        });
+}
+
+// ── Render saved row ─────────────────────────────────────
+function renderSavedRow(tr, tab, data) {
+    tr.dataset.active = data.is_active ? '1' : '0';
+    tr.innerHTML = `
+        <td style="padding:6px 10px; font-weight:600;">${data.name}</td>
+        <td style="padding:6px 10px;">${data.description}</td>
+        <td style="padding:6px 10px; color:#666;">${data.category}</td>
+        <td style="padding:6px 10px;">${data.make}</td>
+        <td style="padding:6px 10px;">${data.model_name}</td>
+        <td style="padding:6px 10px;">${data.rego}</td>
+        <td style="padding:6px 8px; text-align:center;">${data.is_active ? '✓' : ''}</td>
+        <td style="padding:6px 4px; text-align:center; white-space:nowrap;">
+            <button type="button" onclick="editVehicle(${data.pk}, this)"
+                    style="background:none;border:none;color:#aaa;cursor:pointer;font-size:0.95em;" title="Edit">✎</button>
+            <button type="button" onclick="deleteVehicle(${data.pk}, this)"
+                    style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.1em;">×</button>
+        </td>`;
+}
+
+// ── Edit ─────────────────────────────────────────────────
+function editVehicle(pk, btn) {
+    const tr = btn.closest('tr');
+    const tab = tr.id.split('-')[0];
+    const tds = tr.querySelectorAll('td');
+    const cur = {
+        name:        tds[0].textContent.trim(),
+        description: tds[1].textContent.trim(),
+        category:    tds[2].textContent.trim(),
+        make:        tds[3].textContent.trim(),
+        model_name:  tds[4].textContent.trim(),
+        rego:        tds[5].textContent.trim(),
+        is_active:   tr.dataset.active === '1',
+    };
+    const inp = (cls, val) => `<input type="text" class="${cls}" value="${val.replace(/"/g,'&quot;')}" style="width:100%;padding:3px 5px;border:1px solid #c5d5e8;border-radius:3px;font-size:0.88em;box-sizing:border-box;">`;
+    tr.style.background = '#fffbe6';
+    tr.innerHTML = `
+        <td style="padding:4px 5px;">${inp('m-name', cur.name)}</td>
+        <td style="padding:4px 5px;">${inp('m-desc', cur.description)}</td>
+        <td style="padding:4px 5px;">${inp('m-cat', cur.category)}</td>
+        <td style="padding:4px 5px;">${inp('m-make', cur.make)}</td>
+        <td style="padding:4px 5px;">${inp('m-model', cur.model_name)}</td>
+        <td style="padding:4px 5px;">${inp('m-rego', cur.rego)}</td>
+        <td style="padding:4px 8px; text-align:center;"><input type="checkbox" ${cur.is_active ? 'checked' : ''} title="Active" style="width:auto;"></td>
+        <td style="padding:4px 5px; white-space:nowrap;">
+            <button type="button" onclick="saveEditRow(${pk}, this, '${tab}')" style="background:#1a3a5c;color:white;border:none;border-radius:4px;padding:3px 8px;font-size:0.82em;cursor:pointer;">✓</button>
+            <button type="button" onclick="cancelEdit(${pk}, '${tab}', this)" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1em;">×</button>
+        </td>`;
+    tr.querySelector('.m-name').focus();
+    tr.querySelector('.m-name').select();
+}
+
+function cancelEdit(pk, tab, btn) {
+    // Reload the row from server by re-fetching would be complex; just reload page
+    location.reload();
+}
+
+function saveEditRow(pk, btn, tab) {
+    const tr = btn.closest('tr');
+    const name = tr.querySelector('.m-name').value.trim();
+    if (!name) { tr.querySelector('.m-name').focus(); return; }
+    const payload = {
+        name,
+        description: tr.querySelector('.m-desc').value.trim(),
+        category:    tr.querySelector('.m-cat').value.trim(),
+        make:        tr.querySelector('.m-make').value.trim(),
+        model_name:  tr.querySelector('.m-model').value.trim(),
+        rego:        tr.querySelector('.m-rego').value.trim(),
+        is_active:   tr.querySelector('input[type="checkbox"]').checked,
+    };
+    fetch(editUrl(pk), {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify(payload),
+    }).then(r => r.json()).then(data => {
+        if (!data.ok) return;
+        tr.id = `${tab}-row-${data.pk}`;
+        tr.style.background = '';
+        renderSavedRow(tr, tab, data);
+        filterActive(tab);
+    });
+}
+
+// ── Manual add row ───────────────────────────────────────
+function addManualRow(tab) {
+    document.getElementById(tab + '-emptyRow')?.remove();
+    const tbody = document.getElementById(tab + 'Body');
+    const tr = document.createElement('tr');
+    tr.setAttribute('data-manual', tab);
+    tr.style.cssText = 'border-bottom:1px solid #eee; background:#fffbe6;';
+    const inp = (cls, ph) => `<input type="text" class="${cls}" placeholder="${ph}" style="width:100%;padding:3px 5px;border:1px solid #c5d5e8;border-radius:3px;font-size:0.88em;box-sizing:border-box;">`;
+    tr.innerHTML = `
+        <td style="padding:4px 5px;">${inp('m-name','Asset #')}</td>
+        <td style="padding:4px 5px;">${inp('m-desc','Description')}</td>
+        <td style="padding:4px 5px;">${inp('m-cat','Category')}</td>
+        <td style="padding:4px 5px;">${inp('m-make','Make')}</td>
+        <td style="padding:4px 5px;">${inp('m-model','Model')}</td>
+        <td style="padding:4px 5px;">${inp('m-rego','Rego')}</td>
+        <td style="padding:4px 8px; text-align:center;"><input type="checkbox" checked title="Active" style="width:auto;"></td>
+        <td style="padding:4px 5px; white-space:nowrap;">
+            <button type="button" onclick="saveManualRow(this)" style="background:#1a3a5c;color:white;border:none;border-radius:4px;padding:3px 8px;font-size:0.82em;cursor:pointer;">✓</button>
+            <button type="button" onclick="this.closest('tr').remove()" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1em;">×</button>
+        </td>`;
+    tbody.insertBefore(tr, tbody.firstChild);
+    tr.querySelector('.m-name').focus();
+}
+
+function saveManualRow(btn) {
+    const tr = btn.closest('tr');
+    const tab = tr.dataset.manual;
+    const name = tr.querySelector('.m-name').value.trim();
+    if (!name) { tr.querySelector('.m-name').focus(); return; }
+    const payload = {
+        name,
+        description:  tr.querySelector('.m-desc').value.trim(),
+        category:     tr.querySelector('.m-cat').value.trim(),
+        make:         tr.querySelector('.m-make').value.trim(),
+        model_name:   tr.querySelector('.m-model').value.trim(),
+        rego:         tr.querySelector('.m-rego').value.trim(),
+        is_active:    tr.querySelector('input[type="checkbox"]').checked,
+        vehicle_type: VEHICLE_TYPE[tab],
+    };
+    fetch(addUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify(payload),
+    }).then(r => r.json()).then(data => {
+        if (!data.ok) return;
+        tr.removeAttribute('data-manual');
+        tr.id = `${tab}-row-${data.pk}`;
+        tr.dataset.active = data.is_active ? '1' : '0';
+        tr.style.background = 'white';
+        renderSavedRow(tr, tab, data);
+        const count = document.querySelectorAll(`#${tab}Body tr[id^="${tab}-row"]`).length;
+        document.getElementById(tab + 'Count').textContent = count + ' vehicles';
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tBB3DownloadSettings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <mFrom>2021-06-22T00:00:00</mFrom>
+  <mTo>2021-06-22T23:59:59</mTo>
+  <mSerialNumber />
+  <mIPAddress />
+  <mDownloadType>3</mDownloadType>
+  <mProcess>1 - Dynamite</mProcess>
+  <mSaveReference>true</mSaveReference>
+  <mZip>true</mZip>
+  <mLocation />
+  <mFindNearSourcePoint>false</mFindNearSourcePoint>
+  <mOnlyForMissing>false</mOnlyForMissing>
+  <mClear>0</mClear>
+  <mType>0</mType>
+  <mCreateSourcePoints>false</mCreateSourcePoints>
+  <mSourceLine>0</mSourceLine>
+  <mSourceStation>0</mSourceStation>
+  <mMaxDistance>25</mMaxDistance>
+</tBB3DownloadSettings>

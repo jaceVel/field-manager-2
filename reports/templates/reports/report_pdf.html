@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @page { margin: 1.5cm; }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #222; margin: 0; }
+
+    h2 { font-size: 10.5pt; margin: 16px 0 5px; color: #1a3a5c; border-bottom: 1.5pt solid #1a3a5c; padding-bottom: 3px; page-break-after: avoid; }
+
+    table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 10px; }
+    th { background-color: #1a3a5c; color: white; padding: 5px 8px; text-align: left; font-size: 8pt; }
+    th.center { text-align: center; }
+    th.right  { text-align: right; }
+    td { padding: 4px 8px; border-bottom: 0.5pt solid #ddd; }
+    td.center { text-align: center; }
+    td.right  { text-align: right; }
+    tr.alt   { background-color: #f5f5f5; }
+    tr.total { background-color: #ececec; font-weight: bold; border-top: 1pt solid #1a3a5c; }
+    tr       { page-break-inside: avoid; }
+
+    .two-col td { vertical-align: top; padding: 0; }
+    .two-col td:first-child { padding-right: 12px; }
+
+    .label { color: #666; }
+    .diary { font-size: 8.5pt; line-height: 1.6; }
+    .map-img { width: 100%; margin: 4px 0 10px; }
+    .new-page { page-break-before: always; }
+    .no-break { page-break-inside: avoid; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<table style="background-color:#1a3a5c; margin-bottom:14px; width:100%; border-collapse:collapse;">
+    <tr>
+        <td style="padding:10px 16px; color:white; vertical-align:middle; border:none;">
+            <div style="font-size:13pt; font-weight:bold; letter-spacing:0.06em; margin-bottom:5px;">{% if report.report_type == 'supervisor' %}SUPERVISOR DAILY REPORT{% else %}RECORDING CREW DAILY PRODUCTION REPORT{% endif %}</div>
+            <div style="font-size:9pt; opacity:0.85;">{{ report.job.client }} — {{ report.job.project_name }}</div>
+            <div style="font-size:9pt; opacity:0.85; margin-top:2px;">{{ report.date|date:"d F Y" }} &nbsp;|&nbsp; Job {{ report.job.job_number }}</div>
+        </td>
+        {% if logo_b64 %}
+        <td style="padding:8px 14px; vertical-align:middle; text-align:right; border:none; width:160px;">
+            <img src="{{ logo_b64 }}" style="width:143px;" />
+        </td>
+        {% endif %}
+    </tr>
+</table>
+
+{% if report.report_type != 'supervisor' %}
+<!-- Job Details + Personnel -->
+<div class="no-break">
+<table class="two-col">
+    <tr>
+        <td width="50%">
+            <h2>Job Details</h2>
+            <table>
+                <tr><td class="label" width="130">Recording System</td><td>{{ report.job.recording_system }}</td></tr>
+                <tr class="alt"><td class="label">Source Type</td><td>{{ report.job.source_type|default:"—" }}</td></tr>
+                {% if report.job.rx_interval %}<tr><td class="label">Rx Interval</td><td>{{ report.job.rx_interval }} m</td></tr>{% endif %}
+                {% if report.job.sx_interval %}<tr class="alt"><td class="label">Sx Interval</td><td>{{ report.job.sx_interval }} m</td></tr>{% endif %}
+            </table>
+        </td>
+        <td width="50%">
+            <h2>Personnel</h2>
+            <table>
+                <tr><td class="label" width="110">Observer(s)</td><td>{% for n in saved_observers %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>
+                <tr class="alt"><td class="label">Vibe Operator(s)</td><td>{% for n in saved_operators %}{{ n }}{% if not forloop.last %}, {% endif %}{% endfor %}</td></tr>
+            </table>
+        </td>
+    </tr>
+</table>
+</div>
+{% endif %}
+
+{% if report.report_type != 'supervisor' and shot_stats and shot_stats.production %}
+<!-- Production Summary -->
+<div class="no-break">
+<h2>Production Summary</h2>
+<table class="no-break">
+    <tr>
+        <th class="center">VP Today</th>
+        <th class="center">Daily Avg</th>
+        <th class="center">Total Job Shots</th>
+        <th class="center">Shots Remaining</th>
+    </tr>
+    <tr>
+        <td class="center">{% if shot_stats %}{{ shot_stats.production }}{% else %}—{% endif %}</td>
+        <td class="center">{% if daily_avg_shots %}{{ daily_avg_shots }}{% else %}—{% endif %}</td>
+        <td class="center">{% if job_total_shots %}{{ job_total_shots }}{% else %}—{% endif %}</td>
+        <td class="center">{% if shots_remaining is not None %}{{ shots_remaining }}{% else %}—{% endif %}</td>
+    </tr>
+</table>
+{% if finish_estimates %}
+<table style="margin-bottom:6px;">
+    <tr><th colspan="3">Estimated Finish — Shots</th></tr>
+    {% for est in finish_estimates %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+        <td style="width:110px;">{{ est.label }}</td>
+        <td style="width:100px; font-weight:bold;">{% if est.date %}{{ est.date|date:"d M Y" }}{% else %}—{% endif %}</td>
+        <td class="label">{{ est.detail }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+{% if shot_stats and shot_stats.line_stats %}
+<table>
+    <tr><th>Line</th><th class="center">Start</th><th class="center">End</th><th class="center">Shots</th></tr>
+    {% for ls in shot_stats.line_stats %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+        <td>{{ ls.line }}</td><td class="center">{{ ls.start }}</td><td class="center">{{ ls.end }}</td><td class="center">{{ ls.shots }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="total"><td colspan="3">Total</td><td class="center">{{ shot_stats.production }}</td></tr>
+</table>
+{% endif %}
+</div>
+
+<!-- Shot Progress Map -->
+{% if progress_png %}
+<div class="no-break">
+<h2>Shot Progress</h2>
+<img class="map-img" src="{{ progress_png }}" />
+</div>
+{% endif %}
+
+<!-- Node Deployment -->
+{% if rx_stats %}
+<div class="no-break">
+<h2>Node Deployment</h2>
+<table class="no-break">
+    <tr>
+        <th class="center">Nodes Today</th>
+        <th class="center">Daily Avg</th>
+        <th class="center">Total Job Nodes</th>
+        <th class="center">Nodes Remaining</th>
+    </tr>
+    <tr>
+        <td class="center">{{ rx_stats.total }}</td>
+        <td class="center">{% if daily_avg_nodes %}{{ daily_avg_nodes }}{% else %}—{% endif %}</td>
+        <td class="center">{% if job_total_nodes %}{{ job_total_nodes }}{% else %}—{% endif %}</td>
+        <td class="center">{% if nodes_remaining is not None %}{{ nodes_remaining }}{% else %}—{% endif %}</td>
+    </tr>
+</table>
+{% if node_finish_estimates %}
+<table style="margin-bottom:6px;">
+    <tr><th colspan="3">Estimated Finish — Node Deployment</th></tr>
+    {% for est in node_finish_estimates %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+        <td style="width:110px;">{{ est.label }}</td>
+        <td style="width:100px; font-weight:bold;">{% if est.date %}{{ est.date|date:"d M Y" }}{% else %}—{% endif %}</td>
+        <td class="label">{{ est.detail }}</td>
+    </tr>
+    {% endfor %}
+</table>
+{% endif %}
+{% if rx_stats.line_stats %}
+<table>
+    <tr><th>Line</th><th class="center">Start</th><th class="center">End</th><th class="center">Nodes</th></tr>
+    {% for ls in rx_stats.line_stats %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+        <td>{{ ls.line }}</td><td class="center">{{ ls.start }}</td><td class="center">{{ ls.end }}</td><td class="center">{{ ls.nodes }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="total"><td colspan="3">Total</td><td class="center">{{ rx_stats.total }}</td></tr>
+</table>
+{% endif %}
+</div>
+{% endif %}
+
+<!-- Node Deployment Progress Map -->
+{% if deployment_png %}
+<div class="no-break">
+<h2>Node Deployment Progress</h2>
+<img class="map-img" src="{{ deployment_png }}" />
+</div>
+{% elif active_patch_png %}
+<div class="no-break">
+<h2>Node Deployment Progress — Active Patch</h2>
+<img class="map-img" src="{{ active_patch_png }}" />
+{% if active_patch_stats %}
+<table style="width:60%; border-collapse:collapse; font-size:0.88em; margin-top:10px;">
+    <tr style="background:#1a3a5c; color:white;">
+        <th style="padding:6px 10px; text-align:left;">Rear of Patch</th>
+        <th style="padding:6px 10px; text-align:left;">Front of Patch</th>
+        <th style="padding:6px 10px; text-align:center;">Nodes in Ground</th>
+    </tr>
+    <tr>
+        <td style="padding:6px 10px;">Line {{ active_patch_stats.last_line }} / Sta {{ active_patch_stats.last_station }}</td>
+        <td style="padding:6px 10px;">{% if active_patch_stats.front_line %}Line {{ active_patch_stats.front_line }} / Sta {{ active_patch_stats.front_station }}{% else %}—{% endif %}</td>
+        <td style="padding:6px 10px; text-align:center; font-weight:bold;">{{ active_patch_stats.in_ground }}</td>
+    </tr>
+</table>
+{% endif %}
+</div>
+{% endif %}
+{% endif %}{# end if not supervisor #}
+
+<!-- Activity Details -->
+<div class="no-break">
+<h2>Activity Details</h2>
+{% if activities %}
+<table>
+{% if report.report_type == 'supervisor' %}
+    <tr><th>Contractor</th><th>Name</th><th>Job Title</th><th>Hours</th><th>Category</th><th>Type</th></tr>
+    {% for a in activities %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+        <td>{{ a.details|default:"&nbsp;" }}</td>
+        <td>{{ a.notes|default:"&nbsp;" }}</td>
+        <td>{{ a.job_title|default:"&nbsp;" }}</td>
+        <td>{{ a.hours|default:"&nbsp;" }}</td>
+        <td>{{ a.category }}</td>
+        <td>{{ a.activity_type }}</td>
+    </tr>
+    {% endfor %}
+{% else %}
+    <tr><th>Start</th><th>End</th><th>Duration</th><th>Category</th><th>Type</th><th>Details</th></tr>
+    {% for a in activities %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+        <td>{{ a.start_time|time:"H:i" }}</td>
+        <td>{{ a.end_time|time:"H:i" }}</td>
+        <td>{{ a.duration }}</td>
+        <td>{{ a.category }}</td>
+        <td>{{ a.activity_type }}</td>
+        <td>{{ a.details|default:"&nbsp;" }}</td>
+    </tr>
+    {% endfor %}
+{% endif %}
+</table>
+{% else %}
+<p style="color:#999;">No activities recorded.</p>
+{% endif %}
+{% if shot_chart_png %}
+<div style="margin-top:8px;">
+    <div style="font-size:7.5pt; color:#555; margin-bottom:3px;">Shots per 15-Minute Interval</div>
+    <img src="{{ shot_chart_png }}" style="width:100%;" />
+</div>
+{% endif %}
+</div>
+
+<!-- Diary -->
+{% if report.diary %}
+<div class="no-break">
+<h2>Diary / Notes</h2>
+<div class="diary">{{ report.diary|linebreaksbr }}</div>
+</div>
+{% endif %}
+
+<!-- Chargeable Hours — Daily -->
+{% if chargeable_rows %}
+<div class="no-break">
+<h2>Chargeable Hours — {{ report.date|date:"d M Y" }}</h2>
+<table>
+    <tr><th>Activity Type</th><th class="center">Chargeable %</th><th class="right">Total Hours</th><th class="right">Chargeable Hours</th></tr>
+    {% for row in chargeable_rows %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+        <td>{{ row.type }}</td>
+        <td class="center">{{ row.pct }}%</td>
+        <td class="right">{{ row.total }}</td>
+        <td class="right">{{ row.chargeable }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="total"><td colspan="3">Total Chargeable</td><td class="right">{{ total_chargeable }}</td></tr>
+</table>
+</div>
+{% endif %}
+
+<!-- Chargeable Hours — Job Total -->
+{% if job_chargeable_rows %}
+<div class="no-break">
+<h2>Chargeable Hours — Job Total</h2>
+<table>
+    <tr><th>Activity Type</th><th class="center">Chargeable %</th><th class="right">Total Hours</th><th class="right">Chargeable Hours</th></tr>
+    {% for row in job_chargeable_rows %}
+    <tr {% if forloop.counter|divisibleby:2 %}class="alt"{% endif %}>
+        <td>{{ row.type }}</td>
+        <td class="center">{{ row.pct }}%</td>
+        <td class="right">{{ row.total }}</td>
+        <td class="right">{{ row.chargeable }}</td>
+    </tr>
+    {% endfor %}
+    <tr class="total"><td colspan="3">Total Chargeable</td><td class="right">{{ job_total_chargeable }}</td></tr>
+</table>
+</div>
+{% endif %}
+
+<!-- Pie Charts -->
+{% if pie_charts_png %}
+<div class="no-break">
+<h2>{% if report.report_type == 'supervisor' %}Activity Summary{% else %}Recording Summary{% endif %}</h2>
+<img src="{{ pie_charts_png }}" style="width:100%;" />
+</div>
+{% endif %}
+
+<!-- PSS QC Maps — new page -->
+{% if pss_png_maps and report.report_type != 'supervisor' %}
+<div class="new-page">
+<h2>PSS QC Maps</h2>
+{% for unit_label, unit_maps in pss_png_maps %}
+<div class="no-break">
+{% if unit_label %}<h3 style="font-size:9pt; color:#1a3a5c; margin:10px 0 4px; border-bottom:0.5pt solid #ccc; padding-bottom:2px;">Unit {{ unit_label }}</h3>{% endif %}
+<table style="width:100%; border-collapse:collapse;">
+    {% for m in unit_maps %}
+    {% if forloop.counter0|divisibleby:2 %}<tr>{% endif %}
+    <td style="width:50%; padding:4px; vertical-align:top;">
+        <div style="font-size:7.5pt; font-weight:bold; margin-bottom:2px;">{{ m.label }}</div>
+        <div style="font-size:6.5pt; margin-bottom:3px; color:#000;">
+            {% if m.higher %}
+            <span style="color:#4caf50;">&#9679;</span> &gt;= {{ m.g }}{{ m.sym }}
+            &nbsp;&nbsp;
+            <span style="color:#ff9800;">&#9679;</span> {{ m.a }}&#8211;{{ m.g }}{{ m.sym }}
+            &nbsp;&nbsp;
+            <span style="color:#e63946;">&#9679;</span> &lt; {{ m.a }}{{ m.sym }}
+            {% else %}
+            <span style="color:#4caf50;">&#9679;</span> &lt;= {{ m.g }}{{ m.sym }}
+            &nbsp;&nbsp;
+            <span style="color:#ff9800;">&#9679;</span> {{ m.g }}&#8211;{{ m.a }}{{ m.sym }}
+            &nbsp;&nbsp;
+            <span style="color:#e63946;">&#9679;</span> &gt; {{ m.a }}{{ m.sym }}
+            {% endif %}
+        </div>
+        <img src="{{ m.path }}" style="width:100%;" />
+    </td>
+    {% if forloop.counter|divisibleby:2 or forloop.last %}</tr>{% endif %}
+    {% endfor %}
+</table>
+</div>
+{% endfor %}
+</div>
+{% endif %}
+
+<!-- Photos -->
+{% if photos %}
+<div class="new-page">
+<h2>Photos</h2>
+{% if report.photo_columns == 1 %}
+{% for photo in photos %}
+<div class="no-break" style="margin-bottom:14px;">
+    {% if photo.border_style == 'none' %}
+    <img src="{{ photo.image.path }}" style="width:100%;" />
+    {% elif photo.border_style == 'thin' %}
+    <img src="{{ photo.image.path }}" style="width:100%; border:1pt solid #999;" />
+    {% elif photo.border_style == 'thick' %}
+    <img src="{{ photo.image.path }}" style="width:100%; border:3pt solid #1a3a5c;" />
+    {% else %}
+    <img src="{{ photo.image.path }}" style="width:100%; border:3pt solid #1a3a5c;" />
+    {% endif %}
+    {% if photo.caption %}<div style="font-size:10pt; color:#444; margin-top:4px; text-align:center;">{{ photo.caption }}</div>{% endif %}
+</div>
+{% endfor %}
+{% else %}
+<table style="width:100%; border-collapse:collapse;">
+{% for photo in photos %}
+{% if forloop.counter0|divisibleby:2 %}<tr>{% endif %}
+<td style="width:50%; padding:4px; vertical-align:top;">
+    {% if photo.border_style == 'none' %}
+    <img src="{{ photo.image.path }}" style="width:100%;" />
+    {% elif photo.border_style == 'thin' %}
+    <img src="{{ photo.image.path }}" style="width:100%; border:1pt solid #999;" />
+    {% elif photo.border_style == 'thick' %}
+    <img src="{{ photo.image.path }}" style="width:100%; border:3pt solid #1a3a5c;" />
+    {% else %}
+    <img src="{{ photo.image.path }}" style="width:100%; border:3pt solid #1a3a5c;" />
+    {% endif %}
+    {% if photo.caption %}<div style="font-size:10pt; color:#444; margin-top:4px; text-align:center;">{{ photo.caption }}</div>{% endif %}
+</td>
+{% if forloop.counter|divisibleby:2 or forloop.last %}</tr>{% endif %}
+{% endfor %}
+</table>
+{% endif %}
+</div>
+{% endif %}
+
+</body>
+</html>

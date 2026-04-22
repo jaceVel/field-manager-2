@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}Equipment{% endblock %}
+{% block content %}
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;"><a href="{% url 'home' %}" style="color:#999;">Home</a> /</p>
+<h1 style="margin:4px 0 24px;">Equipment</h1>
+
+<div class="card">
+
+    <!-- Tabs -->
+    <div style="display:flex; gap:0; border-bottom:2px solid #1a3a5c; margin-bottom:16px;">
+        {% for t in tabs %}
+        <button id="tab-{{ t.tab }}" onclick="switchTab('{{ t.tab }}')"
+                style="padding:7px 18px; border:none; border-bottom:{% if forloop.first %}3px solid #1a3a5c; background:#1a3a5c; color:white;{% else %}3px solid transparent; background:#f0f4f8; color:#1a3a5c;{% endif %} font-weight:600; cursor:pointer; font-size:0.9em; margin-bottom:-2px; border-radius:6px 6px 0 0;">
+            {{ t.label }} <span id="count-{{ t.tab }}" style="font-size:0.82em; font-weight:400; opacity:0.8;">({{ t.items|length }})</span>
+        </button>
+        {% endfor %}
+    </div>
+
+    <!-- Panels -->
+    {% for t in tabs %}
+    <div id="panel-{{ t.tab }}" {% if not forloop.first %}style="display:none;"{% endif %}>
+        <table style="width:100%; border-collapse:collapse; font-size:0.9em; margin-bottom:12px;">
+            <thead>
+                <tr style="background:#f0f4f8;">
+                    <th style="padding:7px 10px; text-align:left; color:#1a3a5c;">Name</th>
+                    <th style="padding:7px 10px; text-align:left; color:#1a3a5c;">Serial Number</th>
+                    <th style="padding:7px 10px; text-align:left; color:#1a3a5c;">Notes</th>
+                    <th style="padding:7px 10px; text-align:center; color:#1a3a5c; white-space:nowrap;">Active / Standby</th>
+                    <th style="width:40px;"></th>
+                </tr>
+            </thead>
+            <tbody id="tbody-{{ t.tab }}">
+                {% for e in t.items %}
+                <tr id="eq-row-{{ e.pk }}" style="border-bottom:1px solid #eee;">
+                    <td style="padding:7px 10px; font-weight:600;">{{ e.name }}</td>
+                    <td style="padding:7px 10px; color:#555; font-family:monospace;">{{ e.serial_number|default:"" }}</td>
+                    <td style="padding:7px 10px; color:#666;">{{ e.notes|default:"" }}</td>
+                    <td style="padding:7px 10px; text-align:center;">
+                        <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
+                            <input type="checkbox" id="active-{{ e.pk }}" {% if e.is_active %}checked{% endif %}
+                                   onchange="toggleActive({{ e.pk }}, this)"
+                                   style="width:16px; height:16px; accent-color:#1a3a5c; cursor:pointer;">
+                            <span id="active-label-{{ e.pk }}" style="font-size:0.82em; color:{% if e.is_active %}#1a7c3e{% else %}#888{% endif %}; font-weight:600;">
+                                {% if e.is_active %}Active{% else %}Standby{% endif %}
+                            </span>
+                        </label>
+                    </td>
+                    <td style="padding:7px 6px; text-align:center;">
+                        <button type="button" onclick="deleteEquipment({{ e.pk }}, '{{ e.name|escapejs }}')"
+                                title="Delete" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.2em;">×</button>
+                    </td>
+                </tr>
+                {% endfor %}
+                <!-- Add row -->
+                <tr id="add-row-{{ t.tab }}">
+                    <td style="padding:6px 6px;">
+                        <input id="add-name-{{ t.tab }}" type="text" placeholder="Name"
+                               style="width:100%; padding:6px 8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;">
+                    </td>
+                    <td style="padding:6px 6px;">
+                        <input id="add-serial-{{ t.tab }}" type="text" placeholder="Serial number (optional)"
+                               style="width:100%; padding:6px 8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box; font-family:monospace;">
+                    </td>
+                    <td style="padding:6px 6px;">
+                        <input id="add-notes-{{ t.tab }}" type="text" placeholder="Notes (optional)"
+                               style="width:100%; padding:6px 8px; border:1px solid #ccc; border-radius:4px; box-sizing:border-box;">
+                    </td>
+                    <td style="padding:6px 10px; text-align:center;">
+                        <label style="display:inline-flex; align-items:center; gap:6px; cursor:pointer; user-select:none;">
+                            <input type="checkbox" id="add-active-{{ t.tab }}" checked
+                                   style="width:16px; height:16px; accent-color:#1a3a5c; cursor:pointer;">
+                            <span style="font-size:0.82em; color:#888; font-weight:600;">Active</span>
+                        </label>
+                    </td>
+                    <td style="padding:6px 6px; text-align:center;">
+                        <button type="button" onclick="addEquipment('{{ t.tab }}', '{{ t.type }}')"
+                                style="background:#1a3a5c;color:white;border:none;border-radius:4px;padding:6px 12px;cursor:pointer;font-size:0.85em;">Add</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {% endfor %}
+
+</div>
+
+<script>
+const addUrl          = "{% url 'equipment_add_json' %}";
+const deleteUrl       = pk => `/equipment/${pk}/delete-json/`;
+const toggleActiveUrl = pk => `/equipment/${pk}/toggle-active-json/`;
+const csrf            = '{{ csrf_token }}';
+
+function switchTab(tab) {
+    document.querySelectorAll('[id^="panel-"]').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('[id^="tab-"]').forEach(b => {
+        b.style.background = '#f0f4f8'; b.style.color = '#1a3a5c';
+        b.style.borderBottom = '3px solid transparent';
+    });
+    document.getElementById('panel-' + tab).style.display = '';
+    const btn = document.getElementById('tab-' + tab);
+    btn.style.background = '#1a3a5c'; btn.style.color = 'white';
+    btn.style.borderBottom = '3px solid #1a3a5c';
+}
+
+function addEquipment(tab, equipmentType) {
+    const nameEl   = document.getElementById('add-name-' + tab);
+    const serialEl = document.getElementById('add-serial-' + tab);
+    const notesEl  = document.getElementById('add-notes-' + tab);
+    const activeEl = document.getElementById('add-active-' + tab);
+    const name = nameEl.value.trim();
+    if (!name) { nameEl.focus(); return; }
+    fetch(addUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({
+            name,
+            serial_number: serialEl.value.trim(),
+            equipment_type: equipmentType,
+            notes: notesEl.value.trim(),
+            is_active: activeEl.checked,
+        }),
+    }).then(r => r.json()).then(data => {
+        if (!data.ok) return;
+        const tbody  = document.getElementById('tbody-' + tab);
+        const addRow = document.getElementById('add-row-' + tab);
+        const tr = document.createElement('tr');
+        tr.id = 'eq-row-' + data.pk;
+        tr.style.borderBottom = '1px solid #eee';
+        const labelText  = data.is_active ? 'Active' : 'Standby';
+        const labelColor = data.is_active ? '#1a7c3e' : '#888';
+        tr.innerHTML = `
+            <td style="padding:7px 10px;font-weight:600;">${escHtml(data.name)}</td>
+            <td style="padding:7px 10px;color:#555;font-family:monospace;">${escHtml(data.serial_number)}</td>
+            <td style="padding:7px 10px;color:#666;">${escHtml(data.notes)}</td>
+            <td style="padding:7px 10px;text-align:center;">
+                <label style="display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none;">
+                    <input type="checkbox" id="active-${data.pk}" ${data.is_active ? 'checked' : ''}
+                           onchange="toggleActive(${data.pk},this)"
+                           style="width:16px;height:16px;accent-color:#1a3a5c;cursor:pointer;">
+                    <span id="active-label-${data.pk}" style="font-size:0.82em;color:${labelColor};font-weight:600;">${labelText}</span>
+                </label>
+            </td>
+            <td style="padding:7px 6px;text-align:center;">
+                <button type="button" onclick="deleteEquipment(${data.pk},${JSON.stringify(data.name)})"
+                        title="Delete" style="background:none;border:none;color:#ccc;cursor:pointer;font-size:1.2em;">×</button>
+            </td>`;
+        tbody.insertBefore(tr, addRow);
+        nameEl.value = ''; serialEl.value = ''; notesEl.value = '';
+        activeEl.checked = true;
+        updateCount(tab);
+    });
+}
+
+function toggleActive(pk, checkbox) {
+    fetch(toggleActiveUrl(pk), {method: 'POST', headers: {'X-CSRFToken': csrf}})
+        .then(r => r.json()).then(data => {
+            if (!data.ok) { checkbox.checked = !checkbox.checked; return; }
+            const label = document.getElementById('active-label-' + pk);
+            if (label) {
+                label.textContent = data.is_active ? 'Active' : 'Standby';
+                label.style.color = data.is_active ? '#1a7c3e' : '#888';
+            }
+        });
+}
+
+function deleteEquipment(pk, name) {
+    if (!confirm(`Delete "${name}"?\n\nThis cannot be undone.`)) return;
+    fetch(deleteUrl(pk), {method: 'POST', headers: {'X-CSRFToken': csrf}})
+        .then(r => r.json()).then(data => {
+            if (!data.ok) return;
+            const row = document.getElementById('eq-row-' + pk);
+            const tab = row?.closest('[id^="panel-"]')?.id.replace('panel-', '');
+            row?.remove();
+            if (tab) updateCount(tab);
+        });
+}
+
+function updateCount(tab) {
+    const tbody = document.getElementById('tbody-' + tab);
+    const count = tbody.querySelectorAll('tr[id^="eq-row-"]').length;
+    document.getElementById('count-' + tab).textContent = `(${count})`;
+}
+
+function escHtml(str) {
+    return String(str || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+</script>
+{% endblock %}

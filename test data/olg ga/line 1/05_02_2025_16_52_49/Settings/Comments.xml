@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfString xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <string>VOID FILE</string>
+  <string>BAD SWEEP</string>
+  <string>RESHOOT FOR BAD SWEEP</string>
+  <string>UPHOLE TIME=</string>
+  <string>SKIPS FOR CULVERT:</string>
+  <string>FLEET DETOUR</string>
+  <string>VIB DETOUR</string>
+  <string>RECOVERY SHOT FOR CULVERT</string>
+  <string>MAKE UP VP</string>
+  <string>SOSIE SHOT</string>
+  <string>USE COG FOR POSITION</string>
+</ArrayOfString>

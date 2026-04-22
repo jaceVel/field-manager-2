@@ -1,0 +1,974 @@
+{% extends "base.html" %}
+{% block title %}{% if meeting %}Edit{% else %}New{% endif %} Toolbox V2 — {{ job.job_number }}{% endblock %}
+{% block content %}
+<div class="container-fluid py-3" style="max-width:900px;">
+
+  <div class="d-flex align-items-center mb-3 gap-2">
+    <a href="{% url 'toolbox_v2_list' job.pk %}" class="btn btn-sm btn-outline-secondary">&larr; Meetings</a>
+    {% if not meeting and prev_data %}
+    <button type="button" class="btn btn-sm btn-outline-warning" onclick="prefillFromPrevious()">↩ Prefill from previous</button>
+    {% endif %}
+    <h4 class="mb-0">
+      {% if meeting %}Edit{% else %}New{% endif %}
+      {% if meeting_type == 'daily' %}Daily Toolbox Meeting{% else %}Journey Management Toolbox Meeting{% endif %}
+      <span class="badge bg-success ms-2" style="font-size:0.65em; vertical-align:middle;">V2 — Digital Signatures</span>
+    </h4>
+  </div>
+
+  <form method="post">
+    {% csrf_token %}
+
+    <!-- Section 1 -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold bg-dark text-white py-2">Section 1 — Meeting Details</div>
+      <div class="card-body">
+        <div style="display:flex; gap:12px; flex-wrap:nowrap; margin-bottom:12px;">
+          <div style="flex:0 0 160px;">
+            <label class="form-label fw-semibold small">Date</label>
+            <input type="date" name="date" class="form-control form-control-sm"
+              value="{{ meeting.date|date:'Y-m-d'|default:'' }}">
+          </div>
+          <div style="flex:0 0 130px;">
+            <label class="form-label fw-semibold small">Time</label>
+            <input type="time" name="time" class="form-control form-control-sm"
+              value="{{ meeting.time|time:'H:i'|default:'' }}">
+          </div>
+          {% if meeting_type == 'daily' %}
+          <div style="flex:0 0 140px;">
+            <label class="form-label fw-semibold small"># Days on Job</label>
+            <input type="text" name="days_on_job" class="form-control form-control-sm"
+              value="{{ meeting.days_on_job|default:'' }}">
+          </div>
+          {% else %}
+          <div style="flex:0 0 190px;">
+            <label class="form-label fw-semibold small">JMP #</label>
+            <input type="text" name="jmp_number" id="jmpNumberInput" class="form-control form-control-sm"
+              value="{{ meeting.jmp_number|default:'' }}" autocomplete="off">
+            {% if jmp_numbers %}
+            <select class="form-select form-select-sm mt-1" onchange="if(this.value){document.getElementById('jmpNumberInput').value=this.value;} this.selectedIndex=0;">
+              <option value="">— select recent —</option>
+              {% for n in jmp_numbers %}<option value="{{ n }}">{{ n }}</option>{% endfor %}
+            </select>
+            {% endif %}
+          </div>
+          {% endif %}
+        </div>
+        <div style="display:flex; gap:12px; flex-wrap:nowrap;">
+          <div style="flex:1;">
+            <label class="form-label fw-semibold small">Location</label>
+            <input type="text" name="location" id="locationInput" class="form-control form-control-sm"
+              value="{{ meeting.location|default:'' }}">
+            {% if saved_locations %}
+            <div style="margin-top:5px; display:flex; flex-wrap:wrap; gap:4px;">
+              {% for loc in saved_locations %}
+              <span style="display:inline-flex; align-items:center; gap:3px; background:#e8f0f8; color:#1a3a5c; border-radius:10px; padding:2px 8px; font-size:0.8em; cursor:pointer;"
+                    onclick="document.getElementById('locationInput').value='{{ loc.name|escapejs }}'">
+                {{ loc.name }}
+                <button type="button"
+                  style="background:none; border:none; color:#999; cursor:pointer; font-size:0.85em; padding:0; line-height:1; margin-left:2px;"
+                  onclick="event.stopPropagation(); deleteLocation({{ loc.pk }}, this)">×</button>
+              </span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          <div style="flex:1;">
+            <label class="form-label fw-semibold small">Supervisor</label>
+            <input type="text" name="supervisor" id="supervisorInput" class="form-control form-control-sm"
+              value="{{ meeting.supervisor|default:'' }}">
+            {% if supervisors %}
+            <div style="margin-top:5px; display:flex; flex-wrap:wrap; gap:4px;">
+              {% for p in supervisors %}
+              <span style="display:inline-flex; align-items:center; background:#e8f0f8; color:#1a3a5c; border-radius:10px; padding:2px 8px; font-size:0.8em; cursor:pointer;"
+                    onclick="document.getElementById('supervisorInput').value='{{ p.name|escapejs }}'">
+                {{ p.name }}
+              </span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 2 -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold bg-dark text-white py-2">
+        Section 2 — {% if meeting_type == 'daily' %}General Job Information / Discussion for yesterday's activities{% else %}JMP Checklist{% endif %}
+      </div>
+      <div class="card-body">
+        {% if meeting_type == 'daily' %}
+        <label class="form-label fw-semibold small">Yesterday's Activities</label>
+        <textarea name="yesterday_activities" class="form-control form-control-sm" rows="12">{{ meeting.yesterday_activities|default:'' }}</textarea>
+        {% else %}
+        <p class="small text-muted mb-2">Confirm the following have been covered in the Journey Management Plan:</p>
+        <div class="d-flex flex-column gap-1">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="jmp_route_discussed" id="jmp_route_discussed"
+              {% if meeting.jmp_route_discussed %}checked{% endif %}>
+            <label class="form-check-label small" for="jmp_route_discussed">Route discussed with all crew</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="jmp_hours_noted" id="jmp_hours_noted"
+              {% if meeting.jmp_hours_noted %}checked{% endif %}>
+            <label class="form-check-label small" for="jmp_hours_noted">Driving hours / fatigue limits noted</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="jmp_contact_numbers" id="jmp_contact_numbers"
+              {% if meeting.jmp_contact_numbers %}checked{% endif %}>
+            <label class="form-check-label small" for="jmp_contact_numbers">Emergency contact numbers confirmed</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="jmp_signed_off" id="jmp_signed_off"
+              {% if meeting.jmp_signed_off %}checked{% endif %}>
+            <label class="form-check-label small" for="jmp_signed_off">JMP signed off by supervisor</label>
+          </div>
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="jmp_lead_tail" id="jmp_lead_tail"
+              {% if meeting.jmp_lead_tail %}checked{% endif %}>
+            <label class="form-check-label small" for="jmp_lead_tail">Lead / tail vehicle assigned</label>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Section 3 -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold bg-dark text-white py-2">Section 3 — Activities &amp; Conditions</div>
+      <div class="card-body">
+        <div class="row g-3">
+          {% if meeting_type == 'daily' %}
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Today's Activities</label>
+            <textarea name="todays_activities" class="form-control form-control-sm" rows="9">{{ meeting.todays_activities|default:'' }}</textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Terrain Discussion</label>
+            <textarea name="terrain_discussion" class="form-control form-control-sm" rows="6">{{ meeting.terrain_discussion|default:'' }}</textarea>
+          </div>
+          {% else %}
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Road Condition Discussion</label>
+            <textarea name="road_condition" class="form-control form-control-sm" rows="9">{{ meeting.road_condition|default:'' }}</textarea>
+          </div>
+          <div class="col-12">
+            <label class="form-label fw-semibold small">Today's Activities</label>
+            <textarea name="todays_activities" class="form-control form-control-sm" rows="6">{{ meeting.todays_activities|default:'' }}</textarea>
+          </div>
+          {% endif %}
+          <div class="col-md-6" style="margin-top:10px;">
+            <label class="form-label fw-semibold small">Muster Point</label>
+            <input type="text" name="muster_point" id="musterPointInput" class="form-control form-control-sm"
+              value="{{ meeting.muster_point|default:'' }}">
+            {% if saved_muster_points %}
+            <div style="margin-top:5px; display:flex; flex-wrap:wrap; gap:4px;">
+              {% for mp in saved_muster_points %}
+              <span style="display:inline-flex; align-items:center; gap:3px; background:#e8f0f8; color:#1a3a5c; border-radius:10px; padding:2px 8px; font-size:0.8em; cursor:pointer;"
+                    onclick="document.getElementById('musterPointInput').value='{{ mp.name|escapejs }}'">
+                {{ mp.name }}
+                <button type="button"
+                  style="background:none; border:none; color:#999; cursor:pointer; font-size:0.85em; padding:0; line-height:1; margin-left:2px;"
+                  onclick="event.stopPropagation(); deleteMusterPoint({{ mp.pk }}, this)">×</button>
+              </span>
+              {% endfor %}
+            </div>
+            {% endif %}
+          </div>
+          <div class="col-md-6" style="margin-top:10px;">
+            <label class="form-label fw-semibold small d-flex align-items-center gap-2">
+              Forecast
+              <button type="button" class="btn btn-sm btn-outline-info py-0 px-2" style="font-size:0.78em;" onclick="fetchWeather()" id="weatherBtn">⛅ Fetch Weather</button>
+              <span id="weatherStatus" style="font-size:0.78em; color:#666; font-weight:400;"></span>
+            </label>
+            <input type="text" name="forecast" class="form-control form-control-sm"
+              value="{{ meeting.forecast|default:'' }}">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold small">UV Index</label>
+            <select name="uv_index" class="form-select form-select-sm">
+              <option value="">—</option>
+              <option value="low" {% if meeting.uv_index == 'low' %}selected{% endif %}>Low</option>
+              <option value="high" {% if meeting.uv_index == 'high' %}selected{% endif %}>High</option>
+              <option value="extreme" {% if meeting.uv_index == 'extreme' %}selected{% endif %}>Extreme</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold small">Chance of Rain</label>
+            <input type="text" name="chance_of_rain" class="form-control form-control-sm"
+              value="{{ meeting.chance_of_rain|default:'' }}" placeholder="e.g. 20%">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold small">Min Temp</label>
+            <input type="text" name="min_temp" class="form-control form-control-sm"
+              value="{{ meeting.min_temp|default:'' }}" placeholder="e.g. 14°C">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label fw-semibold small">Max Temp</label>
+            <input type="text" name="max_temp" class="form-control form-control-sm"
+              value="{{ meeting.max_temp|default:'' }}" placeholder="e.g. 28°C">
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Grass Fire Risk</label>
+            <select name="grass_fire" class="form-select form-select-sm">
+              <option value="">—</option>
+              <option value="low" {% if meeting.grass_fire == 'low' %}selected{% endif %}>Low</option>
+              <option value="high" {% if meeting.grass_fire == 'high' %}selected{% endif %}>High</option>
+              <option value="extreme" {% if meeting.grass_fire == 'extreme' %}selected{% endif %}>Extreme</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Forest Fire Risk</label>
+            <select name="forest_fire" class="form-select form-select-sm">
+              <option value="">—</option>
+              <option value="low" {% if meeting.forest_fire == 'low' %}selected{% endif %}>Low</option>
+              <option value="high" {% if meeting.forest_fire == 'high' %}selected{% endif %}>High</option>
+              <option value="extreme" {% if meeting.forest_fire == 'extreme' %}selected{% endif %}>Extreme</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label fw-semibold small">Wind</label>
+            <input type="text" name="wind" class="form-control form-control-sm"
+              value="{{ meeting.wind|default:'' }}" placeholder="e.g. NW 20km/h">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Section 4 -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold bg-dark text-white py-2 d-flex align-items-center gap-3">
+        <span>Section 4 — Other Topics / Safety Issues</span>
+        <button type="button" class="btn btn-sm btn-outline-light" onclick="toggleTemplateManager()">Templates</button>
+        {% if topic_templates %}
+        <select class="form-select form-select-sm" style="width:auto; font-size:0.85em;"
+                onchange="applyTopicTemplate(this)">
+          <option value="">— Apply template —</option>
+          {% for t in topic_templates %}
+          <option value="{{ t.pk }}">{{ t.name }}</option>
+          {% endfor %}
+        </select>
+        {% endif %}
+      </div>
+      <div class="card-body">
+        <textarea name="other_topics" id="otherTopicsArea" class="form-control form-control-sm" rows="9">{{ meeting.other_topics|default:'' }}</textarea>
+      </div>
+      <div id="templateManager" style="display:none; border-top:1px solid #444; background:#2d2d2d; padding:12px 16px;">
+        {% for t in topic_templates %}
+        <div class="d-flex gap-2 align-items-start mb-2" id="tmpl-{{ t.pk }}">
+          <strong style="color:white; white-space:nowrap; font-size:0.85em; padding-top:6px; min-width:120px;">{{ t.name }}</strong>
+          <textarea class="form-control form-control-sm" rows="2" style="font-size:0.82em;"
+                    onchange="updateTemplate({{ t.pk }}, this.value)">{{ t.body }}</textarea>
+          <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteTemplate({{ t.pk }})">✕</button>
+        </div>
+        {% empty %}
+        <p style="color:#aaa; font-size:0.85em; margin:0 0 8px;" id="no-templates-msg">No templates yet.</p>
+        {% endfor %}
+        <div class="d-flex gap-2 mt-2">
+          <input type="text" id="newTmplName" class="form-control form-control-sm" placeholder="Template name" style="width:160px;">
+          <textarea id="newTmplBody" class="form-control form-control-sm" rows="2" placeholder="Template text…" style="flex:1;"></textarea>
+          <button type="button" class="btn btn-sm btn-outline-light" onclick="addTemplate()">Add</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Attendees -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold bg-dark text-white py-2 d-flex justify-content-between align-items-center">
+        <span>Attendees</span>
+        <div class="d-flex gap-2 align-items-center">
+          <button type="button" id="attendeeModeBtn" class="btn btn-sm btn-outline-warning" onclick="toggleAttendeeMode()" title="Switch between Standard and Extended view">Standard</button>
+          <span style="color:#aaa; font-size:0.85em;">Alloc:</span>
+          <button type="button" class="btn btn-sm btn-outline-info" onclick="fillFromAlloc('mob')">Mob</button>
+          <button type="button" class="btn btn-sm btn-outline-info" onclick="fillFromAlloc('job')">Job</button>
+          <button type="button" class="btn btn-sm btn-outline-info" onclick="fillFromAlloc('demob')">Demob</button>
+          <button type="button" class="btn btn-sm btn-outline-info" onclick="fillFromAlloc('other')">Other</button>
+          <button type="button" class="btn btn-sm btn-outline-light" onclick="addWorkingToday()">+ Working Today</button>
+          <button type="button" class="btn btn-sm btn-outline-light" onclick="addFromPersonnel()">+ From Personnel</button>
+          <button type="button" class="btn btn-sm btn-light" onclick="addAttendeeRow()">+ Add Row</button>
+          <button type="button" id="addSepBtn" class="btn btn-sm btn-outline-info" onclick="addSeparatorRow()" style="display:none;">+ Add Section</button>
+          <div class="form-check form-switch mb-0 ms-1">
+            <input class="form-check-input" type="checkbox" id="arrangeModeCheck" onchange="toggleArrangeMode(this.checked)">
+            <label class="form-check-label text-white small" for="arrangeModeCheck">Arrange</label>
+          </div>
+        </div>
+      </div>
+      <div class="card-body p-2">
+        {% if meeting_type == 'jmp' %}
+        <p class="small text-muted mb-2">Each attendee acknowledges the JMP has been communicated to them.</p>
+        {% endif %}
+        <p class="small text-muted mb-2" style="background:#e8f5e9; border-left:3px solid #4caf50; padding:6px 10px; border-radius:3px;">
+          ✦ <strong>Digital signatures</strong> — Save the meeting first, then click <em>Sign</em> on each attendee row to capture their signature with a finger or stylus.
+        </p>
+        <table class="table table-sm mb-0" id="attendeeTable">
+          <thead class="table-light">
+            <tr>
+              <th>Name</th>
+              <th class="col-ext" style="display:none;">Job Role(s)</th>
+              <th class="col-ext" style="display:none;">Vehicle</th>
+              <th style="width:110px;">BAC <button type="button" onclick="setAllBac()" style="background:none; border:1px solid #aaa; border-radius:4px; color:#ddd; font-size:0.7em; padding:1px 5px; cursor:pointer; margin-left:4px;" title="Set all to 0.0">all 0.0</button></th>
+              <th style="width:160px;">Signature</th>
+              <th style="width:56px;"></th>
+            </tr>
+          </thead>
+          <tbody id="attendeeBody">
+            {% if meeting %}
+              {% for a in attendees %}
+              {% if a.is_separator %}
+              <tr>
+                <td colspan="6" style="background:#dce8f5; padding:4px 8px;">
+                  <input type="hidden" name="a_pk" value="{{ a.pk }}">
+                  <input type="hidden" name="a_is_sep" value="1">
+                  <input type="hidden" name="a_role" value="">
+                  <input type="hidden" name="a_vehicle" value="">
+                  <input type="hidden" name="a_bac" value="">
+                  <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+                    <div style="display:flex; align-items:center; gap:8px; flex:1;">
+                      <span style="font-size:0.75em; font-weight:700; color:#1a3a5c; white-space:nowrap; opacity:0.75;">── SECTION</span>
+                      <input type="text" name="a_name" class="form-control form-control-sm" value="{{ a.name }}" placeholder="e.g. Town A, North Group…" style="max-width:280px;">
+                    </div>
+                    <div style="display:flex; gap:4px; align-items:center;">
+                      <span class="drag-handle" style="display:none; cursor:grab; color:#999; font-size:1.3em; padding:0 4px; touch-action:none;" title="Drag to reorder">⠿</span>
+                      <button type="button" class="btn btn-xs btn-outline-danger" onclick="removeAttendeeRow(this)">✕</button>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+              {% else %}
+              <tr>
+                <td><input type="hidden" name="a_pk" value="{{ a.pk }}"><input type="hidden" name="a_is_sep" value="0"><input type="text" name="a_name" class="form-control form-control-sm" value="{{ a.name }}" list="personnelList"></td>
+                <td class="col-ext" style="display:none;"><input type="text" name="a_role" class="form-control form-control-sm" value="{{ a.job_role }}"></td>
+                <td class="col-ext" style="display:none;"><input type="text" name="a_vehicle" class="form-control form-control-sm" value="{{ a.vehicle }}" list="vehicleList"></td>
+                <td>
+                  <input type="text" name="a_bac" class="form-control form-control-sm bac-input" value="{{ a.bac }}" placeholder="0.00">
+                  <span onclick="this.previousElementSibling.value='0.0'" style="font-size:0.72em; color:#1a3a5c; cursor:pointer; text-decoration:underline; margin-left:2px;">0.0</span>
+                </td>
+                <td class="sig-cell" data-pk="{{ a.pk }}">
+                  {% if a.signature %}
+                  <div style="display:flex; align-items:center; gap:6px;">
+                    <img src="{{ a.signature }}" style="height:36px; max-width:100px; object-fit:contain; border:1px solid #ddd; border-radius:4px;">
+                    <button type="button" onclick="openSignModal({{ a.pk }}, '{{ a.name|escapejs }}')"
+                            class="btn btn-xs btn-outline-secondary">Re-sign</button>
+                  </div>
+                  {% else %}
+                  <button type="button" onclick="openSignModal({{ a.pk }}, '{{ a.name|escapejs }}')"
+                          class="btn btn-xs btn-outline-success">Sign</button>
+                  {% endif %}
+                </td>
+                <td style="white-space:nowrap;">
+                  <span class="drag-handle" style="display:none; cursor:grab; color:#bbb; font-size:1.3em; padding:0 4px; touch-action:none;" title="Drag to reorder">⠿</span>
+                  <button type="button" class="btn btn-xs btn-outline-danger" onclick="removeAttendeeRow(this)">✕</button>
+                </td>
+              </tr>
+              {% endif %}
+              {% endfor %}
+            {% endif %}
+          </tbody>
+        </table>
+        <datalist id="personnelList">
+          {% for p in job_personnel %}<option value="{{ p.name }}">{% endfor %}
+        </datalist>
+        <datalist id="vehicleList">
+          {% for v in job_vehicle_names %}<option value="{{ v }}">{% endfor %}
+        </datalist>
+      </div>
+    </div>
+
+    <!-- ── Equipment Allocation ─────────────────────────────────────────── -->
+    <div class="card mb-3">
+      <div class="card-header fw-semibold bg-secondary text-white py-2 d-flex justify-content-between align-items-center">
+        <span>Equipment Allocation</span>
+        <div class="form-check form-switch mb-0 d-flex align-items-center gap-2">
+          <input class="form-check-input" type="checkbox" id="includeEqAlloc" name="include_equipment_allocation"
+                 {% if meeting and meeting.include_equipment_allocation %}checked{% endif %}
+                 onchange="toggleEqAllocSection(this.checked)">
+          <label class="form-check-label text-white" for="includeEqAlloc">Include in PDF</label>
+        </div>
+      </div>
+      <div id="eqAllocSection" style="{% if not meeting or not meeting.include_equipment_allocation %}display:none;{% endif %}">
+        <div class="card-body p-2">
+          <table class="table table-sm mb-0" id="eqAllocTable">
+            <thead class="table-light">
+              <tr><th>Person</th><th>Equipment</th></tr>
+            </thead>
+            <tbody id="eqAllocBody">
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="d-flex gap-2 mb-4 align-items-center">
+      <button type="submit" class="btn btn-primary">Save Meeting</button>
+      <a href="{% url 'toolbox_list' job.pk %}" class="btn btn-outline-secondary">Cancel</a>
+      <span id="saveStatus" style="font-size:0.9em; font-weight:600;"></span>
+      {% if meeting %}
+      <a id="pdfLink" href="{% url 'toolbox_v2_pdf' meeting.pk %}" target="_blank" class="btn btn-outline-secondary ms-auto">View PDF</a>
+      <a href="{% url 'toolbox_v2_image' meeting.pk %}" class="btn btn-outline-success" title="Download Image for SMS">⬇ Image</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+<!-- Signature Modal -->
+<div id="sig-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:2000; align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:12px; padding:24px; width:min(520px, 95vw); box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <strong id="sig-modal-title" style="color:#1a3a5c; font-size:1.05em;">Sign</strong>
+      <button onclick="closeSignModal()" style="background:none; border:none; font-size:1.4em; cursor:pointer; color:#999; line-height:1;">✕</button>
+    </div>
+    <p style="margin:0 0 10px; font-size:0.85em; color:#666;">Sign using your finger, stylus, or mouse. Save the meeting first to enable signing for new rows.</p>
+    <canvas id="sig-canvas" style="width:100%; height:180px; border:2px solid #c5d5e8; border-radius:8px; touch-action:none; cursor:crosshair; display:block;"></canvas>
+    <div style="display:flex; justify-content:space-between; margin-top:12px; flex-wrap:wrap; gap:8px;">
+      <button onclick="clearCanvas()" class="btn btn-sm btn-outline-secondary">Clear</button>
+      <div style="display:flex; gap:8px;">
+        <button onclick="closeSignModal()" class="btn btn-sm btn-outline-secondary">Cancel</button>
+        <button onclick="saveSignature()" class="btn btn-sm btn-success">Save Signature</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  .btn-xs { padding: 2px 6px; font-size: 0.75rem; }
+</style>
+<script>
+const jobPersonnel = [{% for p in job_personnel %}"{{ p.name|escapejs }}"{% if not forloop.last %},{% endif %}{% endfor %}];
+const personnelRoles = {{ personnel_roles_json|safe }};
+const allocData = {{ alloc_data_json|safe }};
+const eqAllocData = {{ eq_alloc_data_json|safe }};
+const CSRF = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+// ── Signature pad ───────────────────────────────────────────────────────────
+let sigCanvas, sigCtx, drawing = false, currentAttendeePk = null;
+
+function openSignModal(pk, name) {
+  if (!pk || pk === 0) {
+    alert('Save the meeting first, then you can sign this row.');
+    return;
+  }
+  currentAttendeePk = pk;
+  document.getElementById('sig-modal-title').textContent = 'Signature — ' + name;
+  document.getElementById('sig-modal').style.display = 'flex';
+  initCanvas();
+}
+function closeSignModal() {
+  document.getElementById('sig-modal').style.display = 'none';
+  currentAttendeePk = null;
+}
+function initCanvas() {
+  sigCanvas = document.getElementById('sig-canvas');
+  sigCtx = sigCanvas.getContext('2d');
+  const rect = sigCanvas.getBoundingClientRect();
+  sigCanvas.width = rect.width * (window.devicePixelRatio || 1);
+  sigCanvas.height = rect.height * (window.devicePixelRatio || 1);
+  sigCtx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  sigCtx.strokeStyle = '#1a3a5c';
+  sigCtx.lineWidth = 2.5;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+  clearCanvas();
+
+  // Remove old listeners by cloning
+  const nc = sigCanvas.cloneNode(true);
+  sigCanvas.parentNode.replaceChild(nc, sigCanvas);
+  sigCanvas = nc;
+  sigCtx = sigCanvas.getContext('2d');
+  sigCtx.scale(window.devicePixelRatio || 1, window.devicePixelRatio || 1);
+  sigCtx.strokeStyle = '#1a3a5c';
+  sigCtx.lineWidth = 2.5;
+  sigCtx.lineCap = 'round';
+  sigCtx.lineJoin = 'round';
+
+  sigCanvas.addEventListener('mousedown', startDraw);
+  sigCanvas.addEventListener('mousemove', draw);
+  sigCanvas.addEventListener('mouseup', stopDraw);
+  sigCanvas.addEventListener('mouseleave', stopDraw);
+  sigCanvas.addEventListener('touchstart', startDraw, {passive: false});
+  sigCanvas.addEventListener('touchmove', draw, {passive: false});
+  sigCanvas.addEventListener('touchend', stopDraw);
+}
+function getPos(e) {
+  const rect = sigCanvas.getBoundingClientRect();
+  if (e.touches) return {x: e.touches[0].clientX - rect.left, y: e.touches[0].clientY - rect.top};
+  return {x: e.clientX - rect.left, y: e.clientY - rect.top};
+}
+function startDraw(e) { e.preventDefault(); drawing = true; const p = getPos(e); sigCtx.beginPath(); sigCtx.moveTo(p.x, p.y); }
+function draw(e) { if (!drawing) return; e.preventDefault(); const p = getPos(e); sigCtx.lineTo(p.x, p.y); sigCtx.stroke(); }
+function stopDraw() { drawing = false; }
+function clearCanvas() { if (sigCtx) sigCtx.clearRect(0, 0, sigCanvas ? sigCanvas.width : 999, sigCanvas ? sigCanvas.height : 999); }
+
+async function saveSignature() {
+  const dataURL = sigCanvas.toDataURL('image/png');
+  const resp = await fetch(`/toolbox-v2-attendee/${currentAttendeePk}/sign/`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+    body: JSON.stringify({signature: dataURL, signed_at: new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 19)}),
+  });
+  const data = await resp.json();
+  if (data.ok) {
+    // Update signature cell in the row
+    const cell = document.querySelector(`.sig-cell[data-pk="${currentAttendeePk}"]`);
+    if (cell) {
+      cell.innerHTML = `<div style="display:flex; align-items:center; gap:6px;">
+        <img src="${dataURL}" style="height:36px; max-width:100px; object-fit:contain; border:1px solid #ddd; border-radius:4px;">
+        <button type="button" onclick="openSignModal(${currentAttendeePk}, '')" class="btn btn-xs btn-outline-secondary">Re-sign</button>
+      </div>`;
+    }
+    closeSignModal();
+  }
+}
+
+document.getElementById('sig-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeSignModal();
+});
+
+// ── Attendee table ──────────────────────────────────────────────────────────
+function fillFromAlloc(tab) {
+  const tbody = document.getElementById('attendeeBody');
+  const existing = new Set([...tbody.querySelectorAll('input[name="a_name"]')].map(i => i.value.trim()).filter(Boolean));
+  const entries = (allocData[tab] || []).slice().sort((a, b) => a.name.localeCompare(b.name));
+  if (!entries.length) { alert('No allocations found for ' + tab + ' tab.'); return; }
+  entries.forEach(({name, vehicle}) => {
+    if (existing.has(name)) {
+      tbody.querySelectorAll('input[name="a_name"]').forEach(inp => {
+        if (inp.value.trim() === name) {
+          const row = inp.closest('tr');
+          const vInp = row.querySelector('input[name="a_vehicle"]');
+          if (vInp && !vInp.value) vInp.value = vehicle;
+        }
+      });
+      return;
+    }
+    const tr = document.createElement('tr');
+    tr.innerHTML = _makeAttendeeRow(name, personnelRoles[name] || '', vehicle, '', '');
+    tbody.appendChild(tr);
+    existing.add(name);
+  });
+}
+
+let extendedMode = false;
+function toggleAttendeeMode() {
+  extendedMode = !extendedMode;
+  document.querySelectorAll('.col-ext').forEach(el => el.style.display = extendedMode ? '' : 'none');
+  document.getElementById('attendeeModeBtn').textContent = extendedMode ? 'Extended' : 'Standard';
+  document.getElementById('attendeeModeBtn').classList.toggle('btn-warning', extendedMode);
+  document.getElementById('attendeeModeBtn').classList.toggle('btn-outline-warning', !extendedMode);
+}
+
+let arrangeMode = false;
+let sortableInstance = null;
+
+function toggleArrangeMode(on) {
+  arrangeMode = on;
+  document.getElementById('addSepBtn').style.display = on ? '' : 'none';
+  document.querySelectorAll('.drag-handle').forEach(el => el.style.display = on ? 'inline' : 'none');
+  if (on && !sortableInstance) {
+    sortableInstance = Sortable.create(document.getElementById('attendeeBody'), {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'table-active',
+    });
+  } else if (!on && sortableInstance) {
+    sortableInstance.destroy();
+    sortableInstance = null;
+  }
+}
+
+function addSeparatorRow() {
+  const tbody = document.getElementById('attendeeBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td colspan="6" style="background:#dce8f5; padding:4px 8px;">
+      <input type="hidden" name="a_pk" value="0">
+      <input type="hidden" name="a_is_sep" value="1">
+      <input type="hidden" name="a_role" value="">
+      <input type="hidden" name="a_vehicle" value="">
+      <input type="hidden" name="a_bac" value="">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; flex:1;">
+          <span class="drag-handle" style="display:inline; cursor:grab; color:#999; font-size:1.3em; touch-action:none; padding:0 4px;" title="Drag to reorder">⠿</span>
+          <span style="font-size:0.75em; font-weight:700; color:#1a3a5c; white-space:nowrap; opacity:0.75;">── SECTION</span>
+          <input type="text" name="a_name" class="form-control form-control-sm" value="" placeholder="e.g. Town A, North Group…" style="max-width:280px;">
+        </div>
+        <button type="button" class="btn btn-xs btn-outline-danger" onclick="removeAttendeeRow(this)">✕</button>
+      </div>
+    </td>`;
+  tbody.appendChild(tr);
+  tr.querySelector('input[name="a_name"]').focus();
+}
+
+function _makeAttendeeRow(name, role, vehicle, bac) {
+  const extStyle = extendedMode ? '' : ' style="display:none;"';
+  return `
+    <td><input type="hidden" name="a_pk" value="0"><input type="hidden" name="a_is_sep" value="0"><input type="text" name="a_name" class="form-control form-control-sm" value="${name||''}" list="personnelList"></td>
+    <td class="col-ext"${extStyle}><input type="text" name="a_role" class="form-control form-control-sm" value="${role||''}"></td>
+    <td class="col-ext"${extStyle}><input type="text" name="a_vehicle" class="form-control form-control-sm" value="${vehicle||''}" list="vehicleList"></td>
+    <td><input type="text" name="a_bac" class="form-control form-control-sm bac-input" value="${bac||''}" placeholder="0.00"><span onclick="this.previousElementSibling.value='0.0'" style="font-size:0.72em; color:#1a3a5c; cursor:pointer; text-decoration:underline; margin-left:2px;">0.0</span></td>
+    <td class="sig-cell" data-pk="0"><span style="font-size:0.78em; color:#888;">Save first to sign</span></td>
+    <td style="white-space:nowrap;">
+      <span class="drag-handle" style="${arrangeMode ? 'display:inline;' : 'display:none;'} cursor:grab; color:#bbb; font-size:1.3em; padding:0 4px; touch-action:none;" title="Drag to reorder">⠿</span>
+      <button type="button" class="btn btn-xs btn-outline-danger" onclick="removeAttendeeRow(this)">✕</button>
+    </td>`;
+}
+
+function addWorkingToday() {
+  const d = document.querySelector('input[name="date"]').value;
+  if (!d) { alert('Enter a Date first.'); return; }
+  fetch(`/jobs/{{ job.pk }}/toolbox/working-personnel/?date=${d}`)
+    .then(r => r.json()).then(data => {
+      const tbody = document.getElementById('attendeeBody');
+      const existing = new Set([...tbody.querySelectorAll('input[name="a_name"]')].map(i => i.value.trim()).filter(Boolean));
+      data.names.slice().sort((a, b) => a.localeCompare(b)).forEach(name => {
+        if (existing.has(name)) return;
+        const tr = document.createElement('tr');
+        tr.innerHTML = _makeAttendeeRow(name, personnelRoles[name] || '', '', '');
+        tbody.appendChild(tr);
+        existing.add(name);
+      });
+      if (!data.names.length) alert('No personnel marked Working on this date.');
+    });
+}
+
+function addFromPersonnel() {
+  const tbody = document.getElementById('attendeeBody');
+  const existing = new Set([...tbody.querySelectorAll('input[name="a_name"]')].map(i => i.value.trim()).filter(Boolean));
+  jobPersonnel.forEach(name => {
+    if (existing.has(name)) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = _makeAttendeeRow(name, personnelRoles[name] || '', '', '');
+    tbody.appendChild(tr);
+    existing.add(name);
+  });
+}
+
+function removeAttendeeRow(btn) {
+  const tr = btn.closest('tr');
+  const name = (tr.querySelector('input[name="a_name"]') || {}).value || '';
+  const label = name.trim() ? name.trim() : 'this row';
+  if (!confirm('Remove ' + label + '?')) return;
+  tr.remove();
+}
+
+function addAttendeeRow() {
+  const tbody = document.getElementById('attendeeBody');
+  const tr = document.createElement('tr');
+  tr.innerHTML = _makeAttendeeRow('', '', '', '');
+  tbody.appendChild(tr);
+  tr.querySelector('input[name="a_name"]').focus();
+}
+
+{% if prev_data %}
+const prevData = {{ prev_data|safe }};
+function prefillFromPrevious() {
+  const fields = ['location','supervisor','muster_point','terrain_discussion',
+                  'yesterday_activities','other_topics','days_on_job','jmp_number','road_condition','time'];
+  fields.forEach(name => {
+    const el = document.querySelector(`[name="${name}"]`);
+    if (el && prevData[name]) el.value = prevData[name];
+  });
+}
+{% endif %}
+
+// ── Section 4 template management ──────────────────────────────────────────
+const tmplBodies = {};
+{% for t in topic_templates %}tmplBodies[{{ t.pk }}] = "{{ t.body|escapejs }}";
+{% endfor %}
+
+function applyTopicTemplate(sel) {
+  const pk = sel.value;
+  if (!pk) return;
+  const area = document.getElementById('otherTopicsArea');
+  const body = tmplBodies[pk] || '';
+  area.value = area.value ? area.value + '\n\n' + body : body;
+  sel.selectedIndex = 0;
+}
+function toggleTemplateManager() {
+  const mgr = document.getElementById('templateManager');
+  mgr.style.display = mgr.style.display === 'none' ? 'block' : 'none';
+}
+function addTemplate() {
+  const name = document.getElementById('newTmplName').value.trim();
+  const body = document.getElementById('newTmplBody').value.trim();
+  if (!name) return;
+  fetch('/toolbox-topic-templates/add/', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF},
+    body: `name=${encodeURIComponent(name)}&body=${encodeURIComponent(body)}`,
+  }).then(() => location.reload());
+}
+function deleteTemplate(pk) {
+  fetch(`/toolbox-topic-templates/${pk}/delete/`, {method:'POST', headers:{'X-CSRFToken': CSRF}})
+    .then(() => { document.getElementById(`tmpl-${pk}`).remove(); });
+}
+function updateTemplate(pk, body) {
+  fetch(`/toolbox-topic-templates/${pk}/update/`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': CSRF},
+    body: `body=${encodeURIComponent(body)}`,
+  });
+  tmplBodies[pk] = body;
+}
+
+function deleteLocation(pk, btn) {
+  fetch(`/job-locations/${pk}/delete/`, {method:'POST', headers:{'X-CSRFToken': CSRF}})
+    .then(() => btn.closest('span').remove());
+}
+function deleteMusterPoint(pk, btn) {
+  fetch(`/job-muster-points/${pk}/delete/`, {method:'POST', headers:{'X-CSRFToken': CSRF}})
+    .then(() => btn.closest('span').remove());
+}
+
+// ── Weather fetch (same as original) ───────────────────────────────────────
+const WMO_CODES = {0:'Clear sky',1:'Mainly clear',2:'Partly cloudy',3:'Overcast',45:'Fog',48:'Icy fog',51:'Light drizzle',53:'Moderate drizzle',55:'Dense drizzle',61:'Slight rain',63:'Moderate rain',65:'Heavy rain',71:'Slight snow',73:'Moderate snow',75:'Heavy snow',80:'Slight showers',81:'Moderate showers',82:'Violent showers',95:'Thunderstorm',96:'Thunderstorm with hail',99:'Thunderstorm with heavy hail'};
+const WIND_DIRS = ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+function windDirLabel(deg) { return WIND_DIRS[Math.round(deg / 22.5) % 16]; }
+function fireRiskLevel(maxTemp, minHumidity, maxWind) {
+  const score = (maxTemp/45)*40 + ((100-minHumidity)/100)*35 + (maxWind/80)*25;
+  if (score >= 65) return 'extreme';
+  if (score >= 40) return 'high';
+  return 'low';
+}
+async function fetchWeather() {
+  const btn = document.getElementById('weatherBtn');
+  const status = document.getElementById('weatherStatus');
+  const location = document.querySelector('input[name="location"]').value.trim();
+  const d = document.querySelector('input[name="date"]').value;
+  if (!location) { status.textContent = 'Enter a Location first.'; return; }
+  if (!d) { status.textContent = 'Enter a Date first.'; return; }
+  btn.disabled = true; status.textContent = 'Geocoding…';
+  try {
+    const geoRes = await fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(location)}&format=json&limit=1`, {headers:{'Accept-Language':'en'}});
+    const geoData = await geoRes.json();
+    if (!geoData.length) { status.textContent = 'Location not found.'; btn.disabled = false; return; }
+    const {lat, lon} = geoData[0];
+    status.textContent = `Found: ${geoData[0].display_name.split(',').slice(0,2).join(',')}. Fetching…`;
+    const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&daily=temperature_2m_min,temperature_2m_max,weathercode,precipitation_probability_max,uv_index_max,windspeed_10m_max,winddirection_10m_dominant&hourly=relativehumidity_2m&timezone=auto&start_date=${d}&end_date=${d}`;
+    const w = await (await fetch(url)).json();
+    const dd = w.daily;
+    if (!dd || !dd.temperature_2m_max) { status.textContent = 'No data for this date.'; btn.disabled = false; return; }
+    document.querySelector('input[name="forecast"]').value = WMO_CODES[dd.weathercode[0]] || `Code ${dd.weathercode[0]}`;
+    document.querySelector('input[name="min_temp"]').value = `${Math.round(dd.temperature_2m_min[0])}°C`;
+    document.querySelector('input[name="max_temp"]').value = `${Math.round(dd.temperature_2m_max[0])}°C`;
+    document.querySelector('input[name="chance_of_rain"]').value = `${dd.precipitation_probability_max[0]}%`;
+    document.querySelector('input[name="wind"]').value = `${windDirLabel(dd.winddirection_10m_dominant[0])} ${Math.round(dd.windspeed_10m_max[0])} km/h`;
+    const uv = dd.uv_index_max[0];
+    document.querySelector('select[name="uv_index"]').value = uv < 3 ? 'low' : uv < 8 ? 'high' : 'extreme';
+    const minHumidity = Math.min(...(w.hourly?.relativehumidity_2m ?? [50]));
+    const fireRisk = fireRiskLevel(dd.temperature_2m_max[0], minHumidity, dd.windspeed_10m_max[0]);
+    document.querySelector('select[name="grass_fire"]').value = fireRisk;
+    document.querySelector('select[name="forest_fire"]').value = fireRisk;
+    status.textContent = `✓ Filled (${(+lat).toFixed(2)}°, ${(+lon).toFixed(2)}°)`;
+  } catch(e) { status.textContent = 'Error: ' + e.message; }
+  btn.disabled = false;
+}
+
+function setAllBac() {
+  document.querySelectorAll('input.bac-input').forEach(i => i.value = '0.0');
+}
+
+function toggleEqAllocSection(show) {
+    document.getElementById('eqAllocSection').style.display = show ? '' : 'none';
+    if (show) renderEqAllocTable();
+}
+function renderEqAllocTable() {
+    const tbody = document.getElementById('eqAllocBody');
+    tbody.innerHTML = '';
+    if (!eqAllocData.length) {
+        tbody.innerHTML = '<tr><td colspan="2" class="text-muted small">No equipment allocations found.</td></tr>';
+        return;
+    }
+    eqAllocData.forEach(row => {
+        const eqLabels = row.equipment.map(e => e.equipment_type ? `${e.name} (${e.equipment_type})` : e.name).join(', ');
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${row.person_name}</td><td>${eqLabels || '<span class="text-muted">—</span>'}</td>`;
+        tbody.appendChild(tr);
+    });
+}
+if (document.getElementById('includeEqAlloc')?.checked) renderEqAllocTable();
+
+// ── Form AJAX save ──────────────────────────────────────────────────────────
+document.querySelector('form').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && !e.target.matches('[type=submit]')) e.preventDefault();
+});
+
+document.querySelector('form').addEventListener('submit', function(e) {
+  e.preventDefault();
+  const form = this;
+  const btn = form.querySelector('[type=submit]');
+  const statusEl = document.getElementById('saveStatus');
+  btn.disabled = true;
+  statusEl.textContent = 'Saving…';
+  statusEl.style.color = '#666';
+  fetch(form.action || window.location.href, {
+    method: 'POST',
+    headers: {'X-Requested-With': 'XMLHttpRequest'},
+    body: new FormData(form),
+  }).then(r => r.json()).then(data => {
+    btn.disabled = false;
+    if (data.ok) {
+      if (data.edit_url) {
+        // New meeting — redirect to edit page (attendees now have PKs for signing)
+        window.location.href = data.edit_url;
+      } else {
+        // Existing meeting — reload so attendee PKs are fresh
+        statusEl.textContent = '✓ Saved';
+        statusEl.style.color = '#2d6a4f';
+        setTimeout(() => window.location.reload(), 600);
+      }
+    } else {
+      statusEl.textContent = 'Save failed';
+      statusEl.style.color = '#c00';
+    }
+  }).catch(() => {
+    btn.disabled = false;
+    statusEl.textContent = 'Save failed';
+    statusEl.style.color = '#c00';
+  });
+});
+
+{% if meeting %}
+window.addEventListener('beforeunload', function() {
+    const form = document.querySelector('form');
+    navigator.sendBeacon(form.action || window.location.href, new FormData(form));
+});
+{% endif %}
+</script>
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js"></script>
+
+{% if meeting %}
+<!-- ── Photos section ──────────────────────────────────────────────────── -->
+<div class="card mb-3" style="margin-top:16px;">
+  <div class="card-header fw-semibold bg-dark text-white py-2">Photos</div>
+  <div class="card-body">
+    <p style="margin:0 0 12px; padding:8px 12px; background:#f0f4f8; border-left:3px solid #1a3a5c; border-radius:4px; font-size:0.88em; color:#555;">
+      Photos will be appended to the PDF export.
+    </p>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:8px;">
+      <div style="display:flex; gap:8px; align-items:center;">
+        <input type="file" id="tbPhotoInput" multiple accept="image/*" style="display:none;" onchange="uploadTbV2Photos(this)">
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('tbPhotoInput').click()">+ Add Photos</button>
+        <span id="tbUploadStatus" style="font-size:0.85em; color:#666;"></span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span style="font-size:0.85em; color:#666;">PDF layout:</span>
+        <button id="tbColBtn1" type="button" onclick="setTbV2Columns(1)"
+          style="padding:5px 14px; border-radius:4px; font-size:0.85em; cursor:pointer; border:2px solid {% if meeting.photo_columns == 1 %}#1a3a5c{% else %}#ccc{% endif %}; background:{% if meeting.photo_columns == 1 %}#1a3a5c{% else %}white{% endif %}; color:{% if meeting.photo_columns == 1 %}white{% else %}#333{% endif %};">
+          1 per row
+        </button>
+        <button id="tbColBtn2" type="button" onclick="setTbV2Columns(2)"
+          style="padding:5px 14px; border-radius:4px; font-size:0.85em; cursor:pointer; border:2px solid {% if meeting.photo_columns == 2 %}#1a3a5c{% else %}#ccc{% endif %}; background:{% if meeting.photo_columns == 2 %}#1a3a5c{% else %}white{% endif %}; color:{% if meeting.photo_columns == 2 %}white{% else %}#333{% endif %};">
+          2 per row
+        </button>
+      </div>
+    </div>
+    {% if not photos %}
+    <p style="color:#999; font-size:0.9em;">No photos yet.</p>
+    {% else %}
+    <div id="tbPhotoGrid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:16px;">
+      {% for photo in photos %}
+      <div class="tb-photo-card" data-pk="{{ photo.pk }}" style="border:1px solid #ddd; border-radius:8px; overflow:hidden; background:#fafafa; cursor:grab;">
+        <div style="position:relative;">
+          <img src="{{ photo.image.url }}" style="width:100%; display:block; max-height:200px; object-fit:cover;">
+          <div style="position:absolute; top:6px; right:6px;">
+            <span style="background:rgba(0,0,0,0.45); color:white; border-radius:4px; padding:2px 6px; font-size:0.75em;">⠿ drag</span>
+          </div>
+        </div>
+        <div style="padding:8px;">
+          <div style="display:flex; gap:6px; margin-bottom:8px; align-items:center; flex-wrap:wrap;">
+            <span style="font-size:0.78em; color:#888;">Border:</span>
+            {% for val, label in photo.BORDER_CHOICES %}
+            <label style="display:flex; align-items:center; gap:3px; font-size:0.78em; cursor:pointer;">
+              <input type="radio" name="tb_border_{{ photo.pk }}" value="{{ val }}" {% if photo.border_style == val %}checked{% endif %}
+                onchange="saveTbV2Photo({{ photo.pk }})">
+              {{ label }}
+            </label>
+            {% endfor %}
+          </div>
+          <textarea rows="2" id="tb_caption_{{ photo.pk }}"
+            style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #ccc; border-radius:4px; font-size:0.85em; resize:vertical;"
+            onchange="saveTbV2Photo({{ photo.pk }})" onblur="saveTbV2Photo({{ photo.pk }})"
+            placeholder="Caption (optional)">{{ photo.caption }}</textarea>
+          <div style="margin-top:6px; text-align:right;">
+            <button type="button" onclick="deleteTbV2Photo({{ photo.pk }})"
+              style="background:none; border:none; color:#c00; cursor:pointer; font-size:0.82em;">Delete</button>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+<script>
+function uploadTbV2Photos(input) {
+    if (!input.files.length) return;
+    const status = document.getElementById('tbUploadStatus');
+    status.textContent = 'Uploading…';
+    const fd = new FormData();
+    for (const f of input.files) fd.append('images', f);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "toolbox_v2_photo_upload" meeting.pk %}', { method: 'POST', body: fd })
+        .then(r => r.json()).then(d => { if (d.ok) location.reload(); else status.textContent = 'Upload failed'; });
+    input.value = '';
+}
+function saveTbV2Photo(pk) {
+    const caption = document.getElementById('tb_caption_' + pk);
+    const borderEl = document.querySelector('input[name="tb_border_' + pk + '"]:checked');
+    if (!caption || !borderEl) return;
+    const fd = new FormData();
+    fd.append('caption', caption.value);
+    fd.append('border_style', borderEl.value);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('/toolbox-v2-photos/' + pk + '/update/', { method: 'POST', body: fd });
+}
+function setTbV2Columns(n) {
+    var fd = new FormData();
+    fd.append('columns', n);
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('{% url "toolbox_v2_photo_columns" meeting.pk %}', { method: 'POST', body: fd })
+        .then(function(r) { return r.json(); })
+        .then(function() {
+            ['1','2'].forEach(function(v) {
+                var btn = document.getElementById('tbColBtn' + v);
+                if (!btn) return;
+                var active = parseInt(v) === n;
+                btn.style.background = active ? '#1a3a5c' : 'white';
+                btn.style.color = active ? 'white' : '#333';
+                btn.style.borderColor = active ? '#1a3a5c' : '#ccc';
+            });
+        });
+}
+function deleteTbV2Photo(pk) {
+    if (!confirm('Delete this photo?')) return;
+    const fd = new FormData();
+    fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+    fetch('/toolbox-v2-photos/' + pk + '/delete/', { method: 'POST', body: fd })
+        .then(r => r.json()).then(d => { if (d.ok) location.reload(); });
+}
+(function() {
+    var grid = document.getElementById('tbPhotoGrid');
+    if (!grid) return;
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js';
+    s.onload = function() {
+        new Sortable(grid, {
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            onEnd: function() {
+                var order = Array.from(grid.querySelectorAll('.tb-photo-card')).map(function(el, i) {
+                    return { pk: parseInt(el.dataset.pk), order: i + 1 };
+                });
+                fetch('/toolbox-v2/{{ meeting.pk }}/photos/reorder/', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'X-CSRFToken': '{{ csrf_token }}' },
+                    body: JSON.stringify(order),
+                });
+            },
+        });
+    };
+    document.head.appendChild(s);
+})();
+</script>
+{% endif %}
+{% endblock %}

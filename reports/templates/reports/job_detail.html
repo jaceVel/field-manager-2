@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Job {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+    <div>
+        <p style="margin:0; color:#999; font-size:0.9em;"><a href="{% url 'home' %}" style="color:#999;">Home</a> / <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /</p>
+        <h1 style="margin:4px 0;">{{ job.job_number }} — {{ job.project_name }}</h1>
+        <p style="margin:0; color:#666;">{{ job.client }}</p>
+    </div>
+    <div style="display:flex; gap:8px;">
+        <a href="{% url 'job_edit' job.pk %}" class="btn" style="background:#eee; color:#333;">Edit Job</a>
+    </div>
+</div>
+
+<div class="card" style="margin-top:20px;">
+    <h3>Job Details</h3>
+    <div class="grid">
+        <div><strong>Job Number:</strong> {{ job.job_number }}</div>
+        <div><strong>Client:</strong> {{ job.client }}</div>
+        {% if job.client_representative %}<div><strong>Client Representative:</strong> {{ job.client_representative }}</div>{% endif %}
+        <div><strong>Project Name:</strong> {{ job.project_name }}</div>
+        <div><strong>Source Type:</strong> {{ job.source_type|default:"—" }}</div>
+        <div><strong>Recording System:</strong> {{ job.recording_system|default:"—" }}</div>
+        <div><strong>Receiver Interval (Rx):</strong> {% if job.rx_interval %}{{ job.rx_interval }}m{% else %}—{% endif %}</div>
+        <div><strong>Source Interval (Sx):</strong> {% if job.sx_interval %}{{ job.sx_interval }}m{% else %}—{% endif %}</div>
+    </div>
+</div>
+
+<!-- Production Reports -->
+<div style="margin-top:28px;">
+    <a href="{% url 'job_reports' job.pk %}" class="btn" style="background:#1a3a5c; color:white; font-size:1em; padding:10px 24px;">Production Reports</a>
+</div>
+
+{% endblock %}

@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Daily Reports{% endblock %}
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center;">
+    <h1>Daily Reports</h1>
+    <a href="{% url 'report_create' %}" class="btn btn-primary">+ New Report</a>
+</div>
+
+<table>
+    <thead>
+        <tr>
+            <th>Date</th>
+            <th>Project</th>
+            <th>Supervisor</th>
+            <th>Crew</th>
+            <th>Weather</th>
+            <th>Status</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for report in reports %}
+        <tr>
+            <td>{{ report.date }}</td>
+            <td>{{ report.project }}</td>
+            <td>{{ report.supervisor.get_full_name|default:report.supervisor.username }}</td>
+            <td>{{ report.crew_size }}</td>
+            <td>{{ report.weather }}</td>
+            <td><span class="badge badge-{{ report.status }}">{{ report.get_status_display }}</span></td>
+            <td><a href="{% url 'report_detail' report.pk %}">View</a></td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" style="text-align:center; color:#999;">No reports yet.</td></tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

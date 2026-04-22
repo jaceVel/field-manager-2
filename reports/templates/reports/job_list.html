@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Jobs{% endblock %}
+{% block content %}
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;"><a href="{% url 'home' %}" style="color:#999;">Home</a> /</p>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+    <h1 style="margin:4px 0;">Jobs</h1>
+    <a href="{% url 'job_create' %}" class="btn btn-primary">+ New Job</a>
+</div>
+
+{% if jobs %}
+<table>
+    <thead>
+        <tr>
+            <th>Job #</th>
+            <th>Client</th>
+            <th>Project Name</th>
+            <th>Source</th>
+            <th>Recording System</th>
+            <th>Reports</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for job in jobs %}
+        <tr>
+            <td><strong>{{ job.job_number }}</strong></td>
+            <td>{{ job.client }}</td>
+            <td>{{ job.project_name }}</td>
+            <td>{{ job.source_type }}</td>
+            <td>{{ job.recording_system }}</td>
+            <td>{{ job.reports.count }}</td>
+            <td><a href="{% url 'job_detail' job.pk %}">Open →</a></td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div style="text-align:center; padding:60px; color:#999; border: 2px dashed #ddd; border-radius:8px;">
+    <p style="font-size:1.2em;">No jobs yet.</p>
+    <a href="{% url 'job_create' %}" class="btn btn-primary">Create your first job</a>
+</div>
+{% endif %}
+{% endblock %}

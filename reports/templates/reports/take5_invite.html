@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+{% block title %}Send Take 5 Invite — {{ job.job_number }}{% endblock %}
+{% block content %}
+<div style="margin-bottom:8px;">
+  <p style="margin:0; color:#999; font-size:0.9em;">
+    <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+    <a href="{% url 'qhse_list' job.pk %}" style="color:#999;">QHSE</a> /
+  </p>
+  <h1 style="margin:4px 0;">Send Take 5 Invite</h1>
+  <p style="margin:0; color:#666;">{{ job.job_number }} — {{ job.project_name }}</p>
+</div>
+
+{% if using_console %}
+<div class="card" style="margin-top:16px; background:#fff8e1; border:2px solid #ffe082;">
+  <strong style="color:#5d4037;">⚠ Email is in development mode</strong>
+  <p style="margin:6px 0 0; color:#5d4037; font-size:0.9em;">
+    Emails will print to the server console, not actually be sent. To enable real email,
+    configure <code>EMAIL_HOST</code>, <code>EMAIL_HOST_USER</code>, and
+    <code>EMAIL_HOST_PASSWORD</code> in <code>settings.py</code> and change
+    <code>EMAIL_BACKEND</code> to <code>django.core.mail.backends.smtp.EmailBackend</code>.
+  </p>
+</div>
+{% endif %}
+
+{% if sent is not None %}
+  {% if sent %}
+  <div class="card" style="margin-top:16px; background:#e8f5e9; border:2px solid #a5d6a7;">
+    <strong style="color:#2e7d32;">✓ Sent to {{ sent|length }} address{{ sent|length|pluralize:"es" }}</strong>
+    <ul style="margin:8px 0 0; padding-left:20px; color:#2e7d32; font-size:0.9em;">
+      {% for addr in sent %}<li>{{ addr }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  {% if errors %}
+  <div class="card" style="margin-top:16px; background:#ffebee; border:2px solid #ef9a9a;">
+    <strong style="color:#c62828;">Failed to send:</strong>
+    <ul style="margin:8px 0 0; padding-left:20px; color:#c62828; font-size:0.9em;">
+      {% for e in errors %}<li>{{ e }}</li>{% endfor %}
+    </ul>
+  </div>
+  {% endif %}
+  <div style="margin-top:16px;">
+    <a href="{% url 'qhse_list' job.pk %}" class="btn" style="background:#eee; color:#333;">← Back to QHSE</a>
+    <a href="{% url 'take5_send_invite' job.pk %}" class="btn" style="background:#1a3a5c; color:white; margin-left:8px;">Send Another</a>
+  </div>
+{% else %}
+
+<!-- Link preview -->
+<div class="card" style="margin-top:16px;">
+  <strong style="color:#1a3a5c;">Take 5 Form Link</strong>
+  <div style="display:flex; align-items:center; gap:8px; margin-top:8px;">
+    <code style="flex:1; background:#f0f4f8; border:1px solid #c5d5e8; border-radius:6px; padding:8px 12px; font-size:0.85em; word-break:break-all;">{{ take5_url }}</code>
+    <button onclick="navigator.clipboard.writeText('{{ take5_url|escapejs }}'); this.textContent='Copied!'; setTimeout(()=>this.textContent='Copy',2000)"
+            class="btn" style="background:#eee; color:#333; white-space:nowrap;">Copy</button>
+  </div>
+  {% if job.take5_pin %}
+  <p style="margin:8px 0 0; font-size:0.9em; color:#666;">PIN: <strong>{{ job.take5_pin }}</strong> (included in email)</p>
+  {% else %}
+  <p style="margin:8px 0 0; font-size:0.85em; color:#999;">No PIN set for this job. <a href="{% url 'job_edit' job.pk %}">Set one in job settings.</a></p>
+  {% endif %}
+</div>
+
+<form method="post" style="margin-top:16px;">
+  {% csrf_token %}
+
+  <!-- Personnel list -->
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+      <strong style="color:#1a3a5c;">Select Recipients</strong>
+      <div style="display:flex; gap:8px;">
+        <button type="button" onclick="setAll(true)" style="background:none; border:none; color:#1a3a5c; font-size:0.85em; cursor:pointer; text-decoration:underline;">All</button>
+        <button type="button" onclick="setAll(false)" style="background:none; border:none; color:#999; font-size:0.85em; cursor:pointer; text-decoration:underline;">None</button>
+        <button type="button" onclick="setOnJob()" style="background:none; border:none; color:#1565c0; font-size:0.85em; cursor:pointer; text-decoration:underline;">On Job</button>
+      </div>
+    </div>
+
+    {% if all_personnel %}
+    <div style="display:flex; flex-direction:column; gap:6px;">
+      {% for p in all_personnel %}
+      <label style="display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid #e0e0e0; border-radius:6px; cursor:pointer;"
+             onmouseover="this.style.background='#f8fafc'" onmouseout="this.style.background='white'">
+        <input type="checkbox" name="personnel" value="{{ p.pk }}"
+               {% if p.name in job_names %}checked{% endif %}
+               style="width:18px; height:18px; accent-color:#1a3a5c; flex-shrink:0;">
+        <div>
+          <div style="font-weight:600; color:#1a3a5c;">{{ p.name }}
+            {% if p.name in job_names %}<span class="on-job-badge" style="font-size:0.75em; background:#e3f2fd; color:#1565c0; border-radius:4px; padding:1px 6px; margin-left:4px; font-weight:normal;">on job</span>{% endif %}
+          </div>
+          <div style="font-size:0.82em; color:#888;">{{ p.email }}</div>
+        </div>
+      </label>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p style="color:#999; margin:0;">No personnel with email addresses found. <a href="{% url 'personnel_list' %}">Add emails to personnel.</a></p>
+    {% endif %}
+
+    <div style="margin-top:14px;">
+      <label style="display:block; font-weight:600; color:#1a3a5c; margin-bottom:5px; font-size:0.9em;">Additional email addresses</label>
+      <textarea name="extra_emails" rows="3" placeholder="One per line, or comma separated"
+                style="width:100%; padding:10px; border:2px solid #c5d5e8; border-radius:8px; font-size:0.9em; outline:none; resize:vertical;"></textarea>
+      <p style="margin:4px 0 0; font-size:0.8em; color:#999;">E.g. for contractors or people not in the personnel list.</p>
+    </div>
+  </div>
+
+  <!-- Email preview -->
+  <div class="card" style="margin-top:16px; background:#f8fafc; border:1px solid #c5d5e8;">
+    <strong style="color:#1a3a5c; font-size:0.9em;">Email Preview</strong>
+    <div style="margin-top:10px; font-family:monospace; font-size:0.82em; white-space:pre-wrap; color:#333; background:white; border:1px solid #e0e0e0; border-radius:6px; padding:12px; line-height:1.6;">
+<strong>Subject:</strong> Take 5 Pre-Task Check — Job {{ job.job_number }}
+
+Hi [Name],
+
+Please complete your Take 5 pre-task safety check for
+Job {{ job.job_number }} — {{ job.project_name }}.
+
+Open your Take 5 form here:
+{{ take5_url }}{% if job.take5_pin %}
+
+Job PIN: {{ job.take5_pin }}{% endif %}
+
+This link can be used on your phone or any browser.
+
+Stay safe,
+Field Manager</div>
+  </div>
+
+  <div style="display:flex; gap:8px; margin-top:16px;">
+    <a href="{% url 'qhse_list' job.pk %}" class="btn" style="background:#eee; color:#333;">Cancel</a>
+    <button type="submit" class="btn" style="background:#1a3a5c; color:white;">Send Invites</button>
+  </div>
+</form>
+{% endif %}
+
+<script>
+function setAll(checked) {
+  document.querySelectorAll('input[name="personnel"]').forEach(cb => cb.checked = checked);
+}
+function setOnJob() {
+  document.querySelectorAll('input[name="personnel"]').forEach(cb => {
+    cb.checked = cb.closest('label').querySelector('.on-job-badge') !== null;
+  });
+}
+</script>
+{% endblock %}

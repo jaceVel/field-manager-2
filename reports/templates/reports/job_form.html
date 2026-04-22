@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<h1>{{ title }}</h1>
+<form method="post" style="max-width:500px; margin-top:20px;">
+    {% csrf_token %}
+    {% for field in form %}
+    {% if field.html_name == 'recording_system' %}
+    <div class="form-group">
+        <label>{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<p style="color:red; font-size:0.85em;">{{ field.errors }}</p>{% endif %}
+        {% if options_recording_system %}
+        <div id="opts-recording_system" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+            {% for opt_pk, opt_val in options_recording_system %}
+            <span style="display:inline-flex; align-items:center; gap:4px; background:#f0f4f8; border:1px solid #c5d5e8; border-radius:12px; padding:3px 10px; font-size:0.85em; cursor:pointer;"
+                  onclick="document.getElementById('id_recording_system').value='{{ opt_val|escapejs }}'">
+                {{ opt_val }}
+                <button type="button" data-pk="{{ opt_pk }}" data-field="recording_system"
+                        onclick="event.stopPropagation(); deleteOption(this)"
+                        style="background:none; border:none; color:#aaa; cursor:pointer; font-size:0.9em; padding:0; line-height:1;">×</button>
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% elif field.html_name == 'source_type' %}
+    <div class="form-group">
+        <label>{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<p style="color:red; font-size:0.85em;">{{ field.errors }}</p>{% endif %}
+        {% if options_source_type %}
+        <div id="opts-source_type" style="display:flex; flex-wrap:wrap; gap:6px; margin-top:6px;">
+            {% for opt_pk, opt_val in options_source_type %}
+            <span style="display:inline-flex; align-items:center; gap:4px; background:#f0f4f8; border:1px solid #c5d5e8; border-radius:12px; padding:3px 10px; font-size:0.85em; cursor:pointer;"
+                  onclick="document.getElementById('id_source_type').value='{{ opt_val|escapejs }}'">
+                {{ opt_val }}
+                <button type="button" data-pk="{{ opt_pk }}" data-field="source_type"
+                        onclick="event.stopPropagation(); deleteOption(this)"
+                        style="background:none; border:none; color:#aaa; cursor:pointer; font-size:0.9em; padding:0; line-height:1;">×</button>
+            </span>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="form-group">
+        <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+        {{ field }}
+        {% if field.errors %}<p style="color:red; font-size:0.85em;">{{ field.errors }}</p>{% endif %}
+    </div>
+    {% endif %}
+    {% endfor %}
+    <div style="margin-top:24px;">
+        <button type="submit" class="btn btn-primary">Save</button>
+        <a href="{% url 'job_list' %}" class="btn" style="margin-left:8px; background:#ccc;">Cancel</a>
+    </div>
+</form>
+
+<script>
+const csrf = '{{ csrf_token }}';
+
+function deleteOption(btn) {
+    const pk = btn.dataset.pk;
+    const field = btn.dataset.field;
+    fetch(`/job-field-options/${pk}/delete/`, {
+        method: 'POST',
+        headers: {'X-CSRFToken': csrf},
+    }).then(r => r.json()).then(data => {
+        if (data.ok) btn.closest('span').remove();
+    });
+}
+</script>
+{% endblock %}

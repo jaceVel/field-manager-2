@@ -1,0 +1,2 @@
+TriggerIndex, ProfileId, ShotNumber, EpNumber, ShotLine, ShotStation, ShotUtcDateTime, Latitude, Longitude, ShotStatus, Uphole, Comment, Process, SweepNumber
+443,1,6946,1,531.00,460.50, 2023/04/20 00:43:03.304000,-33.11489997,136.18111996,VOID,0.00, "Void File" ,vibroseis,1

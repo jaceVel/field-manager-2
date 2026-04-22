@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfTGroup xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <tGroup>
+    <mUnitList>
+      <mUnits>
+        <unsignedByte>1</unsignedByte>
+        <unsignedByte>2</unsignedByte>
+        <unsignedByte>3</unsignedByte>
+        <unsignedByte>4</unsignedByte>
+      </mUnits>
+    </mUnitList>
+    <mCrewNumber>1</mCrewNumber>
+    <mStartCode>0</mStartCode>
+    <mSourceType>eVibroSeis</mSourceType>
+    <mSweepList />
+    <mNextSweep>0</mNextSweep>
+    <mLeadVibrator>0</mLeadVibrator>
+    <mUseLeadVibrator>false</mUseLeadVibrator>
+    <mGeometryOffset>0</mGeometryOffset>
+    <mAzimuth>0</mAzimuth>
+    <mUseSigleGPSUnit>false</mUseSigleGPSUnit>
+    <mVibWithGPSUnit>0</mVibWithGPSUnit>
+    <mAutoSims>0</mAutoSims>
+    <mProcessID>1</mProcessID>
+    <mEncoderID>0</mEncoderID>
+    <mAuxChannel>1</mAuxChannel>
+    <mFreezeNearSourceFlagUpdate>false</mFreezeNearSourceFlagUpdate>
+    <mEnabled>true</mEnabled>
+    <mOverrideAutoStart>false</mOverrideAutoStart>
+    <mUseWifi>false</mUseWifi>
+    <mWiFiGroupID>0</mWiFiGroupID>
+    <mUseRepeater>false</mUseRepeater>
+    <mRepeaterID>0</mRepeaterID>
+    <mApplyGPSAntennaHeightInReports>false</mApplyGPSAntennaHeightInReports>
+    <mGPSAntennaHeight>0</mGPSAntennaHeight>
+    <mIgnoreErrors>false</mIgnoreErrors>
+    <mGroupID>1</mGroupID>
+  </tGroup>
+</ArrayOfTGroup>

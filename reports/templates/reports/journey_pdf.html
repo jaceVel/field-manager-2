@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+    @page { margin: 1.5cm; }
+    body { font-family: Helvetica, Arial, sans-serif; font-size: 9pt; color: #222; margin: 0; }
+    h2 { font-size: 10pt; margin: 12px 0 5px; color: #1a3a5c; border-bottom: 1.5pt solid #1a3a5c; padding-bottom: 3px; page-break-after: avoid; }
+    table { width: 100%; border-collapse: collapse; font-size: 8.5pt; margin-bottom: 8px; }
+    th { background-color: #1a3a5c; color: white; padding: 4px 7px; text-align: left; font-size: 8pt; }
+    th.center { text-align: center; }
+    td { padding: 4px 7px; border: 0.5pt solid #ccc; vertical-align: top; }
+    td.label { color: #555; width: 120px; background: #f5f8fc; font-weight: 600; }
+    td.label-sm { color: #555; background: #f5f8fc; font-weight: 600; font-size: 8pt; }
+    tr.alt { background: #f9f9f9; }
+    .section { margin-bottom: 10px; page-break-inside: avoid; }
+    .yn { font-weight: bold; }
+    .yn-y { color: #2e7d32; }
+    .yn-n { color: #c00; }
+    .fixed-list { background: #f5f8fc; border: 0.5pt solid #c5d5e8; border-radius: 3pt; padding: 6px 10px; font-size: 8.5pt; }
+    .fixed-list ol { margin: 0; padding-left: 16px; line-height: 1.8; }
+    .two-col td { vertical-align: top; padding: 0 6px 0 0; border: none; }
+    .two-col td:last-child { padding-right: 0; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<table style="background-color:#1a3a5c; margin-bottom:12px; width:100%; border-collapse:collapse;">
+    <tr>
+        <td style="padding:10px 16px; color:white; vertical-align:middle; border:none;">
+            <div style="font-size:12pt; font-weight:bold; letter-spacing:0.05em; margin-bottom:4px;">JOURNEY MANAGEMENT PLAN</div>
+            <div style="font-size:8.5pt; opacity:0.85;">{{ plan.job.client }} — {{ plan.job.project_name }}</div>
+            <div style="font-size:8.5pt; opacity:0.85; margin-top:2px;">Job {{ plan.job.job_number }}</div>
+        </td>
+        {% if logo_b64 %}
+        <td style="padding:8px 14px; vertical-align:middle; text-align:right; border:none; width:160px;">
+            <img src="{{ logo_b64 }}" style="width:143px;" />
+        </td>
+        {% endif %}
+    </tr>
+</table>
+
+<!-- Intended Journey Details -->
+<div class="section">
+<div style="display:flex; justify-content:space-between; align-items:baseline; border-bottom:1.5pt solid #1a3a5c; padding-bottom:3px; margin-bottom:4px;">
+    <h2 style="margin:12px 0 0; border:none; padding:0;">Intended Journey Details</h2>
+    <span style="font-size:8.5pt; color:#1a3a5c;"><strong>Plan No.&nbsp;</strong>{{ plan.plan_number }}</span>
+</div>
+<table>
+    <tr>
+        <td class="label">Departing From</td>
+        <td colspan="3">{{ plan.departing_from }}</td>
+        <td class="label" style="width:60px;">Date</td>
+        <td style="width:90px;">{% if plan.depart_date %}{{ plan.depart_date|date:"d M Y" }}{% endif %}</td>
+        <td class="label" style="width:45px;">Time</td>
+        <td style="width:60px;">{% if plan.depart_time %}{{ plan.depart_time|time:"H:i" }}{% endif %}</td>
+    </tr>
+    <tr>
+        <td class="label">Contact</td>
+        <td colspan="3">{{ plan.depart_contact }}</td>
+        <td class="label">Phone</td>
+        <td colspan="3">{{ plan.depart_phone }}</td>
+    </tr>
+</table>
+
+{% if plan.overnight_location or plan.overnight_arrival_date or plan.overnight_departure_date %}
+<table style="margin-top:4px;">
+    <tr>
+        <td class="label" style="width:130px;">Overnight Break</td>
+        <td class="label-sm" style="width:55px;">Location</td>
+        <td colspan="7">{{ plan.overnight_location }}</td>
+    </tr>
+    <tr>
+        <td class="label"></td>
+        <td class="label-sm" style="width:60px;">Arr. Date</td>
+        <td style="width:90px;">{% if plan.overnight_arrival_date %}{{ plan.overnight_arrival_date|date:"d M Y" }}{% endif %}</td>
+        <td class="label-sm" style="width:50px;">Time</td>
+        <td style="width:60px;">{% if plan.overnight_arrival_time %}{{ plan.overnight_arrival_time|time:"H:i" }}{% endif %}</td>
+        <td class="label-sm" style="width:65px;">Dep. Date</td>
+        <td style="width:90px;">{% if plan.overnight_departure_date %}{{ plan.overnight_departure_date|date:"d M Y" }}{% endif %}</td>
+        <td class="label-sm" style="width:50px;">Time</td>
+        <td>{% if plan.overnight_departure_time %}{{ plan.overnight_departure_time|time:"H:i" }}{% endif %}</td>
+    </tr>
+</table>
+{% endif %}
+
+<table style="margin-top:4px;">
+    <tr>
+        <td class="label">Arriving At</td>
+        <td colspan="3">{{ plan.arriving_at }}</td>
+        <td class="label" style="width:60px;">Date</td>
+        <td style="width:90px;">{% if plan.arrive_date %}{{ plan.arrive_date|date:"d M Y" }}{% endif %}</td>
+        <td class="label" style="width:45px;">Time</td>
+        <td style="width:60px;">{% if plan.arrive_time %}{{ plan.arrive_time|time:"H:i" }}{% endif %}</td>
+    </tr>
+    <tr>
+        <td class="label">Contact</td>
+        <td colspan="3">{{ plan.arrive_contact }}</td>
+        <td class="label">Phone</td>
+        <td colspan="3">{{ plan.arrive_phone }}</td>
+    </tr>
+</table>
+</div>
+
+{% if include_map and map_b64 %}
+<div class="section" style="page-break-inside:avoid;">
+<h2>Route Map</h2>
+<img src="{{ map_b64 }}" style="width:100%; border:0.5pt solid #ccc; border-radius:3pt; display:block;">
+</div>
+{% endif %}
+
+<!-- Route & Instructions -->
+<div class="section">
+<h2>Route Summary</h2>
+{% if route_waypoints %}
+<div style="border:0.5pt solid #ccc; border-radius:3pt; padding:6px 8px; font-size:8.5pt; margin-bottom:4px;">{% for wp in route_waypoints %}<span style="font-weight:600; color:#1a3a5c;">({{ forloop.counter }})</span> {{ wp.name }}{% if not forloop.last %} <span style="color:#555; font-weight:700; font-size:8pt;">&nbsp;{{ wp.km }}km&nbsp;</span><span style="color:#888;">→</span> {% endif %}{% endfor %}</div>
+{% if route_total_km %}<div style="text-align:right; font-size:8pt; font-weight:700; color:#1a3a5c; margin-bottom:6px;">Total distance: {{ route_total_km }} km</div>{% endif %}
+{% elif route_text_parts %}
+<div style="border:0.5pt solid #ccc; border-radius:3pt; padding:6px 8px; font-size:8.5pt; margin-bottom:6px;">{% for part in route_text_parts %}<span style="font-weight:600; color:#1a3a5c;">({{ forloop.counter }})</span> {{ part }}{% if not forloop.last %} → {% endif %}{% endfor %}</div>
+{% else %}
+<div style="border:0.5pt solid #ccc; border-radius:3pt; padding:6px 8px; min-height:30px; white-space:pre-wrap; font-size:8.5pt; margin-bottom:6px;">{{ plan.route }}</div>
+{% endif %}
+
+{% if plan.break_journey_at %}
+<div style="margin-top:4px;">
+    <div style="font-weight:600; font-size:8.5pt; margin-bottom:2px;">Break Journey At</div>
+    <div style="border:0.5pt solid #ccc; border-radius:3pt; padding:6px 8px; white-space:pre-wrap; font-size:8.5pt;">{{ plan.break_journey_at }}</div>
+</div>
+{% endif %}
+</div>
+
+<!-- Standard Procedures + Other Instructions side by side -->
+<div class="section" style="display:table; width:100%; border-collapse:collapse;">
+    <div style="display:table-cell; width:55%; padding-right:10px; vertical-align:top;">
+        <h2>Standard Procedures</h2>
+        <div class="fixed-list">
+            <ol>
+                <li>Follow Velseis Driving Procedure</li>
+                <li>Adhere to road rules at all times</li>
+                <li>Rotate drivers / rest stop if tired</li>
+                <li>Radio channel for communication: <strong>{{ plan.radio_channel }}</strong></li>
+                <li>Max time before rest stop: <strong>{{ plan.max_rest_interval }}</strong></li>
+            </ol>
+        </div>
+    </div>
+    <div style="display:table-cell; width:45%; vertical-align:top;">
+        <h2>Other Special Instructions</h2>
+        <div style="border:0.5pt solid #ccc; border-radius:3pt; padding:6px 8px; white-space:pre-wrap; font-size:8.5pt; min-height:40px;">{{ plan.other_instructions }}</div>
+    </div>
+</div>
+
+<!-- Vehicle & Personnel -->
+<div class="section">
+<h2>Vehicle &amp; Personnel</h2>
+<table>
+    <tr>
+        <th style="width:80px;">Rego No.</th>
+        <th style="width:130px;">Personnel</th>
+        <th class="center" style="width:55px;">Driver?</th>
+        <th style="width:110px;">Phone No</th>
+        <th>Signature</th>
+    </tr>
+    {% for p in plan.personnel.all %}
+    <tr {% if forloop.counter|divisibleby:2 %}style="background:#f9f9f9;"{% endif %}>
+        <td>{{ p.rego }}</td>
+        <td>{{ p.name }}</td>
+        <td style="text-align:center;" class="{% if p.is_driver %}yn-y{% else %}yn-n{% endif %} yn">{% if p.is_driver %}Y{% else %}N{% endif %}</td>
+        <td>{{ p.phone }}</td>
+        <td></td>
+    </tr>
+    {% endfor %}
+    {% with filled=plan.personnel.count %}
+    {% if filled < 8 %}
+    {% for i in "12345678"|make_list %}
+    {% if forloop.counter > filled %}
+    <tr {% if forloop.counter|divisibleby:2 %}style="background:#f9f9f9;"{% endif %}>
+        <td>&nbsp;</td><td></td><td></td><td></td><td></td>
+    </tr>
+    {% endif %}
+    {% endfor %}
+    {% endif %}
+    {% endwith %}
+</table>
+</div>
+
+<!-- Journey Coordinator -->
+<div class="section">
+<h2>Journey Coordinator</h2>
+<p style="font-size:8pt; color:#666; margin:0 0 6px;">(Supervisor travelling with crew)</p>
+<table>
+    <tr>
+        <td class="label">Name</td>
+        <td>{{ plan.coordinator_name }}</td>
+        <td class="label" style="width:80px;">Phone No</td>
+        <td>{{ plan.coordinator_phone }}</td>
+    </tr>
+</table>
+
+<table style="margin-top:6px; width:100%; border-collapse:collapse; font-size:8.5pt;">
+    <tr>
+        <td colspan="4" style="background:#1a3a5c; color:white; font-weight:bold; font-size:8pt; padding:3px 8px; border:0.5pt solid #1a3a5c;">Before Journey</td>
+        <td style="width:6px; background:white; border:none; padding:0;"></td>
+        <td colspan="4" style="background:#1a3a5c; color:white; font-weight:bold; font-size:8pt; padding:3px 8px; border:0.5pt solid #1a3a5c;">After Journey</td>
+    </tr>
+    <tr>
+        <td style="background:#eef3f8; font-weight:600; color:#1a3a5c; font-size:8pt; padding:4px 7px; border:0.5pt solid #ccc; width:145px;">Plan communicated to crew</td>
+        <td style="width:28px; text-align:center; border:0.5pt solid #ccc; padding:4px;">□</td>
+        <td style="background:#eef3f8; font-weight:600; color:#1a3a5c; font-size:8pt; padding:4px 7px; border:0.5pt solid #ccc; width:58px;">Signature</td>
+        <td style="border:0.5pt solid #ccc;"></td>
+        <td style="width:6px; background:white; border:none; padding:0;"></td>
+        <td style="background:#eef3f8; font-weight:600; color:#1a3a5c; font-size:8pt; padding:4px 7px; border:0.5pt solid #ccc; width:115px;">Journey completed</td>
+        <td style="width:28px; text-align:center; border:0.5pt solid #ccc; padding:4px;">□</td>
+        <td style="background:#eef3f8; font-weight:600; color:#1a3a5c; font-size:8pt; padding:4px 7px; border:0.5pt solid #ccc; width:58px;">Signature</td>
+        <td style="border:0.5pt solid #ccc;"></td>
+    </tr>
+    <tr>
+        <td style="background:#eef3f8; font-weight:600; color:#1a3a5c; font-size:8pt; padding:4px 7px; border:0.5pt solid #ccc;">Date</td>
+        <td colspan="3" style="border:0.5pt solid #ccc;"></td>
+        <td style="width:6px; background:white; border:none; padding:0;"></td>
+        <td style="background:#eef3f8; font-weight:600; color:#1a3a5c; font-size:8pt; padding:4px 7px; border:0.5pt solid #ccc;">Date</td>
+        <td colspan="3" style="border:0.5pt solid #ccc;"></td>
+    </tr>
+</table>
+
+{% if plan.action_items %}
+<div style="margin-top:8px;">
+    <div style="font-weight:bold; font-size:8.5pt; margin-bottom:4px;">Action Items:</div>
+    <div style="border:0.5pt solid #ccc; border-radius:3pt; padding:6px 8px; white-space:pre-wrap; font-size:8.5pt;">{{ plan.action_items }}</div>
+</div>
+{% endif %}
+</div>
+
+</body>
+</html>

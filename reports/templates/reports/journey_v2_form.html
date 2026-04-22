@@ -1,0 +1,762 @@
+{% extends "base.html" %}
+{% block title %}{% if plan %}Edit{% else %}New{% endif %} Journey Management Plan V2{% endblock %}
+{% block content %}
+
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;">
+    <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+    <a href="{% url 'journey_v2_list' job.pk %}" style="color:#999;">Journey V2</a> /
+</p>
+<h1 style="margin:4px 0 24px;">{% if plan %}Edit{% else %}New{% endif %} Journey Management Plan <span style="font-size:0.6em; background:#1a3a5c; color:white; border-radius:4px; padding:3px 8px; vertical-align:middle;">V2 · Digital Signatures</span></h1>
+
+<form method="post" action="{% if plan %}{% url 'journey_v2_edit' plan.pk %}{% else %}{% url 'journey_v2_create' job.pk %}{% endif %}">
+{% csrf_token %}
+
+<!-- Intended Journey Details -->
+<div class="card" style="margin-bottom:16px;">
+    <div style="display:flex; align-items:center; justify-content:space-between; border-bottom:2px solid #1a3a5c; padding-bottom:6px; margin-bottom:12px;">
+        <h3 style="margin:0; color:#1a3a5c;">Intended Journey Details</h3>
+        <div style="display:flex; align-items:center; gap:8px;">
+            <label style="margin:0; font-size:0.88em; white-space:nowrap;">Plan No.</label>
+            <input type="text" name="plan_number" value="{{ plan.plan_number|default:'' }}" style="width:160px; padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:0.88em;">
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
+        <div>
+            <label>Departing From</label>
+            <input type="text" name="departing_from" value="{{ plan.departing_from|default:'' }}" onchange="getTowns()" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Date</label>
+            <input type="date" name="depart_date" value="{{ plan.depart_date|date:'Y-m-d'|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Time</label>
+            <input type="time" name="depart_time" value="{{ plan.depart_time|time:'H:i'|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Contact</label>
+            <input type="text" name="depart_contact" value="{{ plan.depart_contact|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Phone</label>
+            <input type="text" name="depart_phone" value="{{ plan.depart_phone|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; gap:10px; margin-bottom:12px;">
+        <div>
+            <label>Overnight Break <span style="font-weight:400; color:#999; font-size:0.88em;">(if applicable)</span></label>
+            <input type="text" name="overnight_location" value="{{ plan.overnight_location|default:'' }}" placeholder="Location" onchange="getTowns()" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Arrival Date</label>
+            <input type="date" name="overnight_arrival_date" value="{{ plan.overnight_arrival_date|date:'Y-m-d'|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Arrival Time</label>
+            <input type="time" name="overnight_arrival_time" value="{{ plan.overnight_arrival_time|time:'H:i'|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Departure Date</label>
+            <input type="date" name="overnight_departure_date" value="{{ plan.overnight_departure_date|date:'Y-m-d'|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Departure Time</label>
+            <input type="time" name="overnight_departure_time" value="{{ plan.overnight_departure_time|time:'H:i'|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:2fr 1fr 1fr 1fr 1fr; gap:10px;">
+        <div>
+            <label>Arriving At</label>
+            <input type="text" name="arriving_at" value="{{ plan.arriving_at|default:'' }}" onchange="getTowns()" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Date</label>
+            <input type="date" name="arrive_date" value="{{ plan.arrive_date|date:'Y-m-d'|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Time</label>
+            <input type="time" name="arrive_time" value="{{ plan.arrive_time|time:'H:i'|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Contact</label>
+            <input type="text" name="arrive_contact" value="{{ plan.arrive_contact|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Phone</label>
+            <input type="text" name="arrive_phone" value="{{ plan.arrive_phone|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+    </div>
+</div>
+
+<!-- Route & Instructions -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<div class="card" style="margin-bottom:16px;">
+    <div style="display:flex; align-items:center; gap:10px; border-bottom:2px solid #1a3a5c; padding-bottom:6px; margin-bottom:12px; flex-wrap:wrap;">
+        <h3 style="margin:0; color:#1a3a5c;">Route &amp; Instructions</h3>
+        <button type="button" onclick="drawRoutes()" id="drawRouteBtn"
+            style="background:none; border:1px solid #1a3a5c; color:#1a3a5c; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:0.82em;">⟳ Draw Route</button>
+        <span id="routeStatus" style="font-size:0.82em; color:#666;"></span>
+    </div>
+
+    <div style="display:flex; gap:12px; margin-bottom:14px; align-items:flex-start;">
+        <div style="flex:0 0 255px; display:flex; flex-direction:column; gap:10px;">
+            <div style="background:#f5f8fc; border:1px solid #c5d5e8; border-radius:6px; padding:9px;">
+                <div style="margin-bottom:6px;">
+                    <span style="font-weight:600; font-size:0.85em; color:#1a3a5c;">📍 Waypoints</span>
+                </div>
+                <div id="waypointsList" style="display:flex; flex-direction:column; gap:3px; max-height:200px; overflow-y:auto;"></div>
+                <div id="wpTotal" style="font-size:0.8em; font-weight:600; color:#1a3a5c; text-align:right; margin-top:5px; display:none;"></div>
+            </div>
+        </div>
+        <div style="flex:1; min-width:0;">
+            <div id="routeMap" style="height:420px; border-radius:4px; border:1px solid #ccc;"></div>
+        </div>
+    </div>
+
+
+    <input type="hidden" name="route_waypoints" id="routeWaypointsData" value="{{ plan.route_waypoints|default:'' }}">
+    <input type="hidden" name="map_tile_layer" id="mapTileLayerField" value="{{ plan.map_tile_layer|default:'street' }}">
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:14px;">
+        <div>
+            <label style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                Route Summary
+                <span style="font-weight:400; color:#999; font-size:0.85em;">(auto-filled from waypoints)</span>
+                <a id="googleMapsLink" href="#" target="_blank"
+                   style="font-size:0.8em; font-weight:600; background:#4285f4; color:white; border-radius:4px; padding:2px 8px; text-decoration:none; white-space:nowrap; display:none;">
+                    ↗ Google Maps
+                </a>
+            </label>
+            <textarea name="route" id="routeField" rows="3" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; font-size:1.2em;">{{ plan.route|default:'' }}</textarea>
+        </div>
+        <div>
+            <label>Break Journey At</label>
+            <textarea name="break_journey_at" id="breakField" rows="3" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px; font-size:1.2em;">{{ plan.break_journey_at|default:'' }}</textarea>
+        </div>
+    </div>
+
+    <div style="background:#f5f8fc; border:1px solid #c5d5e8; border-radius:6px; padding:12px; margin-bottom:12px;">
+        <div style="font-size:0.88em; font-weight:600; color:#1a3a5c; margin-bottom:8px;">Standard Procedures</div>
+        <ol style="margin:0; padding-left:20px; font-size:0.9em; color:#444; line-height:1.8;">
+            <li>Follow Velseis Driving Procedure</li>
+            <li>Adhere to road rules at all times</li>
+            <li>Rotate drivers / rest stop if tired</li>
+            <li>Radio channel for communication:
+                <input type="text" name="radio_channel" value="{{ plan.radio_channel|default:'' }}" placeholder="e.g. CH 40"
+                    style="margin-left:8px; padding:3px 8px; border:1px solid #ccc; border-radius:4px; width:120px;">
+            </li>
+        </ol>
+    </div>
+
+    <div>
+        <label>Other Special Instructions</label>
+        <textarea name="other_instructions" rows="3" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">{{ plan.other_instructions|default:'' }}</textarea>
+    </div>
+</div>
+
+<!-- Vehicle & Personnel -->
+<div class="card" style="margin-bottom:16px;">
+    <div style="display:flex; align-items:center; gap:8px; border-bottom:2px solid #1a3a5c; padding-bottom:6px; margin-bottom:12px; flex-wrap:wrap;">
+        <h3 style="margin:0; color:#1a3a5c;">Vehicle &amp; Personnel</h3>
+        <button type="button" onclick="fillPersonnel('all')" style="background:#1a3a5c; color:white; border:1px solid #1a3a5c; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:0.82em;">All on Job</button>
+        <button type="button" onclick="fillPersonnel('mob')" style="background:none; border:1px solid #1a3a5c; color:#1a3a5c; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:0.82em;">Mobilise</button>
+        <button type="button" onclick="fillPersonnel('demob')" style="background:none; border:1px solid #1a3a5c; color:#1a3a5c; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:0.82em;">Demobilise</button>
+        <span style="color:#ccc; margin:0 2px;">|</span>
+        <button type="button" onclick="fillFromAllocations('mob')"   style="background:none; border:1px solid #5b6f3a; color:#5b6f3a; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:0.82em;">Mob</button>
+        <button type="button" onclick="fillFromAllocations('job')"   style="background:none; border:1px solid #5b6f3a; color:#5b6f3a; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:0.82em;">Job</button>
+        <button type="button" onclick="fillFromAllocations('demob')" style="background:none; border:1px solid #5b6f3a; color:#5b6f3a; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:0.82em;">Demob</button>
+        <button type="button" onclick="fillFromAllocations('other')" style="background:none; border:1px solid #5b6f3a; color:#5b6f3a; border-radius:4px; padding:3px 10px; cursor:pointer; font-size:0.82em;">Other</button>
+    </div>
+
+    <table style="width:100%; margin-bottom:10px;" id="personnelTable">
+        <thead>
+            <tr>
+                <th style="text-align:left; padding:6px 8px; background:#1a3a5c; color:white; font-size:0.88em; width:110px;">Rego No.</th>
+                <th style="text-align:left; padding:6px 8px; background:#1a3a5c; color:white; font-size:0.88em;">Personnel</th>
+                <th style="text-align:center; padding:6px 8px; background:#1a3a5c; color:white; font-size:0.88em; width:80px;">Driver?</th>
+                <th style="text-align:left; padding:6px 8px; background:#1a3a5c; color:white; font-size:0.88em; width:160px;">Phone</th>
+                <th style="text-align:left; padding:6px 8px; background:#1a3a5c; color:white; font-size:0.88em; width:180px;">Signature</th>
+                <th style="width:36px; background:#1a3a5c;"></th>
+            </tr>
+        </thead>
+        <tbody id="personnelRows">
+            {% if plan and plan.personnel.all %}
+            {% for p in plan.personnel.all %}
+            <tr>
+                <input type="hidden" name="p_pk" value="{{ p.pk }}">
+                <td style="padding:4px 4px;">
+                    <input type="text" name="p_rego" value="{{ p.rego }}" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #ccc; border-radius:4px;">
+                </td>
+                <td style="padding:4px 4px;">
+                    <input type="text" name="p_name" value="{{ p.name }}" list="jobPersonnelList" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #ccc; border-radius:4px;">
+                </td>
+                <td style="padding:4px 4px; text-align:center;">
+                    <select name="p_driver" style="padding:6px 4px; border:1px solid #ccc; border-radius:4px; width:100%;">
+                        <option value="">—</option>
+                        <option value="Y" {% if p.is_driver %}selected{% endif %}>Y</option>
+                        <option value="N" {% if not p.is_driver %}selected{% endif %}>N</option>
+                    </select>
+                </td>
+                <td style="padding:4px 4px;">
+                    <input type="text" name="p_phone" value="{{ p.phone }}" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #ccc; border-radius:4px;">
+                </td>
+                <td style="padding:4px 4px;">
+                    {% if p.signature %}
+                    <div style="display:flex; align-items:center; gap:6px;">
+                        <img src="{{ p.signature }}" style="height:36px; max-width:120px; border:1px solid #ddd; border-radius:3px; background:white; object-fit:contain;">
+                        <div style="display:flex; flex-direction:column; gap:3px;">
+                            <button type="button" onclick="openSigModal('{% url 'journey_v2_personnel_sign' p.pk %}','{{ p.name }}','{% url 'journey_v2_personnel_clear' p.pk %}')"
+                                style="background:none; border:1px solid #1a3a5c; color:#1a3a5c; border-radius:3px; padding:2px 6px; cursor:pointer; font-size:0.75em;">Re-sign</button>
+                            <span style="font-size:0.65em; color:#558b2f;">{{ p.signed_at|date:"d M H:i" }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <button type="button" onclick="openSigModal('{% url 'journey_v2_personnel_sign' p.pk %}','{{ p.name }}','{% url 'journey_v2_personnel_clear' p.pk %}')"
+                        style="background:#1a3a5c; color:white; border:none; border-radius:4px; padding:5px 12px; cursor:pointer; font-size:0.82em;">Sign</button>
+                    {% endif %}
+                </td>
+                <td style="padding:4px 4px; text-align:center;">
+                    <button type="button" onclick="removePersonnelRow(this)" style="background:none; border:none; color:#c00; cursor:pointer; font-size:1.1em; padding:0;">×</button>
+                </td>
+            </tr>
+            {% endfor %}
+            {% endif %}
+        </tbody>
+    </table>
+
+    <datalist id="jobPersonnelList">
+        {% for p in job_personnel %}<option value="{{ p.name }}">{% endfor %}
+    </datalist>
+    {{ personnel_phones|json_script:"personnelPhonesData" }}
+    {{ job_personnel_data|json_script:"jobPersonnelDataEl" }}
+    {{ alloc_by_tab|json_script:"allocByTabData" }}
+    <script>
+    var personnelPhones = JSON.parse(document.getElementById('personnelPhonesData').textContent);
+    var jobPersonnelData = JSON.parse(document.getElementById('jobPersonnelDataEl').textContent);
+    var allocByTab = JSON.parse(document.getElementById('allocByTabData').textContent);
+
+    function fillPersonnel(filter) {
+        var list = jobPersonnelData;
+        if (filter === 'mob') list = list.filter(function(p) { return p.mob; });
+        else if (filter === 'demob') list = list.filter(function(p) { return p.demob; });
+        document.getElementById('personnelRows').innerHTML = '';
+        list.forEach(function(p) {
+            var tr = _buildPersonnelRow(p.name, p.phone, '');
+            document.getElementById('personnelRows').appendChild(tr);
+        });
+    }
+
+    function fillFromAllocations(tab) {
+        var vehicles = allocByTab[tab] || [];
+        document.getElementById('personnelRows').innerHTML = '';
+        vehicles.forEach(function(veh) {
+            veh.people.forEach(function(p) {
+                var tr = _buildPersonnelRow(p.name, p.phone, veh.rego_label);
+                document.getElementById('personnelRows').appendChild(tr);
+            });
+        });
+    }
+    </script>
+
+    <button type="button" onclick="addPersonnelRow()" style="background:none; border:1px solid #1a3a5c; color:#1a3a5c; border-radius:4px; padding:5px 14px; cursor:pointer; font-size:0.88em;">+ Add Person</button>
+</div>
+
+<!-- Journey Coordinator -->
+<div class="card" style="margin-bottom:16px;">
+    <h3 style="margin-top:0; color:#1a3a5c; border-bottom:2px solid #1a3a5c; padding-bottom:6px;">Journey Coordinator</h3>
+    <p style="font-size:0.85em; color:#666; margin:0 0 10px;">(Supervisor travelling with crew)</p>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:16px;">
+        <div>
+            <label>Name</label>
+            <input type="text" name="coordinator_name" value="{{ plan.coordinator_name|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+        <div>
+            <label>Phone No</label>
+            <input type="text" name="coordinator_phone" value="{{ plan.coordinator_phone|default:'' }}" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; margin-top:16px;">
+        <!-- Before Journey -->
+        <div style="background:#f5f8fc; border:1px solid #c5d5e8; border-radius:6px; padding:12px;">
+            <div style="font-size:0.88em; font-weight:600; color:#1a3a5c; margin-bottom:10px;">Before Journey</div>
+            <div style="margin-bottom:8px;">
+                <label style="font-size:0.88em;">Plan communicated to crew</label>
+                <select name="plan_communicated" style="margin-left:8px; padding:4px 8px; border:1px solid #ccc; border-radius:4px;">
+                    <option value="">—</option>
+                    <option value="Y" {% if plan and plan.plan_communicated == True %}selected{% endif %}>Y</option>
+                    <option value="N" {% if plan and plan.plan_communicated == False %}selected{% endif %}>N</option>
+                </select>
+            </div>
+            <div style="margin-bottom:8px;">
+                <label style="font-size:0.88em; display:block; margin-bottom:4px;">Signature</label>
+                {% if plan %}
+                    {% if plan.before_signature %}
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <img src="{{ plan.before_signature }}" style="height:48px; max-width:160px; border:1px solid #ddd; border-radius:3px; background:white; object-fit:contain;">
+                        <div style="display:flex; flex-direction:column; gap:3px;">
+                            <button type="button" onclick="openSigModal('{% url 'journey_v2_before_sign' plan.pk %}','Before Journey','{% url 'journey_v2_before_clear' plan.pk %}')"
+                                style="background:none; border:1px solid #1a3a5c; color:#1a3a5c; border-radius:3px; padding:2px 8px; cursor:pointer; font-size:0.8em;">Re-sign</button>
+                            <span style="font-size:0.7em; color:#558b2f;">{{ plan.before_signed_at|date:"d M Y H:i" }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <button type="button" onclick="openSigModal('{% url 'journey_v2_before_sign' plan.pk %}','Before Journey','{% url 'journey_v2_before_clear' plan.pk %}')"
+                        style="background:#1a3a5c; color:white; border:none; border-radius:4px; padding:6px 14px; cursor:pointer; font-size:0.85em;">Sign</button>
+                    {% endif %}
+                {% else %}
+                <span style="font-size:0.82em; color:#999; font-style:italic;">Save plan first to add signature</span>
+                {% endif %}
+            </div>
+            <div>
+                <label style="font-size:0.88em;">Date</label>
+                <input type="date" name="before_date" value="{{ plan.before_date|date:'Y-m-d'|default:'' }}" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #ccc; border-radius:4px;">
+            </div>
+        </div>
+
+        <!-- After Journey -->
+        <div style="background:#f5f8fc; border:1px solid #c5d5e8; border-radius:6px; padding:12px;">
+            <div style="font-size:0.88em; font-weight:600; color:#1a3a5c; margin-bottom:10px;">After Journey</div>
+            <div style="margin-bottom:8px;">
+                <label style="font-size:0.88em;">Journey completed</label>
+                <select name="journey_completed" style="margin-left:8px; padding:4px 8px; border:1px solid #ccc; border-radius:4px;">
+                    <option value="">—</option>
+                    <option value="Y" {% if plan and plan.journey_completed == True %}selected{% endif %}>Y</option>
+                    <option value="N" {% if plan and plan.journey_completed == False %}selected{% endif %}>N</option>
+                </select>
+            </div>
+            <div style="margin-bottom:8px;">
+                <label style="font-size:0.88em; display:block; margin-bottom:4px;">Signature</label>
+                {% if plan %}
+                    {% if plan.after_signature %}
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <img src="{{ plan.after_signature }}" style="height:48px; max-width:160px; border:1px solid #ddd; border-radius:3px; background:white; object-fit:contain;">
+                        <div style="display:flex; flex-direction:column; gap:3px;">
+                            <button type="button" onclick="openSigModal('{% url 'journey_v2_after_sign' plan.pk %}','After Journey','{% url 'journey_v2_after_clear' plan.pk %}')"
+                                style="background:none; border:1px solid #1a3a5c; color:#1a3a5c; border-radius:3px; padding:2px 8px; cursor:pointer; font-size:0.8em;">Re-sign</button>
+                            <span style="font-size:0.7em; color:#558b2f;">{{ plan.after_signed_at|date:"d M Y H:i" }}</span>
+                        </div>
+                    </div>
+                    {% else %}
+                    <button type="button" onclick="openSigModal('{% url 'journey_v2_after_sign' plan.pk %}','After Journey','{% url 'journey_v2_after_clear' plan.pk %}')"
+                        style="background:#1a3a5c; color:white; border:none; border-radius:4px; padding:6px 14px; cursor:pointer; font-size:0.85em;">Sign</button>
+                    {% endif %}
+                {% else %}
+                <span style="font-size:0.82em; color:#999; font-style:italic;">Save plan first to add signature</span>
+                {% endif %}
+            </div>
+            <div>
+                <label style="font-size:0.88em;">Date</label>
+                <input type="date" name="after_date" value="{{ plan.after_date|date:'Y-m-d'|default:'' }}" style="width:100%; box-sizing:border-box; padding:6px 8px; border:1px solid #ccc; border-radius:4px;">
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top:14px;">
+        <label>Action Items</label>
+        <textarea name="action_items" rows="3" style="width:100%; box-sizing:border-box; padding:7px 10px; border:1px solid #ccc; border-radius:4px;">{{ plan.action_items|default:'' }}</textarea>
+    </div>
+</div>
+
+<div style="display:flex; gap:10px; align-items:center; margin-top:4px; flex-wrap:wrap;">
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a href="{% url 'journey_v2_list' job.pk %}" style="padding:8px 16px; border:1px solid #ccc; border-radius:4px; text-decoration:none; color:#333; font-size:0.95em;">Cancel</a>
+    {% if plan %}
+    <a id="pdfLink" href="{% url 'journey_v2_pdf' plan.pk %}" target="_blank" class="btn btn-outline-secondary">View PDF</a>
+    <a href="{% url 'journey_v2_image' plan.pk %}" class="btn btn-outline-success" title="Download Image for SMS">⬇ Image</a>
+    {% else %}
+    <a id="pdfLink" href="#" target="_blank" class="btn btn-outline-secondary" style="display:none;">View PDF</a>
+    {% endif %}
+    <label style="display:flex; align-items:center; gap:6px; font-size:0.88em; color:#444; cursor:pointer; margin-left:8px;">
+        <input type="checkbox" name="include_map_in_pdf" {% if not plan or plan.include_map_in_pdf %}checked{% endif %} style="width:16px; height:16px; cursor:pointer;">
+        Include map in PDF
+    </label>
+    <span id="saveStatus" style="font-size:0.9em; font-weight:600;"></span>
+</div>
+
+</form>
+
+<!-- Signature Modal -->
+<div id="sigModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.55); z-index:9000; align-items:center; justify-content:center;">
+    <div style="background:white; border-radius:8px; padding:20px; max-width:520px; width:95%; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <strong id="sigModalLabel" style="color:#1a3a5c; font-size:1.05em;"></strong>
+            <button type="button" onclick="closeSigModal()" style="background:none; border:none; font-size:1.5em; cursor:pointer; color:#666;">×</button>
+        </div>
+        <canvas id="sigCanvas" width="460" height="200"
+            style="border:2px solid #1a3a5c; border-radius:4px; width:100%; touch-action:none; background:white; display:block;"></canvas>
+        <div style="display:flex; gap:8px; margin-top:12px; align-items:center;">
+            <button type="button" onclick="saveSig()" style="background:#1a3a5c; color:white; border:none; border-radius:4px; padding:8px 20px; cursor:pointer; font-weight:600;">Save</button>
+            <button type="button" onclick="clearCanvas()" style="background:none; border:1px solid #aaa; border-radius:4px; padding:8px 16px; cursor:pointer; color:#444;">Clear</button>
+            <button type="button" id="sigClearBtn" onclick="clearSig()" style="background:none; border:1px solid #c00; border-radius:4px; padding:8px 16px; cursor:pointer; color:#c00;">Remove signature</button>
+            <span id="sigSaveStatus" style="font-size:0.85em; font-weight:600; margin-left:auto;"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+// ── Route Map ─────────────────────────────────────────────────────────
+let routeMap, wpCounter = 0;
+let waypoints = [], routeLayers = [];
+
+function wpIcon(n, geocoded) {
+    const bg = geocoded ? '#1a3a5c' : '#aaa';
+    return L.divIcon({
+        html: `<div style="background:${bg};color:white;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:bold;border:2px solid white;box-shadow:0 1px 4px rgba(0,0,0,0.5)">${n}</div>`,
+        className: '', iconSize: [22,22], iconAnchor: [11,11]
+    });
+}
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+document.addEventListener('DOMContentLoaded', function() {
+    routeMap = L.map('routeMap', {doubleClickZoom: false}).setView([-25, 133], 4);
+    const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {attribution: '© OpenStreetMap contributors', maxZoom: 19});
+    const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {attribution: 'Tiles © Esri', maxZoom: 19});
+    streetLayer.addTo(routeMap);
+    L.control.layers({'Street': streetLayer, 'Satellite': satelliteLayer}, {}, {position: 'topright'}).addTo(routeMap);
+    routeMap.on('baselayerchange', function(e) {
+        document.getElementById('mapTileLayerField').value = e.name.toLowerCase();
+    });
+
+    routeMap.on('dblclick', async function(e) {
+        const {lat, lng} = e.latlng;
+        const status = document.getElementById('routeStatus');
+        status.textContent = 'Looking up location…';
+        try {
+            const r = await fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=json`, {headers: {'Accept-Language': 'en'}});
+            const d = await r.json();
+            const addr = d.address || {};
+            let name;
+            if (d.name) {
+                const locality = addr.suburb || addr.village || addr.town || addr.city || '';
+                name = locality ? `${d.name}, ${locality}` : d.name;
+            } else if (addr.road) {
+                const parts = [addr.house_number ? `${addr.house_number} ${addr.road}` : addr.road, addr.suburb || addr.village || addr.town || addr.city].filter(Boolean);
+                name = parts.join(', ');
+            } else {
+                name = addr.city || addr.town || addr.village || addr.suburb || addr.county || addr.state_district || addr.state || d.display_name?.split(',')[0] || `${lat.toFixed(4)},${lng.toFixed(4)}`;
+            }
+            _addWaypointFull(name, lat, lng);
+            clearRouteLines(); clearDistances(); syncMapToForm();
+            status.textContent = `Added: ${name}`;
+            setTimeout(() => { status.textContent = ''; }, 3000);
+        } catch(err) {
+            const name = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+            _addWaypointFull(name, lat, lng);
+            clearRouteLines(); clearDistances(); syncMapToForm();
+            status.textContent = '';
+        }
+    });
+
+    const wpRaw = document.getElementById('routeWaypointsData').value;
+    if (wpRaw) {
+        try { JSON.parse(wpRaw).forEach(w => _addWaypointFull(w.name, w.lat, w.lon)); } catch(e) {}
+        if (waypoints.length >= 2) { drawRoutes(); } else { fitMap(); }
+        updateGoogleMapsLink();
+    }
+
+    document.querySelector('form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        syncMapToForm();
+        const form = this;
+        const btn = form.querySelector('[type=submit]');
+        const statusEl = document.getElementById('saveStatus');
+        btn.disabled = true;
+        statusEl.textContent = 'Saving…';
+        statusEl.style.color = '#666';
+        const fd = new FormData(form);
+        fetch(form.action, {
+            method: 'POST',
+            headers: {'X-Requested-With': 'XMLHttpRequest'},
+            body: fd,
+        }).then(r => r.json()).then(data => {
+            btn.disabled = false;
+            if (data.ok) {
+                statusEl.textContent = '✓ Saved';
+                statusEl.style.color = '#2d6a4f';
+                if (data.edit_url) {
+                    // New plan — redirect so personnel get PKs and sign buttons appear
+                    window.location.href = data.edit_url;
+                } else {
+                    // Reload so newly-added personnel rows get PKs and Sign buttons appear
+                    setTimeout(() => { window.location.reload(); }, 600);
+                }
+            } else {
+                statusEl.textContent = 'Save failed';
+                statusEl.style.color = '#c00';
+            }
+        }).catch(() => {
+            btn.disabled = false;
+            statusEl.textContent = 'Save failed';
+            statusEl.style.color = '#c00';
+        });
+    });
+    document.querySelector('form').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA' && !e.target.matches('[type=submit]')) {
+            e.preventDefault();
+        }
+    });
+});
+
+// ── Waypoints ─────────────────────────────────────────────────────────
+function _wpRowHtml(id, dotColor, name) {
+    return `
+        <span class="wp-handle" style="cursor:grab;color:#bbb;font-size:1em;user-select:none;flex-shrink:0;padding:0 2px;" title="Drag to reorder">☰</span>
+        <span id="wp-dot-${id}" style="width:9px;height:9px;border-radius:50%;background:${dotColor};flex-shrink:0;"></span>
+        <input type="text" id="wp-inp-${id}" value="${esc(name)}" placeholder="Location…"
+            style="flex:1;padding:4px 6px;border:1px solid #ccc;border-radius:3px;font-size:0.82em;"
+            onblur="geocodeWp(${id})"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();geocodeWp(${id});}">
+        <span id="wp-km-${id}" style="font-size:0.75em;color:#555;flex-shrink:0;min-width:44px;text-align:right;"></span>
+        <button type="button" onclick="insertWpAfter(${id})" title="Insert waypoint after this one"
+            style="background:none;border:1px solid #1a3a5c;color:#1a3a5c;border-radius:3px;cursor:pointer;font-size:0.8em;padding:1px 5px;flex-shrink:0;">+</button>
+        <button type="button" onclick="removeWp(${id})"
+            style="background:none;border:none;color:#c00;cursor:pointer;font-size:1em;padding:0;flex-shrink:0;">×</button>`;
+}
+
+let _wpDragSrc = null, _wpHandleDown = false;
+document.addEventListener('mousedown', e => { _wpHandleDown = !!e.target.closest('.wp-handle'); });
+document.addEventListener('mouseup', () => { _wpHandleDown = false; });
+
+function _initWpDrag(div) {
+    div.draggable = true;
+    div.addEventListener('dragstart', e => { if (!_wpHandleDown) { e.preventDefault(); return; } _wpDragSrc = div; e.dataTransfer.effectAllowed = 'move'; });
+    div.addEventListener('dragover', e => { if (!_wpDragSrc || _wpDragSrc === div) return; e.preventDefault(); const list = document.getElementById('waypointsList'); const rows = [...list.querySelectorAll(':scope > div')]; const si = rows.indexOf(_wpDragSrc), ti = rows.indexOf(div); if (si < ti) div.after(_wpDragSrc); else div.before(_wpDragSrc); });
+    div.addEventListener('drop', e => e.preventDefault());
+    div.addEventListener('dragend', () => { if (!_wpDragSrc) return; _wpDragSrc = null; const list = document.getElementById('waypointsList'); const ids = [...list.querySelectorAll(':scope > div')].map(d => +d.id.replace('wp-', '')); waypoints.sort((a, b) => ids.indexOf(a.id) - ids.indexOf(b.id)); clearRouteLines(); clearDistances(); renumberWps(); syncMapToForm(); });
+}
+
+function addWaypointRow(name, afterId) {
+    const id = ++wpCounter;
+    const newWp = {id, name: name||'', lat: null, lon: null, marker: null};
+    const div = document.createElement('div');
+    div.id = `wp-${id}`; div.style.cssText = 'display:flex;gap:4px;align-items:center;';
+    div.innerHTML = _wpRowHtml(id, '#ccc', name||'');
+    _initWpDrag(div);
+    if (afterId !== undefined) { const idx = waypoints.findIndex(w => w.id === afterId); waypoints.splice(idx + 1, 0, newWp); document.getElementById(`wp-${afterId}`).insertAdjacentElement('afterend', div); }
+    else { waypoints.push(newWp); document.getElementById('waypointsList').appendChild(div); }
+    renumberWps(); return id;
+}
+function insertWpAfter(afterId) { clearDistances(); const id = addWaypointRow('', afterId); document.getElementById(`wp-inp-${id}`).focus(); }
+function _addWaypointFull(name, lat, lon) {
+    const id = ++wpCounter; const wp = {id, name, lat, lon, marker: null}; waypoints.push(wp); const n = waypoints.length;
+    wp.marker = L.marker([lat, lon], {icon: wpIcon(n, true)}).bindPopup(`<b>${n}. ${name}</b>`).addTo(routeMap);
+    const div = document.createElement('div'); div.id = `wp-${id}`; div.style.cssText = 'display:flex;gap:4px;align-items:center;';
+    div.innerHTML = _wpRowHtml(id, '#2e7d32', name); _initWpDrag(div); document.getElementById('waypointsList').appendChild(div);
+}
+function removeWp(id) { const i = waypoints.findIndex(w => w.id === id); if (i === -1) return; if (waypoints[i].marker) routeMap.removeLayer(waypoints[i].marker); waypoints.splice(i, 1); document.getElementById(`wp-${id}`).remove(); clearRouteLines(); clearDistances(); renumberWps(); }
+function renumberWps() { waypoints.forEach((w, i) => { if (w.marker) { w.marker.setIcon(wpIcon(i+1, w.lat !== null)); w.marker.bindPopup(`<b>${i+1}. ${w.name}</b>`); } }); }
+function clearRouteLines() { routeLayers.forEach(l => routeMap.removeLayer(l)); routeLayers = []; }
+function clearDistances() { waypoints.forEach(w => { const s = document.getElementById(`wp-km-${w.id}`); if (s) s.textContent = ''; }); const tot = document.getElementById('wpTotal'); if (tot) { tot.textContent = ''; tot.style.display = 'none'; } }
+function updateDistances(legKm) { let total = 0; waypoints.forEach((wp, i) => { const s = document.getElementById(`wp-km-${wp.id}`); if (!s) return; if (i === 0) { s.textContent = ''; return; } const km = legKm[i - 1]; if (km !== undefined) { s.textContent = km + ' km'; total += km; } }); const tot = document.getElementById('wpTotal'); if (tot && total > 0) { tot.textContent = 'Total: ' + total + ' km'; tot.style.display = 'block'; } }
+function fitMap() { const pts = waypoints.filter(w => w.lat !== null).map(w => [w.lat, w.lon]); if (pts.length) routeMap.fitBounds(pts, {padding:[30,30]}); }
+function syncRouteField() { const wps = waypoints.filter(w => w.name); if (wps.length) { document.getElementById('routeField').value = wps.map((w, i) => '(' + (i+1) + ') ' + w.name).join(' → '); syncBreakFromRoute(); } updateGoogleMapsLink(); }
+function syncBreakFromRoute() { const route = document.getElementById('routeField').value; const towns = route.split('→').map(t => t.trim().replace(/^\(\d+\)\s*/, '')).filter(Boolean); document.getElementById('breakField').value = towns.slice(1, -1).join(' | '); }
+function syncMapToForm() { syncRouteField(); document.getElementById('routeWaypointsData').value = JSON.stringify(waypoints.filter(w => w.lat !== null).map(w => ({name:w.name, lat:w.lat, lon:w.lon}))); }
+function updateGoogleMapsLink() { const link = document.getElementById('googleMapsLink'); const pts = waypoints.filter(w => w.name); if (pts.length < 2) { link.style.display = 'none'; return; } const stops = pts.map(w => w.lat !== null ? `${w.lat},${w.lon}` : encodeURIComponent(w.name)); link.href = `https://www.google.com/maps/dir/${stops.join('/')}`; link.style.display = ''; }
+
+async function geocodeWp(id) {
+    const wp = waypoints.find(w => w.id === id); if (!wp) return;
+    const name = document.getElementById(`wp-inp-${id}`).value.trim(); if (!name) return; wp.name = name;
+    const dot = document.getElementById(`wp-dot-${id}`); dot.style.background = '#ffa000';
+    try {
+        const res = await fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(name) + '&format=json&limit=1', {headers:{'Accept-Language':'en'}});
+        const d = await res.json();
+        if (d.length) { wp.lat = parseFloat(d[0].lat); wp.lon = parseFloat(d[0].lon); dot.style.background = '#2e7d32'; dot.title = 'Geocoded'; const n = waypoints.indexOf(wp) + 1; if (wp.marker) routeMap.removeLayer(wp.marker); wp.marker = L.marker([wp.lat, wp.lon], {icon: wpIcon(n, true)}).bindPopup(`<b>${n}. ${name}</b>`).addTo(routeMap); routeMap.panTo([wp.lat, wp.lon]); if (waypoints.filter(w => w.lat !== null).length >= 2) drawRoutes(); }
+        else { dot.style.background = '#c00'; dot.title = 'Not found'; }
+    } catch(e) { dot.style.background = '#c00'; }
+}
+
+const MANEUVER_ICON = {'depart':'▶','arrive':'⬛','turn left':'←','turn right':'→','turn sharp left':'↰','turn sharp right':'↱','turn slight left':'↖','turn slight right':'↗','continue':'↑','straight':'↑','roundabout':'↻','rotary':'↻','merge':'↑','fork':'⑂','on ramp':'↗','off ramp':'↘','end of road':'⬛','use lane':'↑'};
+function _maneuverKey(step) { const t = step.maneuver.type || ''; const m = step.maneuver.modifier || ''; return (t + (m ? ' ' + m : '')).toLowerCase(); }
+function _formatDist(meters) { if (meters >= 1000) return (meters / 1000).toFixed(1) + ' km'; return Math.round(meters) + ' m'; }
+
+async function getDirections() {
+    const geo = waypoints.filter(w => w.lat !== null);
+    if (geo.length < 2) { document.getElementById('routeStatus').textContent = 'Need ≥2 geocoded waypoints.'; return; }
+    const btn = document.getElementById('directionsBtn'); const status = document.getElementById('routeStatus'); const panel = document.getElementById('directionsPanel'); const list = document.getElementById('directionsList');
+    btn.disabled = true; status.textContent = 'Fetching directions…'; list.innerHTML = '';
+    const allSteps = [];
+    try {
+        for (let i = 0; i < geo.length - 1; i++) { const a = geo[i], b = geo[i + 1]; const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?steps=true&geometries=geojson&overview=full`); const d = await r.json(); if (!d.routes || !d.routes.length) continue; for (const leg of d.routes[0].legs) for (const step of (leg.steps || [])) allSteps.push(step); if (i < geo.length - 2) allSteps.push({_divider: true}); }
+        if (!allSteps.length) { status.textContent = 'No directions returned.'; btn.disabled = false; return; }
+        for (const step of allSteps) {
+            if (step._divider) continue;
+            const type = step.maneuver.type || '';
+            if (type === 'depart' || type === 'arrive') { const div = document.createElement('div'); div.style.cssText = 'background:#1a3a5c;color:white;border-radius:4px;padding:4px 7px;font-weight:600;font-size:0.85em;margin-top:4px;break-inside:avoid;column-span:all;'; div.textContent = type === 'depart' ? '▶ Start: ' + (step.name || geo[0].name) : '⬛ Arrive: ' + (step.name || geo[geo.length-1].name); list.appendChild(div); continue; }
+            const key = _maneuverKey(step); const icon = MANEUVER_ICON[key] || MANEUVER_ICON[step.maneuver.type] || '↑'; const road = step.name || ''; const dist = _formatDist(step.distance || 0);
+            const div = document.createElement('div'); div.style.cssText = 'display:flex;align-items:flex-start;gap:7px;padding:3px 5px;border-bottom:1px solid #dde6f0;break-inside:avoid;';
+            div.innerHTML = `<span style="flex:0 0 20px;font-size:1em;text-align:center;color:#1a3a5c;">${icon}</span><span style="flex:1;color:#333;">${road ? road : '<em style="color:#999">unnamed road</em>'}</span><span style="flex:0 0 55px;text-align:right;color:#666;font-size:0.85em;">${dist}</span>`;
+            list.appendChild(div);
+        }
+        panel.style.display = ''; status.textContent = '✓ Done';
+    } catch(e) { status.textContent = 'Error: ' + e.message; }
+    btn.disabled = false;
+}
+
+async function drawRoutes() {
+    const geo = waypoints.filter(w => w.lat !== null);
+    if (geo.length < 2) { document.getElementById('routeStatus').textContent = 'Need ≥2 geocoded waypoints.'; return; }
+    clearRouteLines(); clearDistances();
+    const btn = document.getElementById('drawRouteBtn'); const status = document.getElementById('routeStatus');
+    btn.disabled = true; status.textContent = 'Fetching routes…';
+    const legKm = [];
+    try {
+        for (let i = 0; i < geo.length - 1; i++) { const a = geo[i], b = geo[i+1]; const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?geometries=geojson&overview=full`); const d = await r.json(); if (d.routes && d.routes.length) { const coords = d.routes[0].geometry.coordinates.map(([lon,lat]) => [lat,lon]); routeLayers.push(L.polyline(coords, {color:'#1a3a5c', weight:3, opacity:0.8}).addTo(routeMap)); legKm.push(Math.round(d.routes[0].distance / 1000)); } else { legKm.push(undefined); } }
+        const allLegKm = waypoints.map((wp, i) => i === 0 ? undefined : legKm[i - 1]);
+        updateDistances(allLegKm.slice(1)); fitMap(); status.textContent = '✓ Done'; syncRouteField();
+    } catch(e) { status.textContent = 'Error: ' + e.message; }
+    btn.disabled = false;
+}
+
+async function geocodePlace(place) { const r = await fetch('https://nominatim.openstreetmap.org/search?q=' + encodeURIComponent(place) + '&format=json&limit=1', {headers:{'Accept-Language':'en'}}); const d = await r.json(); return d.length ? {lat: parseFloat(d[0].lat), lon: parseFloat(d[0].lon)} : null; }
+
+async function getTowns() {
+    const status = document.getElementById('routeStatus');
+    const from = document.querySelector('input[name="departing_from"]').value.trim();
+    const overnight = document.querySelector('input[name="overnight_location"]').value.trim();
+    const to = document.querySelector('input[name="arriving_at"]').value.trim();
+    if (!from || !to) return;
+    status.textContent = 'Geocoding stops…';
+    const stopNames = overnight ? [from, overnight, to] : [from, to];
+    const stops = [];
+    for (const name of stopNames) { const g = await geocodePlace(name); if (!g) { status.textContent = `Could not geocode: ${name}`; return; } stops.push({name, lat: g.lat, lon: g.lon}); await new Promise(r => setTimeout(r, 350)); }
+    [...waypoints].forEach(w => removeWp(w.id)); stops.forEach(s => _addWaypointFull(s.name, s.lat, s.lon)); clearRouteLines(); clearDistances();
+    const legKm = [];
+    for (let i = 0; i < stops.length - 1; i++) {
+        const a = stops[i], b = stops[i + 1]; status.textContent = `Routing leg ${i + 1} of ${stops.length - 1}…`;
+        try {
+            const r = await fetch(`https://router.project-osrm.org/route/v1/driving/${a.lon},${a.lat};${b.lon},${b.lat}?geometries=geojson&overview=full`); const d = await r.json();
+            if (!d.routes || !d.routes.length) { legKm.push(undefined); continue; }
+            legKm.push(Math.round(d.routes[0].distance / 1000)); const coords = d.routes[0].geometry.coordinates;
+            routeLayers.push(L.polyline(coords.map(([lon, lat]) => [lat, lon]), {color:'#1a3a5c', weight:3, opacity:0.8}).addTo(routeMap));
+        } catch(e) { legKm.push(undefined); }
+    }
+    updateDistances(legKm); document.getElementById('routeField').value = stops.map(s => s.name).join(' → '); syncBreakFromRoute(); fitMap(); status.textContent = '✓ Done';
+}
+
+// ── Personnel table JS ─────────────────────────────────────────────────
+function _buildPersonnelRow(name, phone, rego) {
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+        '<input type="hidden" name="p_pk" value="0">' +
+        '<td style="padding:4px 4px;"><input type="text" name="p_rego" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #ccc;border-radius:4px;"></td>' +
+        '<td style="padding:4px 4px;"><input type="text" name="p_name" list="jobPersonnelList" value="" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #ccc;border-radius:4px;"></td>' +
+        '<td style="padding:4px 4px;text-align:center;"><select name="p_driver" style="padding:6px 4px;border:1px solid #ccc;border-radius:4px;width:100%;"><option value="">—</option><option value="Y" selected>Y</option><option value="N">N</option></select></td>' +
+        '<td style="padding:4px 4px;"><input type="text" name="p_phone" value="" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1px solid #ccc;border-radius:4px;"></td>' +
+        '<td style="padding:4px 4px;"><span style="font-size:0.8em;color:#999;font-style:italic;">Save first to sign</span></td>' +
+        '<td style="padding:4px 4px;text-align:center;"><button type="button" onclick="removePersonnelRow(this)" style="background:none;border:none;color:#c00;cursor:pointer;font-size:1.1em;padding:0;">×</button></td>';
+    var nameInput = tr.querySelector('input[name="p_name"]');
+    var phoneInput = tr.querySelector('input[name="p_phone"]');
+    var regoInput = tr.querySelector('input[name="p_rego"]');
+    if (name) nameInput.value = name;
+    if (phone) phoneInput.value = phone;
+    if (rego) regoInput.value = rego;
+    nameInput.addEventListener('input', function() { var p = personnelPhones[this.value]; if (p) phoneInput.value = p; });
+    return tr;
+}
+
+function removePersonnelRow(btn) {
+    var tr = btn.closest('tr');
+    var name = (tr.querySelector('input[name="p_name"]') || {}).value || '';
+    var label = name.trim() ? name.trim() : 'this person';
+    if (!confirm('Remove ' + label + '?')) return;
+    tr.remove();
+}
+
+function addPersonnelRow() {
+    var tr = _buildPersonnelRow('', '', '');
+    document.getElementById('personnelRows').appendChild(tr);
+    tr.querySelector('input[name="p_name"]').focus();
+}
+
+// ── Signature pad ──────────────────────────────────────────────────────
+var _sigUrl = '', _sigClearUrl = '', _sigCallback = null;
+
+function openSigModal(url, label, clearUrl) {
+    _sigUrl = url; _sigClearUrl = clearUrl;
+    document.getElementById('sigModalLabel').textContent = 'Sign: ' + label;
+    document.getElementById('sigSaveStatus').textContent = '';
+    document.getElementById('sigSaveStatus').style.color = '';
+    var modal = document.getElementById('sigModal');
+    modal.style.display = 'flex';
+    initCanvas();
+}
+
+function closeSigModal() {
+    document.getElementById('sigModal').style.display = 'none';
+}
+
+function initCanvas() {
+    var old = document.getElementById('sigCanvas');
+    var canvas = old.cloneNode(true);
+    old.parentNode.replaceChild(canvas, old);
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    var drawing = false, lastX = 0, lastY = 0;
+    function pos(e) {
+        var r = canvas.getBoundingClientRect();
+        var scaleX = canvas.width / r.width;
+        var scaleY = canvas.height / r.height;
+        if (e.touches) { return {x: (e.touches[0].clientX - r.left) * scaleX, y: (e.touches[0].clientY - r.top) * scaleY}; }
+        return {x: (e.clientX - r.left) * scaleX, y: (e.clientY - r.top) * scaleY};
+    }
+    function start(e) { e.preventDefault(); drawing = true; var p = pos(e); lastX = p.x; lastY = p.y; }
+    function move(e) { if (!drawing) return; e.preventDefault(); var p = pos(e); ctx.beginPath(); ctx.moveTo(lastX, lastY); ctx.lineTo(p.x, p.y); ctx.strokeStyle = '#111'; ctx.lineWidth = 2.5; ctx.lineCap = 'round'; ctx.stroke(); lastX = p.x; lastY = p.y; }
+    function stop(e) { drawing = false; }
+    canvas.addEventListener('mousedown', start); canvas.addEventListener('mousemove', move); canvas.addEventListener('mouseup', stop); canvas.addEventListener('mouseleave', stop);
+    canvas.addEventListener('touchstart', start, {passive:false}); canvas.addEventListener('touchmove', move, {passive:false}); canvas.addEventListener('touchend', stop);
+}
+
+function clearCanvas() {
+    var canvas = document.getElementById('sigCanvas');
+    var ctx = canvas.getContext('2d');
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+}
+
+function saveSig() {
+    var canvas = document.getElementById('sigCanvas');
+    var dataUrl = canvas.toDataURL('image/png');
+    var status = document.getElementById('sigSaveStatus');
+    status.textContent = 'Saving…'; status.style.color = '#666';
+    var fd = new FormData();
+    fd.append('signature', dataUrl);
+    fd.append('signed_at', new Date(Date.now() - new Date().getTimezoneOffset() * 60000).toISOString().slice(0, 19));
+    fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    fetch(_sigUrl, {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:fd})
+        .then(r => r.json()).then(data => {
+            if (data.ok) {
+                status.textContent = '✓ Saved'; status.style.color = '#2d6a4f';
+                setTimeout(() => { closeSigModal(); window.location.reload(); }, 600);
+            } else { status.textContent = 'Failed'; status.style.color = '#c00'; }
+        }).catch(() => { status.textContent = 'Failed'; status.style.color = '#c00'; });
+}
+
+function clearSig() {
+    if (!_sigClearUrl) return;
+    if (!confirm('Remove this signature?')) return;
+    var fd = new FormData();
+    fd.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+    fetch(_sigClearUrl, {method:'POST', headers:{'X-Requested-With':'XMLHttpRequest'}, body:fd})
+        .then(r => r.json()).then(data => {
+            if (data.ok) { closeSigModal(); window.location.reload(); }
+        });
+}
+
+{% if plan %}
+window.addEventListener('beforeunload', function() {
+    syncMapToForm();
+    const form = document.querySelector('form');
+    navigator.sendBeacon(form.action, new FormData(form));
+});
+{% endif %}
+</script>
+{% endblock %}

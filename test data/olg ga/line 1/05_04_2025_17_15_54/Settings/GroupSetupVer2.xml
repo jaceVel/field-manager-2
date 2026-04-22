@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ArrayOfTGroup xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <tGroup>
+    <mUnitList>
+      <mUnits>
+        <unsignedByte>9</unsignedByte>
+        <unsignedByte>10</unsignedByte>
+      </mUnits>
+    </mUnitList>
+    <mSourceType>eVibroSeis</mSourceType>
+    <mSweepList />
+    <mNextSweep>0</mNextSweep>
+    <mAutoSims>0</mAutoSims>
+    <mEnabled>true</mEnabled>
+    <mRepeaterID>0</mRepeaterID>
+    <mPrimaryRadioPort>Analog</mPrimaryRadioPort>
+    <mSecondaryRadioPort>Analog</mSecondaryRadioPort>
+    <mUseSecondaryRadio>false</mUseSecondaryRadio>
+    <mKeepPSSOnPrimaryRadio>false</mKeepPSSOnPrimaryRadio>
+    <mIgnoreErrors>false</mIgnoreErrors>
+    <mCompatibleGroups>
+      <unsignedByte>0</unsignedByte>
+    </mCompatibleGroups>
+    <mUseCompatibleGroups>false</mUseCompatibleGroups>
+    <mGroupID>1</mGroupID>
+    <mCrewNumber>1</mCrewNumber>
+    <mStartCode>0</mStartCode>
+    <mLeadVibrator>0</mLeadVibrator>
+    <mUseLeadVibrator>false</mUseLeadVibrator>
+    <mGeometryOffset>0</mGeometryOffset>
+    <mAzimuth>0</mAzimuth>
+    <mUseSigleGPSUnit>false</mUseSigleGPSUnit>
+    <mVibWithGPSUnit>0</mVibWithGPSUnit>
+    <mProcessID>1</mProcessID>
+    <mCustomProcesses />
+    <mEncoderIP>10.0.59.1</mEncoderIP>
+    <mAuxChannel>4</mAuxChannel>
+    <mFreezeNearSourceFlagUpdate>false</mFreezeNearSourceFlagUpdate>
+    <mUseWifi>false</mUseWifi>
+    <mWiFiGroupID>0</mWiFiGroupID>
+    <mUseCustomProcess>false</mUseCustomProcess>
+    <mUseRepeater>false</mUseRepeater>
+    <mUseLowForceSweep>false</mUseLowForceSweep>
+    <mLowForceSweep>0</mLowForceSweep>
+    <mApplyGPSAntennaHeightInReports>false</mApplyGPSAntennaHeightInReports>
+    <mGPSAntennaHeight>0</mGPSAntennaHeight>
+  </tGroup>
+</ArrayOfTGroup>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+    @page { size: A4; margin: 15mm 15mm 15mm 15mm; }
+    body { font-family: Arial, sans-serif; font-size: 9pt; color: #111; margin: 0; }
+    h1 { font-size: 16pt; color: #1a3a5c; margin: 0 0 2mm; }
+    .header-bar { background: #1a3a5c; color: white; padding: 6mm 8mm; margin-bottom: 4mm; display: flex; justify-content: space-between; align-items: center; }
+    .header-bar .title { font-size: 14pt; font-weight: bold; }
+    .header-bar .meta { font-size: 8pt; text-align: right; opacity: 0.85; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 4mm; }
+    th { background: #1a3a5c; color: white; padding: 4px 8px; text-align: left; font-size: 8pt; font-weight: 600; }
+    td { padding: 4px 8px; border-bottom: 1px solid #e0e8f0; vertical-align: top; font-size: 8.5pt; }
+    tr:nth-child(even) td { background: #f5f8fc; }
+    .label { color: #555; font-weight: 600; width: 130px; }
+    .section-title { background: #2c5282; color: white; padding: 3px 8px; font-weight: 600; font-size: 8.5pt; }
+    .answer-y  { color: #2d6a4f; font-weight: bold; }
+    .answer-n  { color: #c00; font-weight: bold; }
+    .answer-na { color: #888; font-weight: bold; }
+    .at-risk-box { padding: 5px 8px; font-weight: 600; font-size: 9pt; border: 1px solid #ddd; }
+    .sig-img { max-height: 35mm; border: 1px solid #ccc; background: white; }
+    .footer { font-size: 7pt; color: #999; border-top: 1px solid #ddd; padding-top: 2mm; margin-top: 4mm; }
+    .team-grid { display: grid; grid-template-columns: repeat(5,1fr); gap: 2mm; font-size: 8.5pt; }
+    .team-cell { border-bottom: 1px solid #ccc; padding: 1mm 2mm; }
+    .discussion-box { border: 1px solid #ddd; padding: 4mm; min-height: 15mm; font-size: 8.5pt; white-space: pre-wrap; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header-bar">
+    <div>
+        <div class="title">Task Safety Observation</div>
+        <div style="font-size:8pt; opacity:0.8; margin-top:1mm;">{{ obs.job.client }} — {{ obs.job.project_name }}</div>
+    </div>
+    <div class="meta">
+        Job No: {{ obs.job.job_number }}<br>
+        Control: VF_GEN_016
+    </div>
+</div>
+
+<!-- Header fields -->
+<table style="margin-bottom:3mm;">
+    <tr>
+        <td class="label">Task Being Observed</td>
+        <td colspan="3">{{ obs.task_being_observed|default:"—" }}</td>
+    </tr>
+    <tr>
+        <td class="label">Date</td>
+        <td>{{ obs.date|date:"d M Y"|default:"—" }}</td>
+        <td class="label">Time</td>
+        <td>{{ obs.time|time:"H:i"|default:"—" }}</td>
+    </tr>
+    <tr>
+        <td class="label">Observer</td>
+        <td>{{ obs.observer|default:"—" }}</td>
+        <td class="label">Location</td>
+        <td>{{ obs.location|default:"—" }}</td>
+    </tr>
+</table>
+
+<!-- Team members -->
+<table style="margin-bottom:3mm;">
+    <thead><tr><th colspan="5">Team Members Being Observed</th></tr></thead>
+    <tbody>
+        <tr>
+            {% for m in team_members|slice:":5" %}
+            <td style="width:20%;">{{ forloop.counter }}. {{ m }}</td>
+            {% endfor %}
+            {% for i in "12345"|slice:team_members|length %}
+            <td style="width:20%; color:#ccc;">{{ forloop.counter|add:team_members|length }}. —</td>
+            {% endfor %}
+        </tr>
+        <tr>
+            {% for m in team_members|slice:"5:10" %}
+            <td>{{ forloop.counter|add:5 }}. {{ m }}</td>
+            {% endfor %}
+        </tr>
+    </tbody>
+</table>
+
+<!-- Checklist -->
+<table>
+    <thead>
+        <tr>
+            <th style="width:58%;">Observation Checklist</th>
+            <th style="width:8%; text-align:center;">Answer</th>
+            <th>Comments</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for i, question, response in checklist_data %}
+        <tr>
+            <td>{{ question }}</td>
+            <td style="text-align:center;">
+                {% if response.answer == 'Y' %}<span class="answer-y">Y</span>
+                {% elif response.answer == 'N' %}<span class="answer-n">N</span>
+                {% elif response.answer == 'NA' %}<span class="answer-na">N/A</span>
+                {% else %}—{% endif %}
+            </td>
+            <td>{{ response.comment|default:"" }}</td>
+        </tr>
+        {% endfor %}
+        <tr>
+            <td colspan="3" style="background:#fff8e1; padding:5px 8px; font-weight:600;">
+                Were there any <em>at risk behaviours</em> observed requiring further discussion or action?
+                &nbsp;&nbsp;
+                {% if obs.at_risk == 'yes' %}
+                    <span style="color:#c00; font-weight:bold;">YES</span>
+                {% elif obs.at_risk == 'no' %}
+                    <span style="color:#2d6a4f; font-weight:bold;">NO</span>
+                {% else %}—{% endif %}
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<!-- Discussion -->
+<table style="margin-bottom:3mm;">
+    <thead><tr><th>Discussion / Feedback / Action Items</th></tr></thead>
+    <tbody>
+        <tr><td style="min-height:20mm; padding:4mm; white-space:pre-wrap;">{{ obs.discussion|default:"" }}</td></tr>
+    </tbody>
+</table>
+
+<!-- Signature -->
+<table>
+    <thead><tr><th>Signature of Observer</th></tr></thead>
+    <tbody>
+        <tr>
+            <td style="padding:4mm; height:20mm; vertical-align:bottom;">
+                {% if obs.signature %}
+                <img src="{{ obs.signature }}" class="sig-img"><br>
+                <span style="font-size:7.5pt; color:#555;">
+                    {{ obs.observer|default:"" }}{% if obs.signed_at %} — {{ obs.signed_at|date:"d M Y H:i" }}{% endif %}
+                </span>
+                {% else %}
+                <div style="border-bottom:1px solid #333; width:200px; margin-bottom:2mm;">&nbsp;</div>
+                <span style="font-size:7.5pt; color:#888;">Not yet signed</span>
+                {% endif %}
+            </td>
+        </tr>
+    </tbody>
+</table>
+
+<div class="footer">
+    Version 3.0 | VF_GEN_016_Task_Safety_Observation | Generated {{ obs.created_at|date:"d M Y" }}
+</div>
+
+</body>
+</html>

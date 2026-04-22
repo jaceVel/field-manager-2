@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}Import Photos — {{ job.job_number }}{% endblock %}
+{% block content %}
+
+<div style="margin-bottom:16px;">
+    <p style="margin:0; color:#999; font-size:0.9em;">
+        <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+        <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+        <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+        <a href="{% url 'job_photos' job.pk %}" style="color:#999;">Photos</a> /
+    </p>
+    <h1 style="margin:4px 0;">Import from Reports — {{ job.job_number }}</h1>
+</div>
+
+{% if groups %}
+<form method="post">
+    {% csrf_token %}
+    <div style="display:flex; gap:10px; align-items:center; margin-bottom:16px;">
+        <button type="submit" class="btn btn-primary" style="padding:8px 20px;">Import Selected</button>
+        <a href="{% url 'job_photos' job.pk %}" style="color:#888; font-size:0.9em;">Cancel</a>
+        <button type="button" onclick="toggleAll(true)" style="padding:6px 12px; border:1px solid #c5d5e8; border-radius:6px; background:#f8fafc; font-size:0.82em; cursor:pointer;">Select All</button>
+        <button type="button" onclick="toggleAll(false)" style="padding:6px 12px; border:1px solid #c5d5e8; border-radius:6px; background:#f8fafc; font-size:0.82em; cursor:pointer;">Deselect All</button>
+    </div>
+
+    {% for report, photos in groups.items %}
+    <div style="border:1px solid #c5d5e8; border-radius:10px; overflow:hidden; margin-bottom:16px;">
+        <div style="background:#f0f4f8; padding:10px 16px; display:flex; align-items:center; gap:12px;">
+            <input type="checkbox" class="group-check" onchange="toggleGroup(this)"
+                   style="width:16px; height:16px; cursor:pointer;">
+            <span style="font-weight:600; color:#1a3a5c; font-size:0.92em;">
+                {{ report.date|date:"d M Y" }} — {{ report.get_report_type_display }}
+            </span>
+            <span style="font-size:0.8em; color:#888;">{{ photos|length }} photo{{ photos|length|pluralize }}</span>
+        </div>
+        <div style="padding:12px 16px; display:flex; flex-wrap:wrap; gap:12px;">
+            {% for photo in photos %}
+            <label style="cursor:pointer; position:relative;">
+                <input type="checkbox" name="photo_ids" value="{{ photo.pk }}" class="photo-check"
+                       style="position:absolute; top:6px; left:6px; width:16px; height:16px; z-index:1;">
+                <img src="{{ photo.image.url }}" alt="{{ photo.caption }}"
+                     style="width:140px; height:100px; object-fit:cover; border-radius:6px; border:2px solid #c5d5e8; display:block;">
+                {% if photo.caption %}
+                <div style="font-size:0.72em; color:#555; max-width:140px; margin-top:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ photo.caption }}</div>
+                {% endif %}
+            </label>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+
+    <div style="margin-top:8px;">
+        <button type="submit" class="btn btn-primary" style="padding:8px 20px;">Import Selected</button>
+    </div>
+</form>
+{% else %}
+<div style="color:#aaa; padding:24px; text-align:center; border:1px dashed #c5d5e8; border-radius:10px;">
+    No report photos found for this job.
+</div>
+<div style="margin-top:12px;">
+    <a href="{% url 'job_photos' job.pk %}" class="btn" style="background:#eee; color:#333;">Back</a>
+</div>
+{% endif %}
+
+<script>
+function toggleAll(checked) {
+    document.querySelectorAll('.photo-check').forEach(cb => cb.checked = checked);
+    document.querySelectorAll('.group-check').forEach(cb => cb.checked = checked);
+}
+
+function toggleGroup(groupCb) {
+    const row = groupCb.closest('[style*="border:1px"]');
+    row.querySelectorAll('.photo-check').forEach(cb => cb.checked = groupCb.checked);
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tReportSettings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <mObserverReport>
+    <mIncludeUserNotes>true</mIncludeUserNotes>
+    <mIncludeVibratorQCInformation>true</mIncludeVibratorQCInformation>
+    <mIncludeIndividualVibratorGraphs>true</mIncludeIndividualVibratorGraphs>
+    <mUseCustomTimeZone>false</mUseCustomTimeZone>
+    <mCustomTimeZone>E. Australia Standard Time</mCustomTimeZone>
+    <mReportFormat>RTF</mReportFormat>
+    <mIncludeBackgroundImage>false</mIncludeBackgroundImage>
+  </mObserverReport>
+  <mTimebreakReport>
+    <mOutputASI>true</mOutputASI>
+    <mOutputSBS>true</mOutputSBS>
+    <mOutputAutoSeisLog>true</mOutputAutoSeisLog>
+    <mOutputGSRLog>true</mOutputGSRLog>
+    <mOutputUniteLog>false</mOutputUniteLog>
+    <mIncludeUphole>false</mIncludeUphole>
+    <mAutoSeisOffsetSeconds>0</mAutoSeisOffsetSeconds>
+    <mUniteProcessFFID>10001</mUniteProcessFFID>
+    <mUniteProcessingType>1</mUniteProcessingType>
+    <mUniteOutputAllShots>false</mUniteOutputAllShots>
+    <mUniteLastVPID>0</mUniteLastVPID>
+    <mOutoutINOVA>true</mOutoutINOVA>
+    <mOutoutStryde>true</mOutoutStryde>
+    <mINOVASampleRateIndex>0</mINOVASampleRateIndex>
+    <mUseVPID>true</mUseVPID>
+  </mTimebreakReport>
+  <mPositionReport>
+    <mDecoderTracking>false</mDecoderTracking>
+    <mIncludeNavigationLogs>true</mIncludeNavigationLogs>
+    <mExcludeVoidPositions>true</mExcludeVoidPositions>
+    <mDOPAndSelectionMethod>Average</mDOPAndSelectionMethod>
+    <mFilterSourceUnits>false</mFilterSourceUnits>
+    <mSourceUnitFilter />
+    <mUseDEM>false</mUseDEM>
+    <mDEMFileName />
+    <mUseDEMForAll>false</mUseDEMForAll>
+  </mPositionReport>
+  <mAddDateAndTimeToName>true</mAddDateAndTimeToName>
+</tReportSettings>

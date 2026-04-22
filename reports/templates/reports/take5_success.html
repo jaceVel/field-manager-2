@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Take 5 Submitted</title>
+<style>
+  * { box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; margin: 0; padding: 32px 16px; text-align: center; }
+  .card { background: white; border-radius: 12px; padding: 40px 24px; max-width: 400px; margin: 0 auto; box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+  .tick { width: 64px; height: 64px; background: #e8f5e9; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; }
+  h2 { color: #1a3a5c; margin: 0 0 8px; }
+  p { color: #666; margin: 0 0 24px; }
+  .meta { font-size: 0.85em; color: #888; margin-bottom: 24px; }
+  .btn { display: inline-block; padding: 12px 28px; background: #1a3a5c; color: white; border-radius: 8px; text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="tick">
+    <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+      <path d="M6 16 L13 23 L26 9" stroke="#2e7d32" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+  </div>
+  <h2>Take 5 Submitted</h2>
+  <p>Your pre-task safety check has been recorded.</p>
+  <div class="meta">{{ record.submitted_by }} &mdash; {{ record.submitted_at|date:"d M Y H:i" }}</div>
+  <a href="{% url 'take5_form' job.pk %}" class="btn">Submit Another</a>
+</div>
+</body>
+</html>

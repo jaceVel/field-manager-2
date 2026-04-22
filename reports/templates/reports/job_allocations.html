@@ -1,0 +1,655 @@
+{% extends "base.html" %}
+{% block title %}Travel Allocations — {{ job.job_number }}{% endblock %}
+{% block content %}
+<p style="margin:0 0 4px; color:#999; font-size:0.9em;">
+    <a href="{% url 'home' %}" style="color:#999;">Home</a> /
+    <a href="{% url 'job_list' %}" style="color:#999;">Jobs</a> /
+    <a href="{% url 'job_detail' job.pk %}" style="color:#999;">{{ job.job_number }}</a> /
+</p>
+<div style="display:flex; justify-content:space-between; align-items:center; margin:4px 0 12px;">
+    <h1 style="margin:0;">Allocations — {{ job.job_number }}</h1>
+    <div style="display:flex; gap:6px; flex-wrap:wrap; align-items:center;">
+        <span style="font-size:0.8em; color:#666; font-weight:600; margin-right:2px;">Export:</span>
+        <!-- Travel: current tab -->
+        <a id="export-travel-tab-pdf"
+           href="{% url 'allocation_pdf' job.pk %}?page=travel&tab=job"
+           style="text-decoration:none;">
+            <button type="button" title="Export current travel tab as PDF"
+                    style="background:#1a3a5c;color:white;border:none;border-radius:4px;padding:4px 10px;font-size:0.78em;cursor:pointer;font-weight:600;">
+                Travel Tab &#8595; PDF
+            </button>
+        </a>
+        <a id="export-travel-tab-word"
+           href="{% url 'allocation_word' job.pk %}?page=travel&tab=job"
+           style="text-decoration:none;">
+            <button type="button" title="Export current travel tab as Word"
+                    style="background:#2a5a9c;color:white;border:none;border-radius:4px;padding:4px 10px;font-size:0.78em;cursor:pointer;font-weight:600;">
+                Travel Tab &#8595; Word
+            </button>
+        </a>
+        <!-- Travel: all tabs -->
+        <a href="{% url 'allocation_pdf' job.pk %}?page=travel&tab=all" style="text-decoration:none;">
+            <button type="button" title="Export all travel tabs as PDF"
+                    style="background:#1a3a5c;color:white;border:none;border-radius:4px;padding:4px 10px;font-size:0.78em;cursor:pointer;font-weight:600;opacity:0.75;">
+                Travel All &#8595; PDF
+            </button>
+        </a>
+        <a href="{% url 'allocation_word' job.pk %}?page=travel&tab=all" style="text-decoration:none;">
+            <button type="button" title="Export all travel tabs as Word"
+                    style="background:#2a5a9c;color:white;border:none;border-radius:4px;padding:4px 10px;font-size:0.78em;cursor:pointer;font-weight:600;opacity:0.75;">
+                Travel All &#8595; Word
+            </button>
+        </a>
+        <span style="color:#ccc;">|</span>
+        <!-- Equipment -->
+        <a href="{% url 'allocation_pdf' job.pk %}?page=equipment" style="text-decoration:none;">
+            <button type="button" title="Export equipment allocation as PDF"
+                    style="background:#5b6f3a;color:white;border:none;border-radius:4px;padding:4px 10px;font-size:0.78em;cursor:pointer;font-weight:600;">
+                Equip &#8595; PDF
+            </button>
+        </a>
+        <a href="{% url 'allocation_word' job.pk %}?page=equipment" style="text-decoration:none;">
+            <button type="button" title="Export equipment allocation as Word"
+                    style="background:#7a8f52;color:white;border:none;border-radius:4px;padding:4px 10px;font-size:0.78em;cursor:pointer;font-weight:600;">
+                Equip &#8595; Word
+            </button>
+        </a>
+        <span style="color:#ccc;">|</span>
+        <!-- All -->
+        <a href="{% url 'allocation_pdf' job.pk %}?page=all" style="text-decoration:none;">
+            <button type="button" title="Export everything as PDF"
+                    style="background:#444;color:white;border:none;border-radius:4px;padding:4px 10px;font-size:0.78em;cursor:pointer;font-weight:600;">
+                All &#8595; PDF
+            </button>
+        </a>
+        <a href="{% url 'allocation_word' job.pk %}?page=all" style="text-decoration:none;">
+            <button type="button" title="Export everything as Word"
+                    style="background:#666;color:white;border:none;border-radius:4px;padding:4px 10px;font-size:0.78em;cursor:pointer;font-weight:600;">
+                All &#8595; Word
+            </button>
+        </a>
+    </div>
+</div>
+
+<!-- Page-level tabs: Travel Allocations | Equipment Allocation -->
+<div style="display:flex; gap:0; border-bottom:3px solid #1a3a5c; margin-bottom:20px;">
+    <button id="page-tab-btn-travel" onclick="switchPageTab('travel')"
+            style="padding:9px 24px; border:none; border-bottom:3px solid #1a3a5c; background:#1a3a5c; color:white; font-weight:700; cursor:pointer; font-size:0.95em; margin-bottom:-3px; border-radius:6px 6px 0 0;">
+        Travel Allocations
+    </button>
+    <button id="page-tab-btn-equipment" onclick="switchPageTab('equipment')"
+            style="padding:9px 24px; border:none; border-bottom:3px solid transparent; background:#f0f4f8; color:#1a3a5c; font-weight:700; cursor:pointer; font-size:0.95em; margin-bottom:-3px; border-radius:6px 6px 0 0;">
+        Equipment Allocation
+    </button>
+</div>
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE: TRAVEL ALLOCATIONS
+     ══════════════════════════════════════════════════════════ -->
+<div id="page-panel-travel">
+
+<!-- Travel sub-tabs: Mob / Job / Demob / Other -->
+<div style="display:flex; gap:0; border-bottom:2px solid #1a3a5c; margin-bottom:16px;">
+    {% for t in tabs_data %}
+    <button id="tab-btn-{{ t.tab }}" onclick="switchTab('{{ t.tab }}')"
+            style="padding:7px 20px; border:none; border-bottom:{% if t.tab == 'job' %}3px solid #1a3a5c; background:#1a3a5c; color:white;{% else %}3px solid transparent; background:#f0f4f8; color:#1a3a5c;{% endif %} font-weight:600; cursor:pointer; font-size:0.9em; margin-bottom:-2px; border-radius:6px 6px 0 0;">
+        {{ t.label }}
+    </button>
+    {% endfor %}
+</div>
+
+{% for t in tabs_data %}
+<div id="tab-panel-{{ t.tab }}" {% if t.tab != 'job' %}style="display:none;"{% endif %}>
+
+    <!-- Copy from bar -->
+    <div style="display:flex; align-items:center; gap:8px; margin-bottom:12px; font-size:0.88em;">
+        <span style="color:#666;">Copy from:</span>
+        <select id="copy-from-{{ t.tab }}" style="padding:4px 8px; border:1px solid #ccc; border-radius:4px; font-size:0.88em;">
+            {% for ot in tabs_data %}{% if ot.tab != t.tab %}<option value="{{ ot.tab }}">{{ ot.label }}</option>{% endif %}{% endfor %}
+        </select>
+        <button type="button" onclick="copyFromTab('{{ t.tab }}')"
+                style="background:none; border:1px solid #1a3a5c; color:#1a3a5c; border-radius:4px; padding:3px 12px; cursor:pointer; font-size:0.88em;">Copy</button>
+    </div>
+
+<div style="display:grid; grid-template-columns:1fr 280px; gap:16px; align-items:start;">
+
+    <!-- Left: vehicle boxes 3-col grid -->
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; align-items:start;">
+        {% for vd in t.vehicles %}
+        <div class="alloc-vehicle" data-jv-pk="{{ vd.jv.pk }}"
+             style="border:2px solid #c5d5e8; border-radius:6px; min-height:48px;"
+             ondragover="event.preventDefault(); this.style.borderColor='#1a3a5c';"
+             ondragleave="this.style.borderColor='#c5d5e8';"
+             ondrop="onVehicleDrop(event, {{ vd.jv.pk }})">
+            <div style="background:#f0f4f8; border-radius:4px 4px 0 0; padding:4px 8px; font-weight:600; font-size:0.8em; color:#1a3a5c; display:flex; justify-content:space-between;">
+                <span>{{ vd.jv.name }}{% if vd.jv.rego %} <span style="font-weight:400; color:#666; font-size:0.9em;">({{ vd.jv.rego }})</span>{% endif %}</span>
+                <span style="font-weight:400; color:#888; font-size:0.9em;">{{ vd.jv.vehicle_type }}</span>
+            </div>
+            <div id="vdrop-{{ t.tab }}-{{ vd.jv.pk }}" style="padding:4px 6px; display:flex; flex-wrap:wrap; gap:4px; min-height:28px;">
+                {% for lnk in vd.eq_links %}
+                <span id="eq-chip-{{ t.tab }}-{{ lnk.link_pk }}"
+                      data-link-pk="{{ lnk.link_pk }}" data-je-pk="{{ lnk.je_pk }}"
+                      data-name="{{ lnk.name|escapejs }}" data-type="{{ lnk.equipment_type|escapejs }}"
+                      style="display:inline-flex;align-items:center;gap:3px;background:#5b6f3a;color:white;border-radius:10px;padding:2px 7px;font-size:0.75em;cursor:grab;"
+                      draggable="true" ondragstart="onEqChipDragStart(event, this)">
+                    {{ lnk.name }}{% if lnk.equipment_type %} <span style="opacity:0.7;font-size:0.85em;">({{ lnk.equipment_type }})</span>{% endif %}
+                    <button type="button" onclick="removeEqLink({{ lnk.link_pk }}, {{ lnk.je_pk }}, '{{ lnk.name|escapejs }}', '{{ lnk.equipment_type|escapejs }}')"
+                            style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1em;padding:0;line-height:1;">×</button>
+                </span>
+                {% endfor %}
+                {% for alloc in vd.allocs %}
+                <span id="alloc-chip-{{ t.tab }}-{{ alloc.pk }}"
+                      data-alloc-pk="{{ alloc.pk }}" data-name="{{ alloc.person_name|escapejs }}"
+                      style="display:inline-flex;align-items:center;gap:3px;background:#1a3a5c;color:white;border-radius:10px;padding:2px 7px;font-size:0.75em;cursor:grab;"
+                      draggable="true" ondragstart="onPersonChipDragStart(event, this)">
+                    {{ alloc.person_name }}
+                    <button type="button" onclick="removePersonAlloc({{ alloc.pk }}, '{{ alloc.person_name|escapejs }}')"
+                            style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1em;padding:0;line-height:1;">×</button>
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <p style="color:#aaa;font-size:0.9em;grid-column:span 2;">No vehicles assigned. <a href="{% url 'job_vehicles_page' job.pk %}">Add vehicles</a></p>
+        {% endfor %}
+    </div>
+
+    <!-- Right: sticky panels -->
+    <div style="position:sticky; top:16px; display:flex; flex-direction:column; gap:12px;">
+
+        <!-- Personnel -->
+        <div>
+            <div style="background:#1a3a5c; color:white; border-radius:8px 8px 0 0; padding:8px 12px; font-weight:600; font-size:0.88em; display:flex; justify-content:space-between; align-items:center;">
+                <span>Personnel</span>
+                <button type="button" onclick="returnAllPersonnel()" style="background:none;border:1px solid rgba(255,255,255,0.5);color:white;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:0.8em;">Return all</button>
+            </div>
+            <div id="unallocated-panel-{{ t.tab }}"
+                 style="border:2px solid #1a3a5c; border-top:none; border-radius:0 0 8px 8px; padding:6px; display:grid; grid-template-columns:1fr 1fr; gap:4px; min-height:50px;"
+                 ondragover="event.preventDefault();" ondrop="onPersonPanelDrop(event)">
+                {% for name in t.unallocated %}
+                <span class="person-chip" data-name="{{ name|escapejs }}"
+                      style="display:inline-flex;align-items:center;background:#e8f0f8;color:#1a3a5c;border-radius:10px;padding:3px 8px;font-size:0.78em;cursor:grab;user-select:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"
+                      draggable="true" ondragstart="onPersonDragStart(event, this)">
+                    {{ name }}
+                </span>
+                {% empty %}
+                <p class="all-allocated-msg" style="color:#aaa;font-size:0.85em;margin:0;">All allocated</p>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Equipment -->
+        <div>
+            <div style="background:#5b6f3a; color:white; border-radius:8px 8px 0 0; padding:8px 12px; font-weight:600; font-size:0.88em; display:flex; justify-content:space-between; align-items:center;">
+                <span>Equipment</span>
+                <button type="button" onclick="returnAllEquipment()" style="background:none;border:1px solid rgba(255,255,255,0.5);color:white;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:0.8em;">Return all</button>
+            </div>
+            <div id="unassigned-eq-panel-{{ t.tab }}"
+                 style="border:2px solid #5b6f3a; border-top:none; border-radius:0 0 8px 8px; padding:8px; display:flex; flex-direction:column; gap:6px; min-height:50px;"
+                 ondragover="event.preventDefault();" ondrop="onEqPanelDrop(event)">
+                {% for je in t.unassigned_equipment %}
+                <span class="eq-panel-chip" data-je-pk="{{ je.pk }}"
+                      data-name="{{ je.name|escapejs }}" data-type="{{ je.equipment_type|escapejs }}"
+                      style="display:inline-flex;align-items:center;background:#eef2e8;color:#3a4a24;border-radius:12px;padding:5px 12px;font-size:0.85em;cursor:grab;user-select:none;"
+                      draggable="true" ondragstart="onEqDragStart(event, this)">
+                    {{ je.name }}{% if je.equipment_type %} <span style="opacity:0.6;font-size:0.85em;">({{ je.equipment_type }})</span>{% endif %}
+                </span>
+                {% empty %}
+                <p class="all-eq-assigned-msg" style="color:#aaa;font-size:0.85em;margin:0;">All assigned</p>
+                {% endfor %}
+            </div>
+        </div>
+
+    </div>
+</div>
+</div>{# end travel tab panel #}
+{% endfor %}
+
+</div>{# end page-panel-travel #}
+
+<!-- ══════════════════════════════════════════════════════════
+     PAGE: EQUIPMENT ALLOCATION
+     ══════════════════════════════════════════════════════════ -->
+<div id="page-panel-equipment" style="display:none;">
+
+<div style="display:grid; grid-template-columns:1fr 220px; gap:16px; align-items:start;">
+
+    <!-- Left: personnel boxes 4-col grid -->
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px; align-items:start;">
+        {% for pd in eq_alloc_people %}
+        <div class="ea-person-box" data-person-name="{{ pd.name|escapejs }}"
+             style="border:2px solid #c5d5e8; border-radius:8px; min-height:60px;"
+             ondragover="event.preventDefault(); this.style.borderColor='#1a3a5c';"
+             ondragleave="this.style.borderColor='#c5d5e8';"
+             ondrop="onPersonBoxDrop(event, '{{ pd.name|escapejs }}')">
+            <div style="background:#f0f4f8; border-radius:6px 6px 0 0; padding:6px 12px; font-weight:600; font-size:0.88em; color:#1a3a5c;">
+                {{ pd.name }}
+            </div>
+            <div id="eadrop-{{ pd.name|slugify }}" style="padding:6px 10px; display:flex; flex-wrap:wrap; gap:6px; min-height:36px;">
+                {% for ea in pd.eq_allocs %}
+                <span id="ea-chip-{{ ea.alloc_pk }}"
+                      data-alloc-pk="{{ ea.alloc_pk }}" data-je-pk="{{ ea.je_pk }}"
+                      data-name="{{ ea.name|escapejs }}" data-type="{{ ea.equipment_type|escapejs }}"
+                      style="display:inline-flex;align-items:center;gap:4px;background:#5b6f3a;color:white;border-radius:12px;padding:4px 10px;font-size:0.83em;cursor:grab;"
+                      draggable="true" ondragstart="onEaChipDragStart(event, this)">
+                    {{ ea.name }}{% if ea.equipment_type %} <span style="opacity:0.7;font-size:0.85em;">({{ ea.equipment_type }})</span>{% endif %}
+                    <button type="button" onclick="removeEaAlloc({{ ea.alloc_pk }}, {{ ea.je_pk }}, '{{ ea.name|escapejs }}', '{{ ea.equipment_type|escapejs }}')"
+                            style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1em;padding:0;line-height:1;">×</button>
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% empty %}
+        <p style="color:#aaa;font-size:0.9em;grid-column:span 2;">No personnel on this job.</p>
+        {% endfor %}
+    </div>
+
+    <!-- Right: sticky equipment panel -->
+    <div style="position:sticky; top:16px;">
+        <div style="background:#5b6f3a; color:white; border-radius:8px 8px 0 0; padding:8px 12px; font-weight:600; font-size:0.88em; display:flex; justify-content:space-between; align-items:center;">
+            <span>Equipment</span>
+            <button type="button" onclick="returnAllEaEquipment()" style="background:none;border:1px solid rgba(255,255,255,0.5);color:white;border-radius:4px;padding:2px 8px;cursor:pointer;font-size:0.8em;">Return all</button>
+        </div>
+        <div id="ea-unassigned-panel"
+             style="border:2px solid #5b6f3a; border-top:none; border-radius:0 0 8px 8px; padding:8px; display:flex; flex-direction:column; gap:6px; min-height:50px;"
+             ondragover="event.preventDefault();" ondrop="onEaPanelDrop(event)">
+            {% for je in unassigned_eq_ea %}
+            <span class="ea-eq-chip" data-je-pk="{{ je.pk }}"
+                  data-name="{{ je.name|escapejs }}" data-type="{{ je.equipment_type|escapejs }}"
+                  style="display:inline-flex;align-items:center;background:#eef2e8;color:#3a4a24;border-radius:12px;padding:5px 12px;font-size:0.85em;cursor:grab;user-select:none;"
+                  draggable="true" ondragstart="onEaEqDragStart(event, this)">
+                {{ je.name }}{% if je.equipment_type %} <span style="opacity:0.6;font-size:0.85em;">({{ je.equipment_type }})</span>{% endif %}
+            </span>
+            {% empty %}
+            <p class="ea-all-assigned-msg" style="color:#aaa;font-size:0.85em;margin:0;">All assigned</p>
+            {% endfor %}
+        </div>
+    </div>
+
+</div>
+</div>{# end page-panel-equipment #}
+
+<script>
+const copyTabUrl        = "{% url 'allocation_copy_tab' job.pk %}";
+const allocAddUrl       = "{% url 'allocation_add' job.pk %}";
+const allocRemUrl       = pk => `/allocations/${pk}/remove/`;
+const eqLinkAddUrl      = "{% url 'vehicle_equipment_link_add' job.pk %}";
+const eqLinkRemUrl      = pk => `/vehicle-equipment-links/${pk}/remove/`;
+const eaAddUrl          = "{% url 'equipment_allocation_add' job.pk %}";
+const eaRemUrl          = pk => `/equipment-allocations/${pk}/remove/`;
+const csrf              = document.cookie.match(/csrftoken=([^;]+)/)?.[1] || '{{ csrf_token }}';
+
+let currentTab = 'job';
+let dragType   = null;  // 'person' | 'person_chip' | 'eq_panel' | 'eq_chip' | 'ea_eq' | 'ea_chip'
+let dragName   = null;
+let dragAllocPk = null;
+let dragJePk   = null;
+let dragLinkPk = null;
+let dragJeType = null;
+let dragSourceJvPk = null;
+let dragEaAllocPk  = null;
+let dragSourcePersonName = null;
+
+// ── Page-level tab switch ─────────────────────────────────
+function switchPageTab(tab) {
+    ['travel', 'equipment'].forEach(t => {
+        document.getElementById('page-panel-' + t).style.display = t === tab ? '' : 'none';
+        const btn = document.getElementById('page-tab-btn-' + t);
+        if (t === tab) {
+            btn.style.background = '#1a3a5c'; btn.style.color = 'white';
+            btn.style.borderBottom = '3px solid #1a3a5c';
+        } else {
+            btn.style.background = '#f0f4f8'; btn.style.color = '#1a3a5c';
+            btn.style.borderBottom = '3px solid transparent';
+        }
+    });
+}
+
+function switchTab(tab) {
+    document.querySelectorAll('[id^="tab-panel-"]').forEach(p => p.style.display = 'none');
+    document.querySelectorAll('[id^="tab-btn-"]').forEach(b => {
+        b.style.background = '#f0f4f8'; b.style.color = '#1a3a5c';
+        b.style.borderBottom = '3px solid transparent';
+    });
+    document.getElementById('tab-panel-' + tab).style.display = '';
+    const btn = document.getElementById('tab-btn-' + tab);
+    btn.style.background = '#1a3a5c'; btn.style.color = 'white';
+    btn.style.borderBottom = '3px solid #1a3a5c';
+    currentTab = tab;
+    // Update "Travel Tab" export link hrefs to reflect current sub-tab
+    const pdfBase  = "{% url 'allocation_pdf'  job.pk %}";
+    const wordBase = "{% url 'allocation_word' job.pk %}";
+    const pdfLink  = document.getElementById('export-travel-tab-pdf');
+    const wordLink = document.getElementById('export-travel-tab-word');
+    if (pdfLink)  pdfLink.href  = pdfBase  + '?page=travel&tab=' + tab;
+    if (wordLink) wordLink.href = wordBase + '?page=travel&tab=' + tab;
+}
+
+// ── Travel drag starts ────────────────────────────────────
+function onPersonDragStart(e, el) {
+    dragType = 'person'; dragName = el.dataset.name; dragAllocPk = null;
+    e.dataTransfer.effectAllowed = 'move';
+}
+function onPersonChipDragStart(e, el) {
+    dragType = 'person_chip'; dragName = el.dataset.name; dragAllocPk = +el.dataset.allocPk;
+    dragSourceJvPk = +(el.closest('.alloc-vehicle')?.dataset?.jvPk) || null;
+    e.dataTransfer.effectAllowed = 'move';
+    e.stopPropagation();
+}
+function onEqDragStart(e, el) {
+    dragType = 'eq_panel'; dragJePk = +el.dataset.jePk;
+    dragName = el.dataset.name; dragJeType = el.dataset.type;
+    e.dataTransfer.effectAllowed = 'move';
+}
+function onEqChipDragStart(e, el) {
+    dragType = 'eq_chip'; dragLinkPk = +el.dataset.linkPk;
+    dragJePk = +el.dataset.jePk; dragName = el.dataset.name; dragJeType = el.dataset.type;
+    dragSourceJvPk = +(el.closest('.alloc-vehicle')?.dataset?.jvPk) || null;
+    e.dataTransfer.effectAllowed = 'move';
+    e.stopPropagation();
+}
+
+// ── Travel drop on vehicle ────────────────────────────────
+function onVehicleDrop(e, jvPk) {
+    e.preventDefault();
+    e.currentTarget.style.borderColor = '#c5d5e8';
+    if (dragType === 'person' || dragType === 'person_chip') {
+        if (dragType === 'person_chip') {
+            if (dragSourceJvPk === jvPk) return;
+            doRemovePersonAlloc(dragAllocPk, dragName, false);
+        }
+        doAddPersonAlloc(jvPk, dragName);
+    } else if (dragType === 'eq_panel' || dragType === 'eq_chip') {
+        if (dragType === 'eq_chip' && dragSourceJvPk === jvPk) return;
+        doAssignEquipment(dragJePk, dragName, dragJeType, jvPk, dragType === 'eq_chip' ? dragLinkPk : null);
+    }
+}
+
+// ── Travel drop on panels ─────────────────────────────────
+function onPersonPanelDrop(e) {
+    e.preventDefault();
+    if (dragType === 'person_chip') doRemovePersonAlloc(dragAllocPk, dragName, true);
+}
+function onEqPanelDrop(e) {
+    e.preventDefault();
+    if (dragType === 'eq_chip') doRemoveEqLink(dragLinkPk, dragJePk, dragName, dragJeType);
+}
+
+// ── Person alloc ──────────────────────────────────────────
+function doAddPersonAlloc(jvPk, name) {
+    fetch(allocAddUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({jv_pk: jvPk, person_name: name, tab: currentTab}),
+    }).then(r => r.json()).then(data => {
+        if (!data.ok) return;
+        removePersonFromPanel(name);
+        addPersonChipToVehicle(jvPk, data.alloc_pk, name);
+        resetDrag();
+    });
+}
+function doRemovePersonAlloc(allocPk, name, returnToPanel) {
+    fetch(allocRemUrl(allocPk), {method: 'POST', headers: {'X-CSRFToken': csrf}})
+        .then(r => r.json()).then(data => {
+            if (!data.ok) return;
+            document.getElementById(`alloc-chip-${currentTab}-${allocPk}`)?.remove();
+            if (returnToPanel) addPersonToPanel(name);
+            resetDrag();
+        });
+}
+function removePersonAlloc(allocPk, name) { doRemovePersonAlloc(allocPk, name, true); }
+
+function addPersonChipToVehicle(jvPk, allocPk, name) {
+    const zone = document.getElementById(`vdrop-${currentTab}-${jvPk}`);
+    if (!zone) return;
+    const safeName = name.replace(/'/g, "\\'");
+    const span = document.createElement('span');
+    span.id = `alloc-chip-${currentTab}-${allocPk}`;
+    span.dataset.allocPk = allocPk; span.dataset.name = name;
+    span.draggable = true;
+    span.style.cssText = 'display:inline-flex;align-items:center;gap:3px;background:#1a3a5c;color:white;border-radius:10px;padding:2px 7px;font-size:0.75em;cursor:grab;';
+    span.innerHTML = `${name} <button type="button" onclick="removePersonAlloc(${allocPk},'${safeName}')" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1em;padding:0;line-height:1;">×</button>`;
+    span.ondragstart = e => onPersonChipDragStart(e, span);
+    zone.appendChild(span);
+}
+
+// ── Equipment link (travel) ───────────────────────────────
+function doAssignEquipment(jePk, name, eqType, jvPk, oldLinkPk) {
+    fetch(eqLinkAddUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({je_pk: jePk, jv_pk: jvPk, tab: currentTab}),
+    }).then(r => r.json()).then(data => {
+        if (!data.ok) return;
+        if (oldLinkPk) document.getElementById(`eq-chip-${currentTab}-${oldLinkPk}`)?.remove();
+        document.querySelector(`#unassigned-eq-panel-${currentTab} [data-je-pk="${jePk}"]`)?.remove();
+        addEqChipToVehicle(jvPk, data.link_pk, jePk, name, eqType);
+        const panel = document.getElementById(`unassigned-eq-panel-${currentTab}`);
+        if (!panel.querySelector('.eq-panel-chip') && !panel.querySelector('.all-eq-assigned-msg')) {
+            const p = document.createElement('p');
+            p.className = 'all-eq-assigned-msg';
+            p.style.cssText = 'color:#aaa;font-size:0.85em;margin:0;';
+            p.textContent = 'All assigned';
+            panel.appendChild(p);
+        }
+        resetDrag();
+    });
+}
+function doRemoveEqLink(linkPk, jePk, name, eqType) {
+    fetch(eqLinkRemUrl(linkPk), {method: 'POST', headers: {'X-CSRFToken': csrf}})
+        .then(r => r.json()).then(data => {
+            if (!data.ok) return;
+            document.getElementById(`eq-chip-${currentTab}-${linkPk}`)?.remove();
+            addEqToPanel(jePk, name, eqType);
+            resetDrag();
+        });
+}
+function removeEqLink(linkPk, jePk, name, eqType) { doRemoveEqLink(linkPk, jePk, name, eqType); }
+
+function addEqChipToVehicle(jvPk, linkPk, jePk, name, eqType) {
+    const zone = document.getElementById(`vdrop-${currentTab}-${jvPk}`);
+    if (!zone) return;
+    const safeName = name.replace(/'/g, "\\'");
+    const safeType = (eqType || '').replace(/'/g, "\\'");
+    const span = document.createElement('span');
+    span.id = `eq-chip-${currentTab}-${linkPk}`;
+    span.dataset.linkPk = linkPk; span.dataset.jePk = jePk;
+    span.dataset.name = name; span.dataset.type = eqType || '';
+    span.draggable = true;
+    span.style.cssText = 'display:inline-flex;align-items:center;gap:3px;background:#5b6f3a;color:white;border-radius:10px;padding:2px 7px;font-size:0.75em;cursor:grab;';
+    const typeLabel = eqType ? ` <span style="opacity:0.7;font-size:0.85em;">(${eqType})</span>` : '';
+    span.innerHTML = `${name}${typeLabel} <button type="button" onclick="removeEqLink(${linkPk},${jePk},'${safeName}','${safeType}')" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1em;padding:0;line-height:1;">×</button>`;
+    span.ondragstart = e => onEqChipDragStart(e, span);
+    const firstPerson = zone.querySelector('[id^="alloc-chip-"]');
+    if (firstPerson) zone.insertBefore(span, firstPerson);
+    else zone.appendChild(span);
+}
+
+// ── Travel panel helpers ──────────────────────────────────
+function removePersonFromPanel(name) {
+    const panel = document.getElementById(`unallocated-panel-${currentTab}`);
+    panel.querySelectorAll('.person-chip').forEach(el => { if (el.dataset.name === name) el.remove(); });
+    if (!panel.querySelector('.person-chip') && !panel.querySelector('.all-allocated-msg')) {
+        const p = document.createElement('p');
+        p.className = 'all-allocated-msg';
+        p.style.cssText = 'color:#aaa;font-size:0.85em;margin:0;';
+        p.textContent = 'All allocated';
+        panel.appendChild(p);
+    }
+}
+function addPersonToPanel(name) {
+    const panel = document.getElementById(`unallocated-panel-${currentTab}`);
+    panel.querySelector('.all-allocated-msg')?.remove();
+    const span = document.createElement('span');
+    span.className = 'person-chip'; span.dataset.name = name;
+    span.draggable = true;
+    span.style.cssText = 'display:inline-flex;align-items:center;background:#e8f0f8;color:#1a3a5c;border-radius:10px;padding:3px 8px;font-size:0.78em;cursor:grab;user-select:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+    span.textContent = name;
+    span.ondragstart = e => onPersonDragStart(e, span);
+    const afterPerson = [...panel.querySelectorAll('.person-chip')].find(c => c.dataset.name.localeCompare(name) > 0);
+    if (afterPerson) panel.insertBefore(span, afterPerson);
+    else panel.appendChild(span);
+}
+function addEqToPanel(jePk, name, eqType) {
+    const panel = document.getElementById(`unassigned-eq-panel-${currentTab}`);
+    panel.querySelector('.all-eq-assigned-msg')?.remove();
+    const span = document.createElement('span');
+    span.className = 'eq-panel-chip';
+    span.dataset.jePk = jePk; span.dataset.name = name; span.dataset.type = eqType || '';
+    span.draggable = true;
+    span.style.cssText = 'display:inline-flex;align-items:center;background:#eef2e8;color:#3a4a24;border-radius:12px;padding:5px 12px;font-size:0.85em;cursor:grab;user-select:none;';
+    const typeLabel = eqType ? ` <span style="opacity:0.6;font-size:0.85em;">(${eqType})</span>` : '';
+    span.innerHTML = `${name}${typeLabel}`;
+    span.ondragstart = e => onEqDragStart(e, span);
+    const afterEq = [...panel.querySelectorAll('.eq-panel-chip')].find(c => c.dataset.name.localeCompare(name) > 0);
+    if (afterEq) panel.insertBefore(span, afterEq);
+    else panel.appendChild(span);
+}
+function returnAllPersonnel() {
+    const tabPanel = document.getElementById(`tab-panel-${currentTab}`);
+    [...tabPanel.querySelectorAll('.alloc-vehicle [id^="alloc-chip-"]')].forEach(chip => {
+        doRemovePersonAlloc(+chip.dataset.allocPk, chip.dataset.name, true);
+    });
+}
+function returnAllEquipment() {
+    const tabPanel = document.getElementById(`tab-panel-${currentTab}`);
+    [...tabPanel.querySelectorAll('.alloc-vehicle [id^="eq-chip-"]')].forEach(chip => {
+        doRemoveEqLink(+chip.dataset.linkPk, +chip.dataset.jePk, chip.dataset.name, chip.dataset.type);
+    });
+}
+
+// ── Equipment Allocation drag starts ─────────────────────
+function onEaEqDragStart(e, el) {
+    dragType = 'ea_eq'; dragJePk = +el.dataset.jePk;
+    dragName = el.dataset.name; dragJeType = el.dataset.type;
+    e.dataTransfer.effectAllowed = 'move';
+}
+function onEaChipDragStart(e, el) {
+    dragType = 'ea_chip'; dragEaAllocPk = +el.dataset.allocPk;
+    dragJePk = +el.dataset.jePk; dragName = el.dataset.name; dragJeType = el.dataset.type;
+    dragSourcePersonName = el.closest('.ea-person-box')?.dataset?.personName || null;
+    e.dataTransfer.effectAllowed = 'move';
+    e.stopPropagation();
+}
+
+// ── Equipment Allocation drop on person box ───────────────
+function onPersonBoxDrop(e, personName) {
+    e.preventDefault();
+    e.currentTarget.style.borderColor = '#c5d5e8';
+    if (dragType === 'ea_eq') {
+        doEaAssign(dragJePk, dragName, dragJeType, personName);
+    } else if (dragType === 'ea_chip') {
+        if (dragSourcePersonName === personName) return;
+        doEaRemove(dragEaAllocPk, dragJePk, dragName, dragJeType, false);
+        doEaAssign(dragJePk, dragName, dragJeType, personName);
+    }
+}
+
+// ── Equipment Allocation drop back to panel ───────────────
+function onEaPanelDrop(e) {
+    e.preventDefault();
+    if (dragType === 'ea_chip') doEaRemove(dragEaAllocPk, dragJePk, dragName, dragJeType, true);
+}
+
+// ── Equipment Allocation API ──────────────────────────────
+function doEaAssign(jePk, name, eqType, personName) {
+    fetch(eaAddUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({je_pk: jePk, person_name: personName}),
+    }).then(r => r.json()).then(data => {
+        if (!data.ok) return;
+        // Remove from panel if present
+        document.querySelector(`#ea-unassigned-panel [data-je-pk="${jePk}"]`)?.remove();
+        const panel = document.getElementById('ea-unassigned-panel');
+        if (!panel.querySelector('.ea-eq-chip') && !panel.querySelector('.ea-all-assigned-msg')) {
+            const p = document.createElement('p');
+            p.className = 'ea-all-assigned-msg';
+            p.style.cssText = 'color:#aaa;font-size:0.85em;margin:0;';
+            p.textContent = 'All assigned';
+            panel.appendChild(p);
+        }
+        addEaChipToPerson(personName, data.alloc_pk, jePk, name, eqType);
+        resetDrag();
+    });
+}
+function doEaRemove(allocPk, jePk, name, eqType, returnToPanel) {
+    fetch(eaRemUrl(allocPk), {method: 'POST', headers: {'X-CSRFToken': csrf}})
+        .then(r => r.json()).then(data => {
+            if (!data.ok) return;
+            document.getElementById(`ea-chip-${allocPk}`)?.remove();
+            if (returnToPanel) addEaEqToPanel(jePk, name, eqType);
+            resetDrag();
+        });
+}
+function removeEaAlloc(allocPk, jePk, name, eqType) { doEaRemove(allocPk, jePk, name, eqType, true); }
+
+function addEaChipToPerson(personName, allocPk, jePk, name, eqType) {
+    // Find zone by slugified person name (matches Django |slugify)
+    const slug = personName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+    const zone = document.getElementById(`eadrop-${slug}`);
+    if (!zone) return;
+    const safeName = name.replace(/'/g, "\\'");
+    const safeType = (eqType || '').replace(/'/g, "\\'");
+    const span = document.createElement('span');
+    span.id = `ea-chip-${allocPk}`;
+    span.dataset.allocPk = allocPk; span.dataset.jePk = jePk;
+    span.dataset.name = name; span.dataset.type = eqType || '';
+    span.draggable = true;
+    span.style.cssText = 'display:inline-flex;align-items:center;gap:3px;background:#5b6f3a;color:white;border-radius:10px;padding:2px 7px;font-size:0.75em;cursor:grab;';
+    const typeLabel = eqType ? ` <span style="opacity:0.7;font-size:0.85em;">(${eqType})</span>` : '';
+    span.innerHTML = `${name}${typeLabel} <button type="button" onclick="removeEaAlloc(${allocPk},${jePk},'${safeName}','${safeType}')" style="background:none;border:none;color:rgba(255,255,255,0.7);cursor:pointer;font-size:1em;padding:0;line-height:1;">×</button>`;
+    span.ondragstart = e => onEaChipDragStart(e, span);
+    zone.appendChild(span);
+}
+function addEaEqToPanel(jePk, name, eqType) {
+    const panel = document.getElementById('ea-unassigned-panel');
+    panel.querySelector('.ea-all-assigned-msg')?.remove();
+    const span = document.createElement('span');
+    span.className = 'ea-eq-chip';
+    span.dataset.jePk = jePk; span.dataset.name = name; span.dataset.type = eqType || '';
+    span.draggable = true;
+    span.style.cssText = 'display:inline-flex;align-items:center;background:#eef2e8;color:#3a4a24;border-radius:12px;padding:5px 12px;font-size:0.85em;cursor:grab;user-select:none;';
+    const typeLabel = eqType ? ` <span style="opacity:0.6;font-size:0.85em;">(${eqType})</span>` : '';
+    span.innerHTML = `${name}${typeLabel}`;
+    span.ondragstart = e => onEaEqDragStart(e, span);
+    const afterEq = [...panel.querySelectorAll('.ea-eq-chip')].find(c => c.dataset.name.localeCompare(name) > 0);
+    if (afterEq) panel.insertBefore(span, afterEq);
+    else panel.appendChild(span);
+}
+function returnAllEaEquipment() {
+    [...document.querySelectorAll('.ea-person-box [id^="ea-chip-"]')].forEach(chip => {
+        doEaRemove(+chip.dataset.allocPk, +chip.dataset.jePk, chip.dataset.name, chip.dataset.type, true);
+    });
+}
+
+function resetDrag() {
+    dragType = null; dragName = null; dragAllocPk = null;
+    dragJePk = null; dragLinkPk = null; dragJeType = null; dragSourceJvPk = null;
+    dragEaAllocPk = null; dragSourcePersonName = null;
+}
+
+// ── Copy tab ──────────────────────────────────────────────
+function copyFromTab(toTab) {
+    const src = document.getElementById(`copy-from-${toTab}`).value;
+    const srcLabel = src.charAt(0).toUpperCase() + src.slice(1);
+    const dstLabel = toTab.charAt(0).toUpperCase() + toTab.slice(1);
+    if (!confirm(`Copy allocations from ${srcLabel} → ${dstLabel}?\nThis will overwrite all ${dstLabel} allocations.`)) return;
+    fetch(copyTabUrl, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': csrf},
+        body: JSON.stringify({from_tab: src, to_tab: toTab}),
+    }).then(r => r.json()).then(data => {
+        if (!data.ok) return;
+        sessionStorage.setItem('allocTab', toTab);
+        location.reload();
+    });
+}
+
+// Restore active tab after reload
+window.addEventListener('DOMContentLoaded', () => {
+    const tab = sessionStorage.getItem('allocTab');
+    if (tab) { sessionStorage.removeItem('allocTab'); switchTab(tab); }
+});
+</script>
+{% endblock %}

@@ -1,0 +1,465 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div style="margin-bottom:6px;">
+    <a href="{% url 'node_stock_take' job.pk %}" style="color:#1a3a5c; text-decoration:none; font-size:0.9em;">← Node Stock Take — {{ job.job_number }}</a>
+</div>
+<div style="display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px;">
+    <div>
+        <h2 style="color:#1a3a5c; margin:0;">{{ session.get_session_type_display }} Scan</h2>
+        <div style="font-size:0.85em; color:#888; margin-top:2px;">{{ session.date|date:"d M Y" }}{% if session.label %} — {{ session.label }}{% endif %}</div>
+    </div>
+    <div style="display:flex; gap:20px; align-items:baseline;">
+        <div style="font-size:0.88em; color:#555;"><span id="total-mb" style="font-weight:bold; font-size:1.2em; color:#1a3a5c;">0</span> mega bins</div>
+        <div style="font-size:0.88em; color:#555;"><span id="total-crates" style="font-weight:bold; font-size:1.2em; color:#1a3a5c;">0</span> crates</div>
+        <div style="font-size:0.88em; color:#555;"><span id="total-count" style="font-weight:bold; font-size:1.2em; color:#1a3a5c;">0</span> nodes</div>
+    </div>
+</div>
+
+<!-- Scan Settings -->
+<div style="border:2px solid #c5d5e8; border-radius:10px; padding:16px 20px; background:#f8fafc; margin-bottom:24px;">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+        <div style="font-size:0.8em; font-weight:600; color:#1a3a5c; text-transform:uppercase; letter-spacing:0.05em;">Scan Settings</div>
+        <a href="{% url 'node_stock_take_session_csv' session.pk %}"
+           style="background:#217a3c; color:white; border-radius:6px; padding:5px 14px; font-size:0.82em; font-weight:600; text-decoration:none;">
+            &#8595; Save CSV
+        </a>
+    </div>
+    <div style="display:flex; gap:24px; align-items:stretch; flex-wrap:wrap;">
+        <div style="display:flex; flex-direction:column; justify-content:flex-end;">
+            <label style="font-size:0.8em; color:#555; display:block; margin-bottom:4px;">Nodes per Crate</label>
+            <input id="s-nodes-per-crate" type="number" value="{{ session.nodes_per_crate }}" min="1" max="999"
+                   style="width:80px; border:1px solid #c5d5e8; border-radius:6px; padding:7px 10px; font-size:1em; text-align:center; font-weight:600;">
+        </div>
+        <div style="display:flex; flex-direction:column; justify-content:flex-end;">
+            <label style="font-size:0.8em; color:#555; display:block; margin-bottom:4px;">Crates per Mega Bin</label>
+            <input id="s-crates-per-mb" type="number" value="{{ session.crates_per_mega_bin }}" min="1" max="999"
+                   style="width:80px; border:1px solid #c5d5e8; border-radius:6px; padding:7px 10px; font-size:1em; text-align:center; font-weight:600;">
+        </div>
+        <div style="display:flex; flex-direction:column; justify-content:flex-end;">
+            <label style="font-size:0.8em; color:#555; display:block; margin-bottom:4px;">Columns per Mega Bin</label>
+            <input id="s-crate-cols" type="number" value="{{ session.crate_columns }}" min="1" max="999"
+                   style="width:80px; border:1px solid #c5d5e8; border-radius:6px; padding:7px 10px; font-size:1em; text-align:center; font-weight:600;">
+        </div>
+        <div style="display:flex; flex-direction:column; justify-content:flex-end;">
+            <button onclick="saveSettings()" type="button"
+                    style="background:#1a3a5c; color:white; border:none; border-radius:6px; padding:8px 18px; font-size:0.88em; cursor:pointer; font-weight:600;">
+                Save
+            </button>
+        </div>
+        <!-- Watch List -->
+        <div style="border-left:1px solid #c5d5e8; padding-left:24px; display:flex; gap:10px; align-items:stretch; flex:1;">
+            <div style="display:flex; flex-direction:column;">
+                <label style="font-size:0.8em; color:#555; display:block; margin-bottom:4px;">Watch List <span style="font-weight:400; color:#888;">(one per line)</span></label>
+                <textarea id="s-watch-serials"
+                          style="flex:1; width:130px; border:1px solid #c5d5e8; border-radius:6px; padding:5px 8px; font-size:0.82em; font-family:monospace; resize:none; box-sizing:border-box; outline:none; min-height:108px;">{{ session.watch_serials }}</textarea>
+            </div>
+            <div style="display:flex; flex-direction:column; justify-content:flex-end;">
+                <label style="font-size:0.8em; color:#555; display:block; margin-bottom:4px;">Colour</label>
+                <input id="s-watch-color" type="color" value="{{ session.watch_color|default:'#ff8800' }}"
+                       style="width:50px; height:34px; border:1px solid #c5d5e8; border-radius:6px; padding:2px; cursor:pointer;">
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mega bins rendered here -->
+<div id="mega-bins-container"></div>
+
+<!-- Add Mega Bin -->
+<div style="margin-top:16px;">
+    <button id="add-mb-btn" onclick="addMegaBin()"
+            style="background:#1a3a5c; color:white; border:none; border-radius:8px; padding:10px 24px; font-size:0.95em; cursor:pointer; font-weight:600;">
+        + Add Mega Bin
+    </button>
+</div>
+
+<!-- Save indicator -->
+<div id="save-indicator" style="position:fixed; bottom:18px; right:22px; background:#1a3a5c; color:white; border-radius:8px; padding:7px 16px; font-size:0.85em; display:none; z-index:999; box-shadow:0 2px 10px rgba(0,0,0,0.2);">
+    Saving…
+</div>
+
+<script>
+const SESSION_DATA = {{ session_json|safe }};
+const CSRF = '{{ csrf_token }}';
+let NODES_PER_CRATE = SESSION_DATA.nodes_per_crate;
+let CRATES_PER_MB   = SESSION_DATA.crates_per_mega_bin;
+let CRATE_COLS      = SESSION_DATA.crate_columns;
+let WATCH_SET       = new Set(SESSION_DATA.watch_serials.map(s => s.trim()).filter(Boolean));
+let WATCH_COLOR     = SESSION_DATA.watch_color || '#ff8800';
+
+function contrastText(hex) {
+    // Returns '#000' or '#fff' depending on which contrasts better with hex bg
+    const c = hex.replace('#','');
+    const r = parseInt(c.length===3 ? c[0]+c[0] : c.slice(0,2), 16);
+    const g = parseInt(c.length===3 ? c[1]+c[1] : c.slice(2,4), 16);
+    const b = parseInt(c.length===3 ? c[2]+c[2] : c.slice(4,6), 16);
+    // Perceived luminance
+    const lum = 0.299*r + 0.587*g + 0.114*b;
+    return lum > 140 ? '#000000' : '#ffffff';
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let state = { megaBins: [] };
+
+function init() {
+    state.megaBins = SESSION_DATA.mega_bins.map(mb => ({
+        id: mb.id, name: mb.name,
+        crates: mb.crates.map(c => ({
+            id: c.id, name: c.name,
+            nodes: Object.assign({}, c.nodes), // slot → {id, serial}
+        })),
+    }));
+    renderAll();
+    updateTotal();
+    highlightDuplicates();
+    highlightNames();
+}
+
+// ── Rendering ──────────────────────────────────────────────────────────────
+function renderAll() {
+    const container = document.getElementById('mega-bins-container');
+    container.innerHTML = '';
+    state.megaBins.forEach(mb => container.appendChild(buildMegaBin(mb)));
+}
+
+function buildMegaBin(mb) {
+    const card = document.createElement('div');
+    card.id = `mb-${mb.id}`;
+    card.style.cssText = 'border:2px solid #1a3a5c; border-radius:12px; margin-bottom:24px; overflow:hidden;';
+
+    // Header
+    const header = document.createElement('div');
+    header.style.cssText = 'background:#1a3a5c; padding:10px 16px; display:flex; align-items:center; gap:12px;';
+    header.innerHTML = `
+        <span style="color:#c5d5e8; font-size:0.8em; font-weight:600; white-space:nowrap;">MEGA BIN</span>
+        <input class="mb-name-input" value="${mb.name}" data-mb-id="${mb.id}"
+               style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:5px;
+                      color:white; font-size:1em; font-weight:700; padding:4px 10px; width:140px; outline:none;"
+               onblur="saveMbName(${mb.id}, this.value)"
+               oninput="highlightNames()"
+               onkeydown="if(event.key==='Enter')this.blur()">
+        <span style="color:#c5d5e8; font-size:0.82em; margin-left:auto;">${nodeCount(mb)} nodes</span>
+        <button onclick="deleteMegaBin(${mb.id})"
+                style="background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.25); color:white;
+                       border-radius:5px; padding:3px 10px; font-size:0.8em; cursor:pointer;">Delete</button>`;
+    card.appendChild(header);
+
+    // Crate grid
+    const cols = Math.min(CRATE_COLS, mb.crates.length);
+    const grid = document.createElement('div');
+    grid.style.cssText = `display:grid; grid-template-columns:repeat(${cols},1fr); gap:1px; background:#c5d5e8; padding:1px;`;
+    mb.crates.forEach(c => grid.appendChild(buildCrate(c, mb.id)));
+    card.appendChild(grid);
+
+    return card;
+}
+
+function buildCrate(crate, mbId) {
+    const box = document.createElement('div');
+    box.id = `crate-${crate.id}`;
+    box.style.cssText = 'background:white; padding:8px 6px;';
+
+    // Crate name input
+    const nameWrap = document.createElement('div');
+    nameWrap.style.cssText = 'margin-bottom:6px;';
+    nameWrap.innerHTML = `
+        <input class="crate-name-input" value="${crate.name}" data-crate-id="${crate.id}"
+               style="width:100%; border:none; border-bottom:2px solid #1a3a5c; font-size:0.82em; font-weight:700;
+                      color:#1a3a5c; padding:2px 4px; outline:none; background:transparent; text-align:center; box-sizing:border-box;"
+               onblur="saveCrateName(${crate.id}, this.value)"
+               oninput="highlightNames()"
+               onkeydown="if(event.key==='Enter')this.blur()">`;
+    box.appendChild(nameWrap);
+
+    // Node slots
+    for (let slot = 1; slot <= NODES_PER_CRATE; slot++) {
+        const existing = crate.nodes[String(slot)];
+        const line = document.createElement('div');
+        line.style.cssText = 'display:flex; align-items:center; gap:3px; margin-bottom:2px;';
+        line.innerHTML = `
+            <span style="font-size:0.7em; color:#aaa; width:16px; text-align:right; flex-shrink:0;">${slot}</span>
+            <input id="node-${crate.id}-${slot}" type="text"
+                   data-crate-id="${crate.id}" data-slot="${slot}"
+                   data-saved="${existing ? existing.serial : ''}"
+                   value="${existing ? existing.serial : ''}"
+                   autocomplete="off" spellcheck="false"
+                   style="flex:1; border:none; border-bottom:1px solid ${existing ? '#c5d5e8' : '#eee'};
+                          font-family:monospace; font-size:0.78em; padding:2px 3px; outline:none;
+                          background:${existing ? '#f0f4f8' : 'white'}; color:#1a3a5c; min-width:0;">`;
+        box.appendChild(line);
+        const inp = line.querySelector('input');
+        inp.addEventListener('keydown', onNodeKeydown);
+        inp.addEventListener('blur', onNodeBlur);
+        inp.addEventListener('input', highlightDuplicates);
+    }
+
+    return box;
+}
+
+// ── In-flight save guard (prevents blur double-save after Enter) ───────────
+const _saving = new Set(); // keys: "crateId-slot"
+
+// ── Node input handlers ────────────────────────────────────────────────────
+function onNodeKeydown(e) {
+    if (e.key === 'Enter') {
+        e.preventDefault();
+        const inp = e.target;
+        const serial = inp.value.trim();
+        const crateId = parseInt(inp.dataset.crateId);
+        const slot = parseInt(inp.dataset.slot);
+        const key = `${crateId}-${slot}`;
+        _saving.add(key);
+        saveNode(crateId, slot, serial, inp).then(() => {
+            _saving.delete(key);
+            focusNext(inp);
+        });
+    }
+}
+
+function onNodeBlur(e) {
+    const inp = e.target;
+    const crateId = parseInt(inp.dataset.crateId);
+    const slot = parseInt(inp.dataset.slot);
+    const key = `${crateId}-${slot}`;
+    if (_saving.has(key)) return; // Enter already handling this slot
+    const serial = inp.value.trim();
+    if (serial !== inp.dataset.saved) {
+        saveNode(crateId, slot, serial, inp);
+    }
+}
+
+function saveNode(crateId, slot, serial, inp) {
+    showSaving(true);
+    return fetch(`/node-crates/${crateId}/scan/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify({serial_number: serial, slot: slot}),
+    })
+    .then(r => r.json())
+    .then(data => {
+        showSaving(false);
+        if (data.ok) {
+            inp.dataset.saved = serial;
+            inp.style.borderBottomColor = serial ? '#c5d5e8' : '#eee';
+            // Update state
+            const crate = findCrate(crateId);
+            if (crate) {
+                if (serial) crate.nodes[String(slot)] = {serial: serial};
+                else delete crate.nodes[String(slot)];
+                updateMbNodeCount(crate);
+            }
+            updateTotal();
+            highlightDuplicates();
+        } else {
+            inp.title = data.error || 'Error';
+            inp.style.outline = '2px solid #b30000';
+            setTimeout(() => { inp.style.outline = ''; inp.title = ''; }, 2500);
+        }
+    })
+    .catch(() => showSaving(false));
+}
+
+function focusNext(inp) {
+    const allInputs = Array.from(document.querySelectorAll('input[data-crate-id]'));
+    const idx = allInputs.indexOf(inp);
+    if (idx >= 0 && idx < allInputs.length - 1) {
+        allInputs[idx + 1].focus();
+        allInputs[idx + 1].select();
+    }
+}
+
+// ── Name saves ─────────────────────────────────────────────────────────────
+function saveMbName(mbId, name) {
+    if (!name.trim()) return;
+    const mb = state.megaBins.find(m => m.id === mbId);
+    if (mb) mb.name = name.trim();
+    fetch(`/node-mega-bins/${mbId}/rename/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify({name: name.trim()}),
+    });
+}
+
+function saveCrateName(crateId, name) {
+    if (!name.trim()) return;
+    fetch(`/node-crates/${crateId}/rename/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify({name: name.trim()}),
+    });
+}
+
+// ── Add / Delete mega bin ──────────────────────────────────────────────────
+function addMegaBin() {
+    const btn = document.getElementById('add-mb-btn');
+    btn.disabled = true;
+    fetch(`/node-stock-take-sessions/${SESSION_DATA.id}/mega-bins/add/`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json', 'X-CSRFToken': CSRF},
+        body: JSON.stringify({}),
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        if (data.ok) {
+            const mb = {id: data.id, name: data.name, crates: data.crates.map(c => ({
+                id: c.id, name: c.name, nodes: {},
+            }))};
+            state.megaBins.push(mb);
+            document.getElementById('mega-bins-container').appendChild(buildMegaBin(mb));
+            updateTotal();
+            highlightNames();
+            // Focus first slot of first crate
+            const first = document.querySelector(`#mb-${mb.id} input[data-crate-id]`);
+            if (first) first.focus();
+        }
+    })
+    .catch(() => { btn.disabled = false; });
+}
+
+function deleteMegaBin(mbId) {
+    if (!confirm('Delete this mega bin and all its node records?')) return;
+    fetch(`/node-mega-bins/${mbId}/delete/`, {
+        method: 'POST', headers: {'X-CSRFToken': CSRF},
+    })
+    .then(r => r.json())
+    .then(data => {
+        if (data.ok) {
+            state.megaBins = state.megaBins.filter(m => m.id !== mbId);
+            const el = document.getElementById(`mb-${mbId}`);
+            if (el) el.remove();
+            updateTotal();
+        }
+    });
+}
+
+// ── Helpers ────────────────────────────────────────────────────────────────
+function findCrate(crateId) {
+    for (const mb of state.megaBins)
+        for (const c of mb.crates)
+            if (c.id === crateId) return c;
+    return null;
+}
+
+function nodeCount(mb) {
+    return mb.crates.reduce((s, c) => s + Object.keys(c.nodes).length, 0);
+}
+
+function updateMbNodeCount(crate) {
+    for (const mb of state.megaBins) {
+        if (mb.crates.some(c => c.id === crate.id)) {
+            const header = document.querySelector(`#mb-${mb.id} .mb-name-input`);
+            if (header) {
+                const span = header.parentElement.querySelector('span:nth-child(3)');
+                if (span) span.textContent = nodeCount(mb) + ' nodes';
+            }
+            break;
+        }
+    }
+}
+
+function updateTotal() {
+    let nodes = 0, crates = 0, mbs = 0;
+    state.megaBins.forEach(mb => {
+        const mbNodes = nodeCount(mb);
+        nodes += mbNodes;
+        mb.crates.forEach(c => { if (Object.keys(c.nodes).length > 0) crates++; });
+        if (mbNodes > 0) mbs++;
+    });
+    document.getElementById('total-count').textContent = nodes;
+    document.getElementById('total-crates').textContent = crates;
+    document.getElementById('total-mb').textContent = mbs;
+}
+
+function showSaving(on) {
+    document.getElementById('save-indicator').style.display = on ? 'block' : 'none';
+}
+
+function isGenericMbName(n)    { return /^MB-\d+$/i.test(n.trim()); }
+function isGenericCrateName(n) { return /^C-\d+$/i.test(n.trim()); }
+
+function highlightNames() {
+    document.querySelectorAll('.mb-name-input').forEach(inp => {
+        const generic = isGenericMbName(inp.value);
+        inp.style.background = generic ? 'rgba(220,60,60,0.45)' : 'rgba(50,180,90,0.4)';
+        inp.style.border      = generic ? '1px solid rgba(255,120,120,0.6)' : '1px solid rgba(80,220,120,0.5)';
+    });
+    document.querySelectorAll('.crate-name-input').forEach(inp => {
+        const generic = isGenericCrateName(inp.value);
+        inp.style.background   = generic ? '#ffe8e8' : '#e6f9ee';
+        inp.style.borderBottom = generic ? '2px solid #e05555' : '2px solid #3dbb6a';
+    });
+}
+
+function highlightDuplicates() {
+    const inputs = Array.from(document.querySelectorAll('input[data-slot]'));
+    const freq = {};
+    inputs.forEach(inp => {
+        const s = inp.value.trim();
+        if (s) freq[s] = (freq[s] || 0) + 1;
+    });
+    inputs.forEach(inp => {
+        const s = inp.value.trim();
+        if (s && freq[s] > 1) {
+            // Duplicate — red, highest priority
+            inp.style.background = '#b30000';
+            inp.style.color = 'white';
+        } else if (s && WATCH_SET.has(s)) {
+            // On watch list
+            inp.style.background = WATCH_COLOR;
+            inp.style.color = contrastText(WATCH_COLOR);
+        } else if (s) {
+            inp.style.background = '#f0f4f8';
+            inp.style.color = '#1a3a5c';
+        } else {
+            inp.style.background = 'white';
+            inp.style.color = '#1a3a5c';
+        }
+    });
+}
+
+// Self-heal every 500ms
+setInterval(highlightDuplicates, 500);
+
+// ── Settings auto-save ─────────────────────────────────────────────────────
+let _settingsTimer = null;
+
+function saveSettings() {
+    const body = new URLSearchParams({
+        action: 'save_settings',
+        csrfmiddlewaretoken: CSRF,
+        nodes_per_crate:     document.getElementById('s-nodes-per-crate').value,
+        crates_per_mega_bin: document.getElementById('s-crates-per-mb').value,
+        crate_columns:       document.getElementById('s-crate-cols').value,
+        watch_serials:       document.getElementById('s-watch-serials').value,
+        watch_color:         document.getElementById('s-watch-color').value,
+    });
+    showSaving(true);
+    fetch(window.location.pathname, {method: 'POST', body})
+    .then(r => r.json())
+    .then(() => {
+        showSaving(false);
+        // Update live watch state
+        WATCH_COLOR = document.getElementById('s-watch-color').value;
+        WATCH_SET   = new Set(
+            document.getElementById('s-watch-serials').value
+                .split('\n').map(s => s.trim()).filter(Boolean)
+        );
+        highlightDuplicates();
+    })
+    .catch(() => showSaving(false));
+}
+
+function scheduleSettingsSave() {
+    clearTimeout(_settingsTimer);
+    _settingsTimer = setTimeout(saveSettings, 800);
+}
+
+document.getElementById('s-watch-serials').addEventListener('input', scheduleSettingsSave);
+document.getElementById('s-watch-color').addEventListener('input', scheduleSettingsSave);
+
+init();
+</script>
+
+{% endblock %}

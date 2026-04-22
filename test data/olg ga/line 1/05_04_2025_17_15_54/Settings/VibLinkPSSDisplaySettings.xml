@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tVibLinkPSSDisplaySettings xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <mPanel1>Frequency</mPanel1>
+  <mPanel2>FundamentalForce</mPanel2>
+  <mPanel3>PhaseError</mPanel3>
+  <mPanel4>THD</mPanel4>
+</tVibLinkPSSDisplaySettings>

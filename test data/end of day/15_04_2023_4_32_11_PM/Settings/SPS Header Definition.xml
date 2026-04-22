@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<tSPSHeaderDefinition xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <mInstrumentHeaders>
+    <tSPSHeader>
+      <Description>H400Type,Model,Polarity</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H401Crew name,Comment</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H402Sample int.,Record Length</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H403Number of channels</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H404Tape type,format,density</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H405Filter_alias Hz,dB pnt,slope</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H406Filter_notch Hz,-3dB points</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H407Filter_low Hz,dB pnt,slope</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H408Time delay, FTP-DOD app Y/N</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H409Multi component recording</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H410Aux. channel 1 contents</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H411Aux. channel 2 contents</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H412Aux. channel 3 contents</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H413Aux. channel 4 contents</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H414Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H415Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H416Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H417Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H418Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H419Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+  </mInstrumentHeaders>
+  <mReceiverHeaders>
+    <tSPSHeader>
+      <Description>H600Type,Model,Polarity</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H601Damping coeff,natural freq.</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H602Nunits,len(X),width(Y)</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H603Unit spacing X,Y</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H604Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H605Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H606Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H607Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H608Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+    <tSPSHeader>
+      <Description>H609Spare</Description>
+      <Value>;</Value>
+    </tSPSHeader>
+  </mReceiverHeaders>
+</tSPSHeaderDefinition>
