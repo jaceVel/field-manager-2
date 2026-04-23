@@ -2535,6 +2535,15 @@ def _build_report_ctx(report, include_pss_units=None, map_views=None):
         try:
             rx_df = _read_csv(rx_file.file.path)
             rx_df.columns = rx_df.columns.str.strip()
+            if 'Deployment_Time' in rx_df.columns:
+                _tz_r = _get_job_tz(report.job)
+                _dep_dt_r = (
+                    pd.to_datetime(rx_df['Deployment_Time'], dayfirst=False, errors='coerce', utc=True)
+                    .dt.tz_convert(_tz_r)
+                )
+                _day_start_r = pd.Timestamp(report.date, tz=_tz_r)
+                _day_end_r = pd.Timestamp(report.date + timedelta(days=1), tz=_tz_r)
+                rx_df = rx_df[(_dep_dt_r >= _day_start_r) & (_dep_dt_r < _day_end_r)]
             line_stats = []
             for line, grp in rx_df.groupby('Line', sort=True):
                 line_stats.append({'line': int(line) if line == int(line) else line,
