@@ -2619,7 +2619,8 @@ def _build_report_ctx(report, include_pss_units=None, map_views=None):
     def _save_map(m, slug, center=None, zoom=None, width=900, height=500):
         html_path = os.path.join(maps_dir, f'{slug}_{report.pk}.html')
         png_path  = os.path.join(maps_dir, f'{slug}_{report.pk}.png')
-        m.save(html_path)
+        if not os.path.exists(html_path):
+            m.save(html_path)
         extra_wait = 1500 if report.job.show_map_overlay else 0
         _map_to_png(html_path, png_path, width=width, height=height, center=center, zoom=zoom, extra_wait=extra_wait)
         return png_path if os.path.exists(png_path) else None

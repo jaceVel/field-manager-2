@@ -73,7 +73,8 @@
 </div>
 {% endif %}
 
-{% if report.report_type != 'supervisor' and shot_stats and shot_stats.production %}
+{% if report.report_type != 'supervisor' %}
+{% if shot_stats and shot_stats.production %}
 <!-- Production Summary -->
 <div class="no-break">
 <h2>Production Summary</h2>
@@ -115,6 +116,7 @@
 </table>
 {% endif %}
 </div>
+{% endif %}{# end Production Summary #}
 
 <!-- Shot Progress Map -->
 {% if progress_png %}
