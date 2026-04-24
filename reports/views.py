@@ -1487,6 +1487,58 @@ def report_detail(request, pk):
                 r.save(update_fields=['include_in_avg'])
             return redirect(f'/reports/{pk}/?tab=settings')
 
+        elif form_type == 'line_stats_override':
+            import json as _json
+            raw = request.POST.get('line_stats_json', '').strip()
+            try:
+                rows = _json.loads(raw)
+                if not isinstance(rows, list):
+                    raise ValueError
+                cleaned = []
+                for row in rows:
+                    cleaned.append({
+                        'line': row.get('line', ''),
+                        'start': row.get('start', ''),
+                        'end': row.get('end', ''),
+                        'shots': int(row.get('shots', 0)),
+                    })
+                report.line_stats_override = cleaned
+            except (ValueError, TypeError, KeyError):
+                report.line_stats_override = None
+            report.save(update_fields=['line_stats_override'])
+            return JsonResponse({'ok': True})
+
+        elif form_type == 'line_stats_override_reset':
+            report.line_stats_override = None
+            report.save(update_fields=['line_stats_override'])
+            return JsonResponse({'ok': True})
+
+        elif form_type == 'node_stats_override':
+            import json as _json
+            raw = request.POST.get('node_stats_json', '').strip()
+            try:
+                rows = _json.loads(raw)
+                if not isinstance(rows, list):
+                    raise ValueError
+                cleaned = []
+                for row in rows:
+                    cleaned.append({
+                        'line': row.get('line', ''),
+                        'start': row.get('start', ''),
+                        'end': row.get('end', ''),
+                        'nodes': int(row.get('nodes', 0)),
+                    })
+                report.node_stats_override = cleaned
+            except (ValueError, TypeError, KeyError):
+                report.node_stats_override = None
+            report.save(update_fields=['node_stats_override'])
+            return JsonResponse({'ok': True})
+
+        elif form_type == 'node_stats_override_reset':
+            report.node_stats_override = None
+            report.save(update_fields=['node_stats_override'])
+            return JsonResponse({'ok': True})
+
         elif form_type == 'activities':
             report.activities.all().delete()
             categories = request.POST.getlist('category')
@@ -1621,6 +1673,30 @@ def report_detail(request, pk):
         except Exception as e:
             debug_info['obslog_error'] = str(e)
 
+    if report.line_stats_override is not None:
+        override_lines = report.line_stats_override
+        override_production = sum(ls.get('shots', 0) for ls in override_lines)
+        if shot_stats is None:
+            shot_stats = {
+                'total': override_production,
+                'production': override_production,
+                'void': 0,
+                'status_counts': {},
+                'first_shot_time': None,
+                'last_shot_time': None,
+                'first_file': None,
+                'last_file': None,
+                'line_stats': override_lines,
+                'shot_intervals': [],
+                'line_stats_is_override': True,
+            }
+        else:
+            shot_stats['line_stats'] = override_lines
+            shot_stats['production'] = override_production
+            shot_stats['line_stats_is_override'] = True
+    elif shot_stats is not None:
+        shot_stats['line_stats_is_override'] = False
+
     # Parse rx_deployment
     rx_stats = None
     rx_df_cache = None
@@ -1695,6 +1771,14 @@ def report_detail(request, pk):
                 })
         except Exception:
             pass
+
+    if report.node_stats_override is not None:
+        override_nodes = report.node_stats_override
+        nodes_today = sum(ls.get('nodes', 0) for ls in override_nodes)
+        nodes_today_line_stats = override_nodes
+        nodes_today_is_override = True
+    else:
+        nodes_today_is_override = False
 
     # Job-level shot stats (reports up to and including this report's date)
     job_total_shots = 0
@@ -2458,6 +2542,7 @@ def report_detail(request, pk):
         'rx_deployed': rx_deployed,
         'nodes_today': nodes_today,
         'nodes_today_line_stats': nodes_today_line_stats,
+        'nodes_today_is_override': nodes_today_is_override,
         'rx_stats': rx_stats,
         'job_total_nodes': job_total_nodes or None,
         'nodes_remaining': nodes_remaining,
@@ -2529,6 +2614,15 @@ def _build_report_ctx(report, include_pss_units=None, map_views=None):
         except Exception:
             pass
 
+    if report.line_stats_override is not None:
+        override_lines = report.line_stats_override
+        override_production = sum(ls.get('shots', 0) for ls in override_lines)
+        if shot_stats is None:
+            shot_stats = {'production': override_production, 'void': 0, 'line_stats': override_lines, 'shot_intervals': []}
+        else:
+            shot_stats['line_stats'] = override_lines
+            shot_stats['production'] = override_production
+
     rx_stats = None
     rx_file = report_files.filter(file_type='rx_deployment').first()
     if rx_file:
@@ -2551,6 +2645,15 @@ def _build_report_ctx(report, include_pss_units=None, map_views=None):
             rx_stats = {'total': len(rx_df), 'line_stats': line_stats}
         except Exception:
             pass
+
+    if report.node_stats_override is not None:
+        override_nodes = report.node_stats_override
+        override_nodes_total = sum(ls.get('nodes', 0) for ls in override_nodes)
+        if rx_stats is None:
+            rx_stats = {'total': override_nodes_total, 'line_stats': override_nodes}
+        else:
+            rx_stats['line_stats'] = override_nodes
+            rx_stats['total'] = override_nodes_total
 
     job_total_shots = avg_shots_total = production_days = 0
     _ctx_shot_rows = []
@@ -3676,6 +3779,7 @@ def report_file_upload(request, pk):
     report = get_object_or_404(DailyReport, pk=pk)
     if request.method == 'POST':
         upload_method = request.POST.get('upload_method')
+        obslog_uploaded = False
 
         if upload_method == 'zip':
             f = request.FILES.get('zip_file')
@@ -3704,6 +3808,8 @@ def report_file_upload(request, pk):
                                         file=_ContentFile(data, name=fname),
                                         original_name=fname,
                                     )
+                                    if ftype == 'obslog':
+                                        obslog_uploaded = True
                                     break
                 except Exception:
                     pass
@@ -3718,15 +3824,31 @@ def report_file_upload(request, pk):
                 f = request.FILES.get(field)
                 if f:
                     ReportFile.objects.create(report=report, file_type=ftype, file=f, original_name=f.name)
+                    if ftype == 'obslog':
+                        obslog_uploaded = True
 
         elif upload_method == 'individual':
             for ftype in ['obslog', 'pss', 'cog']:
                 for f in request.FILES.getlist(ftype):
                     ReportFile.objects.create(report=report, file_type=ftype, file=f, original_name=f.name)
+                    if ftype == 'obslog':
+                        obslog_uploaded = True
 
         rx_file = request.FILES.get('rx_deployment')
+        rx_uploaded = False
         if rx_file:
             ReportFile.objects.create(report=report, file_type='rx_deployment', file=rx_file, original_name=rx_file.name)
+            rx_uploaded = True
+
+        save_fields = []
+        if obslog_uploaded and report.line_stats_override is not None:
+            report.line_stats_override = None
+            save_fields.append('line_stats_override')
+        if rx_uploaded and report.node_stats_override is not None:
+            report.node_stats_override = None
+            save_fields.append('node_stats_override')
+        if save_fields:
+            report.save(update_fields=save_fields)
 
     return redirect(f'/reports/{pk}/?tab=files')
 

@@ -457,6 +457,8 @@ class DailyReport(models.Model):
     photo_columns = models.IntegerField(default=2)
     last_line_in_ground = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
     last_station_in_ground = models.DecimalField(max_digits=10, decimal_places=2, null=True, blank=True)
+    line_stats_override = models.JSONField(null=True, blank=True)
+    node_stats_override = models.JSONField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
