@@ -205,20 +205,6 @@ def _add_map_legend(m, items):
     m.get_root().html.add_child(folium.Element(html))
 
 
-def _parse_map_views(request):
-    """Parse map center/zoom query params from request. Returns dict or None."""
-    views = {}
-    for key in ('progress', 'deployment', 'pss'):
-        try:
-            lat  = float(request.GET[f'{key}_lat'])
-            lng  = float(request.GET[f'{key}_lng'])
-            zoom = int(request.GET[f'{key}_zoom'])
-            views[key] = (lat, lng, zoom)
-        except (KeyError, ValueError):
-            pass
-    views['deployment_mode'] = request.GET.get('deployment_mode', 'alldays')
-    return views or None
-
 
 # --- Jobs ---
 
@@ -1477,7 +1463,6 @@ def report_detail(request, pk):
         elif form_type == 'shot_chart_toggle':
             report.include_shot_chart = request.POST.get('include_shot_chart') == '1'
             report.save(update_fields=['include_shot_chart'])
-            from django.http import JsonResponse
             return JsonResponse({'ok': True})
 
         elif form_type == 'avg_days':
@@ -1538,6 +1523,29 @@ def report_detail(request, pk):
             report.node_stats_override = None
             report.save(update_fields=['node_stats_override'])
             return JsonResponse({'ok': True})
+
+        elif form_type == 'pdf_deploy_mode':
+            mode = request.POST.get('mode', 'alldays')
+            if mode in ('alldays', 'patch'):
+                report.pdf_deploy_mode = mode
+                report.save(update_fields=['pdf_deploy_mode'])
+            return JsonResponse({'ok': True})
+
+        elif form_type == 'pdf_map_view_save':
+            key = request.POST.get('key', '')
+            if key in ('progress', 'deployment', 'pss'):
+                try:
+                    lat  = float(request.POST['lat'])
+                    lng  = float(request.POST['lng'])
+                    zoom = int(request.POST['zoom'])
+                    views = report.pdf_map_views or {}
+                    views[key] = [lat, lng, zoom]
+                    report.pdf_map_views = views
+                    report.save(update_fields=['pdf_map_views'])
+                    return JsonResponse({'ok': True})
+                except (KeyError, ValueError, TypeError):
+                    return JsonResponse({'ok': False})
+            return JsonResponse({'ok': False})
 
         elif form_type == 'activities':
             report.activities.all().delete()
@@ -2543,6 +2551,7 @@ def report_detail(request, pk):
         'nodes_today': nodes_today,
         'nodes_today_line_stats': nodes_today_line_stats,
         'nodes_today_is_override': nodes_today_is_override,
+        'pdf_deploy_mode': report.pdf_deploy_mode,
         'rx_stats': rx_stats,
         'job_total_nodes': job_total_nodes or None,
         'nodes_remaining': nodes_remaining,
@@ -2576,7 +2585,7 @@ def report_detail(request, pk):
     })
 
 
-def _build_report_ctx(report, include_pss_units=None, map_views=None):
+def _build_report_ctx(report, include_pss_units=None):
     """Build the shared context dict used by both PDF and Word export views."""
     report_files = report.files.all()
 
@@ -2726,7 +2735,8 @@ def _build_report_ctx(report, include_pss_units=None, map_views=None):
     SATELLITE = 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
     HIDE_CSS = '<style>body{margin:0;padding:0;}.leaflet-control-attribution{display:none!important;}</style>'
 
-    _map_views = map_views or {}
+    _map_views = report.pdf_map_views or {}
+    _deploy_mode = report.pdf_deploy_mode or 'alldays'
 
     def _save_map(m, slug, center=None, zoom=None, width=900, height=500):
         html_path = os.path.join(maps_dir, f'{slug}_{report.pk}.html')
@@ -2769,7 +2779,6 @@ def _build_report_ctx(report, include_pss_units=None, map_views=None):
     deployment_png = progress_png = None
     _sps_ff2 = report.job.sps_file if report.job.sps_file else None
     _rps_ff2 = report.job.rps_file if report.job.rps_file else None
-    _deploy_mode = (_map_views or {}).get('deployment_mode', 'alldays')
 
     # --- Deployment map (All Days mode) ---
     rx_file2 = report_files.filter(file_type='rx_deployment').first()
@@ -3327,7 +3336,7 @@ def report_pdf(request, pk):
         include_pss_units = [u.strip() for u in request.GET['pss_units'].split(',') if u.strip()]
     else:
         include_pss_units = None
-    ctx = _build_report_ctx(report, include_pss_units=include_pss_units, map_views=_parse_map_views(request))
+    ctx = _build_report_ctx(report, include_pss_units=include_pss_units)
     # Convert absolute image paths to file:// URIs so Playwright can load them
     from pathlib import Path
     for key in ('progress_png', 'deployment_png', 'active_patch_png', 'pie_charts_png', 'shot_chart_png'):
@@ -3459,7 +3468,7 @@ def report_word(request, pk):
         include_pss_units = [u.strip() for u in request.GET['pss_units'].split(',') if u.strip()]
     else:
         include_pss_units = None
-    ctx = _build_report_ctx(report, include_pss_units=include_pss_units, map_views=_parse_map_views(request))
+    ctx = _build_report_ctx(report, include_pss_units=include_pss_units)
     doc = Document()
 
     # Narrow margins

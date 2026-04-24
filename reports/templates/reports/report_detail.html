@@ -791,9 +791,9 @@ function calcDuration(input) {
 
     <!-- Export buttons -->
     <div style="text-align:right; margin-bottom:8px; display:flex; gap:8px; justify-content:flex-end;">
-        <button onclick="if(window._updateExportUrls) window._updateExportUrls(); var u=document.getElementById('pdfDownloadBtn').href; window.open(u+(u.includes('?')?'&':'?')+'inline=1','_blank');" class="btn" style="background:#555; color:white; font-size:0.85em;">&#128196; View PDF</button>
-        <a id="pdfDownloadBtn" href="{% url 'report_pdf' report.pk %}" onclick="if(window._updateExportUrls) window._updateExportUrls();" class="btn" style="background:#1a3a5c; color:white; font-size:0.85em;">&#8595; Download PDF</a>
-        <a id="wordDownloadBtn" href="{% url 'report_word' report.pk %}" onclick="if(window._updateExportUrls) window._updateExportUrls();" class="btn" style="background:#2b5797; color:white; font-size:0.85em;">&#8595; Download Word</a>
+        <button onclick="if(window._exportWithSavedMaps) window._exportWithSavedMaps(document.getElementById('pdfDownloadBtn').href, true);" class="btn" style="background:#555; color:white; font-size:0.85em;">&#128196; View PDF</button>
+        <a id="pdfDownloadBtn" href="{% url 'report_pdf' report.pk %}" onclick="event.preventDefault(); if(window._exportWithSavedMaps) window._exportWithSavedMaps(this.href, false);" class="btn" style="background:#1a3a5c; color:white; font-size:0.85em;">&#8595; Download PDF</a>
+        <a id="wordDownloadBtn" href="{% url 'report_word' report.pk %}" onclick="event.preventDefault(); if(window._exportWithSavedMaps) window._exportWithSavedMaps(this.href, false);" class="btn" style="background:#2b5797; color:white; font-size:0.85em;">&#8595; Download Word</a>
     </div>
 
     <!-- Report Header -->
@@ -1218,7 +1218,7 @@ function calcDuration(input) {
     </div>
     {% if active_patch_map_html %}
     <script>
-    var _deployMode = 'alldays';
+    var _deployMode = '{{ report.pdf_deploy_mode|default:"alldays" }}';
     function setDeployMode(mode) {
         _deployMode = mode;
         var iframe = document.getElementById('deploymentMapIframe');
@@ -1237,9 +1237,31 @@ function calcDuration(input) {
             btnAll.style.background = '#eee'; btnAll.style.color = '#333';
             legAll.style.display = 'none'; legPatch.style.display = 'flex';
         }
-        if (window._updateExportUrls) window._updateExportUrls();
+        // Persist mode to DB so PDF uses it
+        var fd = new FormData();
+        fd.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+        fd.append('form_type', 'pdf_deploy_mode');
+        fd.append('mode', mode);
+        fetch(window.location.pathname, { method: 'POST', body: fd }).catch(function(){});
+        // Re-attach moveend save after iframe reloads
+        if (window._attachMoveEndSave) window._attachMoveEndSave('deploymentMapIframe', 'deployment');
     }
     window._getDeployMode = function() { return _deployMode; };
+    // Set initial UI state to match saved DB value
+    (function() {
+        if (_deployMode === 'patch') {
+            var btnAll = document.getElementById('btn-mode-alldays');
+            var btnPatch = document.getElementById('btn-mode-patch');
+            var iframe = document.getElementById('deploymentMapIframe');
+            var legAll = document.getElementById('deploy-legend-alldays');
+            var legPatch = document.getElementById('deploy-legend-patch');
+            if (btnAll) { btnAll.style.background = '#eee'; btnAll.style.color = '#333'; }
+            if (btnPatch) { btnPatch.style.background = '#1a3a5c'; btnPatch.style.color = 'white'; }
+            if (iframe) iframe.src = '{{ active_patch_map_html }}';
+            if (legAll) legAll.style.display = 'none';
+            if (legPatch) legPatch.style.display = 'flex';
+        }
+    })();
     </script>
     {% endif %}
     {% endif %}
@@ -1523,6 +1545,63 @@ function calcDuration(input) {
 
 <!-- Tab: QC -->
 <div id="tab-pane-qc" class="tab-pane" style="display:block; height:0; overflow:hidden;">
+<script>
+(function() {
+    var CSRF_TOKEN = '{{ csrf_token }}';
+
+    function _postMapView(key, view) {
+        if (!view) return Promise.resolve();
+        try {
+            var fd = new FormData();
+            fd.append('csrfmiddlewaretoken', CSRF_TOKEN);
+            fd.append('form_type', 'pdf_map_view_save');
+            fd.append('key', key);
+            fd.append('lat', view.lat.toFixed(6));
+            fd.append('lng', view.lng.toFixed(6));
+            fd.append('zoom', view.zoom);
+            return fetch(window.location.pathname, { method: 'POST', body: fd }).catch(function(){});
+        } catch(e) { return Promise.resolve(); }
+    }
+
+    function attachMoveEndSave(iframeId, key) {
+        var iframe = document.getElementById(iframeId);
+        if (!iframe) return;
+        iframe.addEventListener('load', function() {
+            setTimeout(function() {
+                try {
+                    var iWin = iframe.contentWindow;
+                    for (var k in iWin) {
+                        try {
+                            var obj = iWin[k];
+                            if (obj && typeof obj.setView === 'function' && typeof obj.getCenter === 'function') {
+                                obj.on('moveend', function() {
+                                    try {
+                                        var c = obj.getCenter();
+                                        _postMapView(key, { lat: c.lat, lng: c.lng, zoom: obj.getZoom() });
+                                    } catch(e) {}
+                                });
+                                break;
+                            }
+                        } catch(e) {}
+                    }
+                } catch(e) {}
+            }, 500);
+        });
+    }
+
+    window._attachMoveEndSave = attachMoveEndSave;
+    attachMoveEndSave('progressMapIframe', 'progress');
+    attachMoveEndSave('deploymentMapIframe', 'deployment');
+
+    window._exportWithSavedMaps = function(targetUrl, openInline) {
+        if (openInline) {
+            window.open(targetUrl + (targetUrl.includes('?') ? '&' : '?') + 'inline=1', '_blank');
+        } else {
+            window.location.href = targetUrl;
+        }
+    };
+})();
+</script>
 {% if pss_qc_maps_by_unit %}
 {% for unit_set in pss_qc_maps_by_unit %}
 <div style="border:1px solid #ddd; border-radius:6px; padding:12px 20px 16px; margin-bottom:16px;">
@@ -1614,55 +1693,9 @@ function calcDuration(input) {
             .map(function(cb) { return cb.dataset.unit; });
     }
 
-    function getIframeMapView(iframeId) {
-        try {
-            var iframe = document.getElementById(iframeId);
-            if (!iframe || !iframe.contentWindow) return null;
-            var iWin = iframe.contentWindow;
-            for (var k in iWin) {
-                try {
-                    var obj = iWin[k];
-                    if (obj && typeof obj.setView === 'function' && typeof obj.getCenter === 'function') {
-                        var c = obj.getCenter();
-                        return { lat: c.lat, lng: c.lng, zoom: obj.getZoom() };
-                    }
-                } catch(e) {}
-            }
-        } catch(e) {}
-        return null;
-    }
-
     function updateExportUrls() {
         var units = getCheckedUnits();
-        var params = [];
-        params.push('pss_units=' + encodeURIComponent(units.join(',')));
-
-        var pv = getIframeMapView('progressMapIframe');
-        if (pv) {
-            params.push('progress_lat=' + pv.lat.toFixed(6));
-            params.push('progress_lng=' + pv.lng.toFixed(6));
-            params.push('progress_zoom=' + pv.zoom);
-        }
-        var dv = getIframeMapView('deploymentMapIframe');
-        if (dv) {
-            params.push('deployment_lat=' + dv.lat.toFixed(6));
-            params.push('deployment_lng=' + dv.lng.toFixed(6));
-            params.push('deployment_zoom=' + dv.zoom);
-        }
-        if (window._getDeployMode && window._getDeployMode() === 'patch') {
-            params.push('deployment_mode=patch');
-        }
-        // Capture PSS view from first leader iframe (all PSS maps share same area)
-        var firstLeader = document.querySelector('[id^="pssLeader_"]');
-        if (firstLeader) {
-            var psv = getIframeMapView(firstLeader.id);
-            if (psv) {
-                params.push('pss_lat=' + psv.lat.toFixed(6));
-                params.push('pss_lng=' + psv.lng.toFixed(6));
-                params.push('pss_zoom=' + psv.zoom);
-            }
-        }
-
+        var params = ['pss_units=' + encodeURIComponent(units.join(','))];
         var suffix = params.length ? '?' + params.join('&') : '';
         var pdf  = document.getElementById('pdfDownloadBtn');
         var word = document.getElementById('wordDownloadBtn');
@@ -1670,7 +1703,6 @@ function calcDuration(input) {
         if (word) word.href = BASE_WORD + suffix;
     }
 
-    // Expose globally so download buttons can call it at click time
     window._updateExportUrls = updateExportUrls;
 
     function saveState() {
